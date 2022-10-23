@@ -95,7 +95,7 @@ public class MeshBuilder : IMeshBuilder
                 ? (xEnd - xStart) / nx 
                 : (xEnd - xStart) * (1 - kx) / (1 - Math.Pow(kx, nx));
 
-            for (int i = 0; i < nx + 1; i++)
+            for (var i = 0; i < nx + 1; i++)
             {
                 wellsXPoints.Add(xEnd);
                 xEnd -= hx;
