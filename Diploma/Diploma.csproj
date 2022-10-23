@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net6.0-windows</TargetFramework>
+        <Nullable>enable</Nullable>
+        <UseWPF>true</UseWPF>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Folder Include="Source\FEM" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.2-beta2" />
+      <PackageReference Include="SharpGL" Version="3.1.1" />
+      <PackageReference Include="SharpGL.WPF" Version="3.1.1" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <Using Include="System" />
+        <Using Include="System.IO" />
+        <Using Include="System.Linq" />
+        <Using Include="System.Collections.Generic" />
+        <Using Include="Newtonsoft.Json" />
+        <Using Include="Newtonsoft.Json.Linq" />
+        <Using Include="SharpGL" />
+        <Using Include="SharpGL.WPF" />
+        <Using Include="Diploma.Source.Geometry" />
+        <Using Include="Diploma.Source.Interfaces" />
+        <Using Include="Diploma.Source.Mesh" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <None Update="Input\DomainXY.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Input\MeshXY.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Input\Phases.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Input\Wells.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Output\Mesh.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+</Project>

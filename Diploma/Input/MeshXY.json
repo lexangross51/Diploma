@@ -1,0 +1,8 @@
+{
+  "MeshNx": 100,
+  "MeshNy": 100,
+  "WellNx": 16,
+  "WellNy": 16,
+  "WellKx": 1.1,
+  "WellKy": 1.1
+}

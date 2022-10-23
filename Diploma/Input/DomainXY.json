@@ -1,0 +1,16 @@
+﻿{
+  "Area borders" : {
+    "Left border" : 0,
+    "Right border" : 100,
+    "Bottom border": 0,
+    "Top border": 100
+  },
+  "Material": {
+    "Permeability": 1,
+    "Porosity": 1
+  },
+  "Property" : {
+    "Saturation": 1
+  },
+  "Plast pressure" : 100
+}
