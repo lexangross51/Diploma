@@ -8,10 +8,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Source\FEM" />
-    </ItemGroup>
-
-    <ItemGroup>
       <PackageReference Include="Newtonsoft.Json" Version="13.0.2-beta2" />
       <PackageReference Include="SharpGL" Version="3.1.1" />
       <PackageReference Include="SharpGL.WPF" Version="3.1.1" />
@@ -23,6 +19,7 @@
         <Using Include="System.Linq" />
         <Using Include="System.Collections.Immutable" />
         <Using Include="System.Collections.Generic" />
+        <Using Include="System.Diagnostics" />
         <Using Include="Newtonsoft.Json" />
         <Using Include="Newtonsoft.Json.Linq" />
         <Using Include="SharpGL" />
@@ -30,6 +27,8 @@
         <Using Include="Diploma.Source.Geometry" />
         <Using Include="Diploma.Source.Interfaces" />
         <Using Include="Diploma.Source.Mesh" />
+        <Using Include="Diploma.Source.FEM" />
+        <Using Include="Diploma.Source.MathClasses" />
     </ItemGroup>
     
     <ItemGroup>
