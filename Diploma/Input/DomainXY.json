@@ -1,9 +1,9 @@
 ﻿{
   "Area borders" : {
     "Left border" : 0,
-    "Right border" : 100,
+    "Right border" : 10,
     "Bottom border": 0,
-    "Top border": 100
+    "Top border": 10
   },
   "Material": {
     "Permeability": 1,

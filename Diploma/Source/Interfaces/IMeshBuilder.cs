@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
-using Diploma.Source.Geometry;
-using Diploma.Source.Mesh;
-
-namespace Diploma.Source.Interfaces;
+﻿namespace Diploma.Source.Interfaces;
 
 public interface IMeshBuilder
 {
     IEnumerable<Point2D> CreatePoints();
     IEnumerable<FiniteElement> CreateElements();
+    IEnumerable<DirichletCondition> CreateDirichlet();
+    IEnumerable<NeumannCondition> CreateNeumann();
+    IEnumerable<Material> CreateMaterials();
+    IEnumerable<double>? CreateProperties();
+    IEnumerable<double> CreateViscosities();
 }

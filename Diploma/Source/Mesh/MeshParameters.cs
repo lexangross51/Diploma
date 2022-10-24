@@ -91,18 +91,17 @@ public class Well
     public Well(Point2D center, double radius, double power)
         => (Center, Radius, Power) = (center, radius, power);
 
-    public static Well[] ReadJson(string jsonPath)
+    public static Well[]? ReadJson(string jsonPath)
     {
         try
         {
             if (!File.Exists(jsonPath))
             {
-                throw new Exception("File doesn't exist\n");
+                throw new Exception("File doesn't exist");
             }
 
             using var sr = new StreamReader(jsonPath);
-            return JsonConvert.DeserializeObject<Well[]>(sr.ReadToEnd()) ??
-                   throw new NullReferenceException("Fill in the file correctly\n");
+            return JsonConvert.DeserializeObject<Well[]>(sr.ReadToEnd()) ?? null;
         }
         catch (Exception e)
         {
@@ -124,11 +123,12 @@ public readonly record struct SplitParameters
     public int WellNy { get; init; }
     public double WellKx { get; init; }
     public double WellKy { get; init; }
+    public int Nesting { get; init; }
     
     public static SplitParameters ReadJson(string path)
     {
         using var sr = new StreamReader(path);
-        return JsonConvert.DeserializeObject<SplitParameters>(sr.ReadToEnd()); ;
+        return JsonConvert.DeserializeObject<SplitParameters>(sr.ReadToEnd());
     }
 
     public static void WriteJson(SplitParameters parameters, string path)
@@ -145,8 +145,8 @@ public class MeshParameters
     public List<double> Viscosities { get; }
     public SplitParameters SplitParameters { get; }
 
-    public MeshParameters(DomainXY area, Well[] wells, double[] viscosities, SplitParameters parameters)
-        => (Area, Wells, Viscosities, SplitParameters) = (area, wells, viscosities.ToList(), parameters);
+    public MeshParameters(DomainXY area, Well[]? wells, double[] viscosities, SplitParameters parameters)
+        => (Area, Wells, Viscosities, SplitParameters) = (area, wells ?? Array.Empty<Well>(), viscosities.ToList(), parameters);
 
     public static MeshParameters ReadJson(string folderName)
     {
