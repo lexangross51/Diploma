@@ -32,14 +32,14 @@ public class SquareMatrix
         return newMatrix;
     }
 
-    public static IEnumerable<double> operator *(SquareMatrix matrix, double[] vector)
+    public static IEnumerable<double> operator *(SquareMatrix matrix, Vector vector)
     {
         if (matrix.Size != vector.Length)
         {
             throw new Exception("Numbers of columns not equal to size of vector");
         }
 
-        var product = new double[vector.Length];
+        Vector product = new(vector.Length);
 
         for (int i = 0; i < matrix.Size; i++)
         {
@@ -75,9 +75,9 @@ public class SparseMatrix
         Di = new double[size];
     }
 
-    public static double[] operator *(SparseMatrix matrix, double[] vector)
+    public static Vector operator *(SparseMatrix matrix, Vector vector)
     {
-        var product = new double[vector.Length];
+        Vector product = new (vector.Length);
 
         for (int i = 0; i < vector.Length; i++)
         {
