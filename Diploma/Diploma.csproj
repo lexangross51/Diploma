@@ -18,6 +18,7 @@
         <Using Include="System.IO" />
         <Using Include="System.Linq" />
         <Using Include="System.Collections.Immutable" />
+		<Using Include="System.Collections" />
         <Using Include="System.Collections.Generic" />
         <Using Include="System.Diagnostics" />
         <Using Include="Newtonsoft.Json" />
