@@ -4,8 +4,8 @@ public abstract class IterativeSolver
 {
     protected TimeSpan? _runningTime;
     protected SparseMatrix _matrix = default!;
-    protected Vector _vector = default!;
-    protected Vector? _solution;
+    protected double[] _vector = default!;
+    protected double[]? _solution;
 
     public int MaxIters { get; }
     public double Eps { get; }
@@ -15,15 +15,15 @@ public abstract class IterativeSolver
     protected IterativeSolver(int maxIters, double eps)
         => (MaxIters, Eps) = (maxIters, eps);
 
-    public void SetSystem(SparseMatrix matrix, Vector vector)
+    public void SetSystem(SparseMatrix matrix, double[] vector)
         => (_matrix, _vector) = (matrix, vector);
 
     public abstract void Compute();
 
-    protected Vector Direct(Vector vector, double[] gglnew, double[] dinew)
+    protected double[] Direct(double[] vector, double[] gglnew, double[] dinew)
     {
-        Vector y = new (vector.Length);
-        Vector.Copy(vector, y);
+        var y = new double[vector.Length];
+        Array.Copy(vector, y, vector.Length);
 
         double sum = 0.0;
 
@@ -42,10 +42,10 @@ public abstract class IterativeSolver
         return y;
     }
 
-    protected Vector Reverse(Vector vector, double[] ggunew)
+    protected double[] Reverse(double[] vector, double[] ggunew)
     {
-        Vector result = new (vector.Length);
-        Vector.Copy(vector, result);
+        var result = new double[vector.Length];
+        Array.Copy(vector, result, vector.Length);
 
         for (int i = _matrix.Size - 1; i >= 0; i--)
         {
@@ -123,7 +123,7 @@ public class LOSLU : IterativeSolver
             ArgumentNullException.ThrowIfNull(_matrix, $"{nameof(_matrix)} cannot be null, set the matrix");
             ArgumentNullException.ThrowIfNull(_vector, $"{nameof(_vector)} cannot be null, set the vector");
 
-            _solution = new(_vector.Length);
+            _solution = new double[_vector.Length];
 
             double[] gglnew = new double[_matrix.GGl.Length];
             double[] ggunew = new double[_matrix.GGu.Length];
