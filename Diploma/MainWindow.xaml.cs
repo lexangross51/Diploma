@@ -3,12 +3,25 @@
 public partial class MainWindow
 {
     private readonly Mesh _mesh;
+    FEMBuilder.FEM _fem;
     private readonly double _xMin, _xMax, _yMin, _yMax; 
     
     public MainWindow()
     {
         MeshGenerator meshGenerator = new(new MeshBuilder(MeshParameters.ReadJson("Input/")));
         _mesh = meshGenerator.CreateMesh();
+
+        FEMBuilder femBuilder = new();
+
+        double Field(double x, double y) => x*x + y;
+        double Source(double x, double y) => -2.0;
+
+        _fem = femBuilder
+            .SetMesh(_mesh)
+            .SetBasis(new LinearBasis())
+            .SetSolver(new LOSLU(1000, 1E-14))
+            .SetTest(Source, Field)
+            .Build();
         
         _xMin = _mesh.Points[0].X;
         _yMin = _mesh.Points[0].Y;

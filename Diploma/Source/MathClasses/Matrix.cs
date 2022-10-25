@@ -58,8 +58,8 @@ public class SquareMatrix
 
 public class SparseMatrix
 {
-    public int[] Ig { get; }
-    public int[] Jg { get; }
+    public int[] Ig { get; init; }
+    public int[] Jg { get; init; }
     public double[] Di { get; }
     public double[] GGl { get; }
     public double[] GGu { get; }
