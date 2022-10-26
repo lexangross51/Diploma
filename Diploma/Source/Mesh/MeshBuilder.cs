@@ -1,6 +1,4 @@
-﻿using System.Configuration;
-
-namespace Diploma.Source.Mesh;
+﻿namespace Diploma.Source.Mesh;
 
 public class MeshBuilder : IMeshBuilder
 {
@@ -252,7 +250,7 @@ public class MeshBuilder : IMeshBuilder
         int ny = _yPoints.Count - 1;
         double pressure = _parameters.Area.PlastPressure;
         
-        List<DirichletCondition> dirichletConditions = new(2 * (nx + ny - 1));
+        List<DirichletCondition> dirichletConditions = new(2 * (nx + ny));
 
         // Нижняя граница
         for (int inode = 0; inode < nx + 1; inode++)
@@ -260,20 +258,20 @@ public class MeshBuilder : IMeshBuilder
             dirichletConditions.Add(new (inode, pressure));
         }
         
+        // Верхняя граница
+        for (int inode = (nx + 1) * ny; inode < (nx + 1) * (ny + 1); inode++)
+        {
+            dirichletConditions.Add(new (inode, pressure));
+        }
+        
         // Левая граница
-        for (int i = 0, inode = nx + 1; i < ny; i++, inode += nx + 1)
+        for (int i = 0, inode = nx + 1; i < ny - 1; i++, inode += nx + 1)
         {
             dirichletConditions.Add(new (inode, pressure));
         }
         
         // Правая граница
-        for (int i = 0, inode = 2 * nx + 1; i < ny; i++, inode += nx + 1)
-        {
-            dirichletConditions.Add(new (inode, pressure));
-        }
-        
-        // Верхняя граница
-        for (int inode = (nx + 1) * ny + 1; inode < (nx + 1) * (ny + 1); inode++)
+        for (int i = 0, inode = 2 * nx + 1; i < ny - 1; i++, inode += nx + 1)
         {
             dirichletConditions.Add(new (inode, pressure));
         }

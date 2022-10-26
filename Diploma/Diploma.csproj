@@ -17,6 +17,7 @@
         <Using Include="System" />
         <Using Include="System.IO" />
         <Using Include="System.Linq" />
+        <Using Include="System.Globalization" />
         <Using Include="System.Collections.Immutable" />
 		<Using Include="System.Collections" />
         <Using Include="System.Collections.Generic" />

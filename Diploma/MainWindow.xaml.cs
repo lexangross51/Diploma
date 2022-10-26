@@ -2,27 +2,89 @@
 
 public partial class MainWindow
 {
-    private readonly Mesh _mesh;
-    FEMBuilder.FEM _fem;
-    private readonly double _xMin, _xMax, _yMin, _yMax; 
+    public readonly struct Color
+    {
+        public byte R { get; }
+        public byte G { get; }
+        public byte B { get; }
+
+        public Color(byte r, byte g, byte b)
+            => (R, G, B) = (r, g, b);
+    }
     
+    private readonly Mesh _mesh;
+    private readonly Color[] _colors;
+    private readonly double _xMin, _xMax, _yMin, _yMax;
+
     public MainWindow()
     {
         MeshGenerator meshGenerator = new(new MeshBuilder(MeshParameters.ReadJson("Input/")));
         _mesh = meshGenerator.CreateMesh();
+        _colors = new Color[_mesh.Points.Length];
 
         FEMBuilder femBuilder = new();
 
-        double Field(double x, double y) => x*x + y;
-        double Source(double x, double y) => -2.0;
+        double Field(Point2D p) => p.X;
+        double Source(Point2D p) => 0.0;
 
-        _fem = femBuilder
+        var fem = femBuilder
             .SetMesh(_mesh)
             .SetBasis(new LinearBasis())
-            .SetSolver(new LOSLU(1000, 1E-14))
+            .SetSolver(new LOSLU(1000, 1E-13))
             .SetTest(Source, Field)
             .Build();
-        
+
+        fem.Solve();
+        Debug.Print(fem.Residual.ToString(CultureInfo.InvariantCulture));
+
+        var pressure = fem.Solution!.Value;
+        double pressMin = pressure.Min();
+        double pressMax = pressure.Max();
+
+        double stepPBig = (pressMax - pressMin) / 4.0;
+        double stepPSmall = stepPBig / 255.0;
+
+        foreach (var t in _mesh.Elements)
+        {
+            var nodes = t.Nodes;
+
+            double centerP = (pressure[nodes[0]] + pressure[nodes[1]] + pressure[nodes[2]] + pressure[nodes[3]]) / 4.0;
+
+            byte rColor, gColor, bColor;
+
+            if (centerP > pressMin + stepPBig * 3.0)
+            {
+                rColor = 255;
+                gColor = (byte)(255 - (centerP - (pressMin + stepPBig * 3.0)) / stepPSmall);
+                bColor = 0;
+            }
+            else if (centerP > pressMin + stepPBig * 2.0)
+            {
+                rColor = (byte)((centerP - (pressMin + stepPBig * 2.0)) / stepPSmall);
+                gColor = 255;
+                bColor = 0;
+            }
+            else if (centerP > pressMin + stepPBig)
+            {
+                byte tmp = (byte)((centerP - (pressMin + stepPBig)) / stepPSmall);
+                rColor = 0;
+                gColor = tmp;
+                bColor = (byte)(255 - tmp);
+            }
+            else
+            {
+                byte tmp = (byte)(76 - ((centerP - pressMin) / (stepPSmall * (255.0 / 76.0))));
+                rColor = tmp;
+                gColor = 0;
+                bColor = (byte)(255 - tmp);
+            }
+
+            _colors[nodes[0]] = new Color(rColor, gColor, bColor);
+            _colors[nodes[1]] = new Color(rColor, gColor, bColor);
+            _colors[nodes[2]] = new Color(rColor, gColor, bColor);
+            _colors[nodes[3]] = new Color(rColor, gColor, bColor);
+        }
+
         _xMin = _mesh.Points[0].X;
         _yMin = _mesh.Points[0].Y;
         var nx = _mesh.Elements[0].Nodes[2] - 2;
@@ -50,6 +112,40 @@ public partial class MainWindow
         OpenGL gl = args.OpenGL;
 
         gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT);
+        gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
+        gl.Color(1, 0, 0, 1);
+        gl.Begin(OpenGL.GL_QUADS);
+
+        foreach (var t in _mesh.Elements)
+        {
+            var nodes = t.Nodes;
+            var p1 = _mesh.Points[nodes[0]];
+            var c1 = _colors[nodes[0]];
+            
+            var p2 = _mesh.Points[nodes[1]];
+            var c2 = _colors[nodes[1]];
+            
+            var p3 = _mesh.Points[nodes[2]];
+            var c3 = _colors[nodes[2]];
+            
+            var p4 = _mesh.Points[nodes[3]];
+            var c4 = _colors[nodes[3]];
+            
+            gl.Color(c1.R, c1.G, c1.B);
+            gl.Vertex(p1.X, p1.Y);
+            
+            gl.Color(c2.R, c2.G, c2.B);
+            gl.Vertex(p2.X, p2.Y);
+            
+            gl.Color(c4.R, c4.G, c4.B);
+            gl.Vertex(p4.X, p4.Y);
+            
+            gl.Color(c3.R, c3.G, c3.B);
+            gl.Vertex(p3.X, p3.Y);
+        }
+
+        gl.End();
+        
         gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
         gl.Color(1, 0, 0, 1);
         gl.Begin(OpenGL.GL_QUADS);
@@ -61,7 +157,7 @@ public partial class MainWindow
             var p2 = _mesh.Points[nodes[1]];
             var p3 = _mesh.Points[nodes[2]];
             var p4 = _mesh.Points[nodes[3]];
-        
+            
             gl.Vertex(p1.X, p1.Y);
             gl.Vertex(p2.X, p2.Y);
             gl.Vertex(p4.X, p4.Y);

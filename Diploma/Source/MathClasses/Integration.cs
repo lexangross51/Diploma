@@ -44,7 +44,7 @@ public class Integration
             foreach (var jquad in _quadratures)
             {
                 double qj = jquad.Weight;
-                double pj = (leftBottom.Y + rightTop.X + jquad.Node * hy) / 2.0;
+                double pj = (leftBottom.Y + rightTop.Y + jquad.Node * hy) / 2.0;
 
                 sum += qi * qj * f(pi, pj);
             }

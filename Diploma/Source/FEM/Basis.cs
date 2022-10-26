@@ -1,10 +1,10 @@
 namespace Diploma.Source.FEM;
 
-public readonly record struct LinearBasis : IBasis
+public struct LinearBasis : IBasis
 {
     public int Size => 4;
 
-    public double Psi(int ifunc, Point2D point) =>
+    public double Phi(int ifunc, Point2D point) =>
         ifunc switch
         {
             0 => (1 - point.X) * (1 - point.Y),
@@ -14,7 +14,7 @@ public readonly record struct LinearBasis : IBasis
             _ => throw new ArgumentOutOfRangeException(nameof(ifunc), $"Not expected ifunc value: {ifunc}")
         };
 
-    public double DPsi(int ifunc, int ivar, Point2D point) =>
+    public double DPhi(int ifunc, int ivar, Point2D point) =>
         ivar switch
         {
             0 => ifunc switch

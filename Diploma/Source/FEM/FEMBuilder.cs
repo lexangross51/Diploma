@@ -1,40 +1,34 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Transactions;
-using System.Windows.Markup;
-
-namespace Diploma.Source.FEM;
+﻿namespace Diploma.Source.FEM;
 
 public class FEMBuilder
 {
     #region Класс МКЭ
 
-    public class FEM
+    public class Fem
     {
-        private readonly Mesh.Mesh _mesh = default!;
-        private readonly IBasis _basis = default!;
-        private readonly IterativeSolver _solver = default!;
-        private readonly Func<double, double, double> _source = default!;
-        private readonly Func<double, double, double>? _field;
+        private readonly Mesh.Mesh _mesh;
+        private readonly IBasis _basis;
+        private readonly IterativeSolver _solver;
+        private readonly Func<Point2D, double> _source;
+        private readonly Func<Point2D, double>? _field;
         private readonly Integration _gauss;
         private readonly SquareMatrix _stiffnessMatrix;
-        private readonly SquareMatrix _massMatrix;
+        private readonly SquareMatrix _precalcStiffnessX;
+        private readonly SquareMatrix _precalcStiffnessY;
+        private readonly SquareMatrix? _massMatrix;
         private readonly Vector _localB;
         private readonly SparseMatrix _globalMatrix;
         private readonly Vector _globalVector;
-        private readonly SquareMatrix _jacobian;
-        private readonly SquareMatrix _jacobianInverse;
-        private bool _isPhysical;
 
         public double Residual { get; private set; }
         public ImmutableArray<double>? Solution => _solver.Solution;
-
-
-        public FEM(
+        
+        public Fem(
             Mesh.Mesh mesh, 
             IBasis basis, 
             IterativeSolver solver,
-            Func<double, double, double> source,
-            Func<double, double, double>? field
+            Func<Point2D, double> source,
+            Func<Point2D, double>? field
         )
         {
             _mesh = mesh;
@@ -44,11 +38,11 @@ public class FEMBuilder
             _field = field;
 
             _gauss = new Integration(Quadratures.GaussOrder3());
-
-            _jacobian = new SquareMatrix(2);
-            _jacobianInverse = new SquareMatrix(2);
+            
             _stiffnessMatrix = new SquareMatrix(_basis.Size);
-            _massMatrix = new SquareMatrix(_basis.Size);
+            _precalcStiffnessX = new SquareMatrix(_basis.Size);
+            _precalcStiffnessY = new SquareMatrix(_basis.Size);
+            _massMatrix = _field is null ? null : new SquareMatrix(_basis.Size);
             _localB = new Vector(_basis.Size);
 
             PortraitBuilder.PortraitByNodes(_mesh, out int[] ig, out int[] jg);
@@ -58,9 +52,59 @@ public class FEMBuilder
                 Jg = jg
             };
 
-            _globalVector = new(ig.Length - 1);
+            _globalVector = new Vector(ig.Length - 1);
+            
+            // Считаем интегралы для матрицы жесткости и массы один раз
+            // Интегрируем на шаблоне
+            Rectangle omega = new(new Point2D(0, 0), new Point2D(1, 1));
 
-            _isPhysical = false;
+            for (int i = 0; i < _basis.Size; i++)
+            {
+                for (int j = 0; j <= i; j++)
+                {
+                    var i1 = i;
+                    var j1 = j;
+
+                    Func<double, double, double> function = (ksi, etta) =>
+                    {
+                        Point2D point = new(ksi, etta);
+
+                        double dphiiX = _basis.DPhi(i1, 0, point);
+                        double dphijX = _basis.DPhi(j1, 0, point);
+
+                        return dphiiX * dphijX;
+                    };
+
+                    _precalcStiffnessX[i, j] = _precalcStiffnessX[j, i] = _gauss.Integrate2D(function, omega);
+                    
+                    function = (ksi, etta) =>
+                    {
+                        Point2D point = new(ksi, etta);
+
+                        double dphiiY = _basis.DPhi(i1, 1, point);
+                        double dphijY = _basis.DPhi(j1, 1, point);
+
+                        return dphiiY * dphijY;
+                    };
+                    
+                    _precalcStiffnessY[i, j] = _precalcStiffnessY[j, i] = _gauss.Integrate2D(function, omega);
+
+                    if (_massMatrix is not null)
+                    {
+                        function = (ksi, etta) =>
+                        {
+                            Point2D point = new(ksi, etta);
+
+                            double phii = _basis.Phi(i1, point);
+                            double phij = _basis.Phi(j1, point);
+
+                            return phii * phij;
+                        };
+
+                        _massMatrix[i, j] = _massMatrix[j, i] = _gauss.Integrate2D(function, omega);
+                    }
+                }
+            }
         }
 
         private double CalculateCoefficient(int ielem)
@@ -68,38 +112,35 @@ public class FEMBuilder
             return 1.0;
         }
 
-        private void CalculateJacobian(int ielem)
-        {
-
-        }
-
-        private void BuildLocalMatrices(int ielem)
+        private void BuildLocalMatrixVector(int ielem)
         {
             var nodes = _mesh.Elements[ielem].Nodes;
             var leftBottom = _mesh.Points[nodes[0]];
-            var rightTop = _mesh.Points[nodes[_basis.Size]];
+            var rightTop = _mesh.Points[nodes[_basis.Size - 1]];
+            var hx = rightTop.X - leftBottom.X;
+            var hy = rightTop.Y - leftBottom.Y;
 
-            double hx = rightTop.X - leftBottom.X;
-            double hy = rightTop.Y - leftBottom.Y;
+            for (int i = 0; i < _basis.Size; i++)
+            {
+                for (int j = 0; j <= i; j++)
+                {
+                    _stiffnessMatrix[i, j] = _stiffnessMatrix[j, i] =
+                        hy / hx * _precalcStiffnessX[i, j] +
+                        hx / hy * _precalcStiffnessY[i, j];
+                }
+            }
 
-            _jacobian[0, 0] = hx;
-            _jacobian[1, 1] = hy;
-
-            var jacobianDet = _jacobian[0, 0] * _jacobian[1, 1] - _jacobian[0, 1] * _jacobian[1, 0];
-
-            _jacobianInverse[0, 0] = _jacobian[1, 1] / jacobianDet;
-            _jacobianInverse[1, 1] = _jacobian[0, 0] / jacobianDet;
-
+            if (_field is null) return;
             
-        }
-
-        // Только если задана нефизическая задача (для тестирования)
-        private void BuildLocalVector(int ielem)
-        {
-            _localB.Fill(0.0);
-
-
-
+            for (int i = 0; i < _basis.Size; i++)
+            {
+                _localB[i] = 0.0;
+                
+                for (int j = 0; j < _basis.Size; j++)
+                {
+                    _localB[i] += _massMatrix![i, j] * _source(_mesh.Points[nodes[j]]);
+                }
+            }
         }
 
         private void AddToGlobal(int i, int j, double value)
@@ -131,7 +172,6 @@ public class FEMBuilder
                     }
                 }
             }
-
         }
 
         private void ApplyDirichlet()
@@ -139,7 +179,7 @@ public class FEMBuilder
             foreach (var (node, value) in _mesh.DirichletConditions)
             {
                 _globalMatrix.Di[node] = 1.0;
-                _globalVector[node] = value;
+                _globalVector[node] = _field?.Invoke(_mesh.Points[node]) ?? value;
 
                 for (int i = _globalMatrix.Ig[node]; i < _globalMatrix.Ig[node + 1]; i++)
                 {
@@ -172,14 +212,9 @@ public class FEMBuilder
             for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
             {
                 var nodes = _mesh.Elements[ielem].Nodes;
-                var coef = CalculateCoefficient(ielem);
+                var coefficient = CalculateCoefficient(ielem);
 
-                BuildLocalMatrices(ielem);
-
-                if (!_isPhysical)
-                {
-                    BuildLocalVector(ielem);
-                }
+                BuildLocalMatrixVector(ielem);
 
                 for (int inode = 0; inode < _basis.Size; inode++)
                 {
@@ -187,10 +222,9 @@ public class FEMBuilder
 
                     for (int jnode = 0; jnode < _basis.Size; jnode++)
                     { 
-                        AddToGlobal(nodes[inode], nodes[jnode], coef * _stiffnessMatrix[inode, jnode]);
+                        AddToGlobal(nodes[inode], nodes[jnode], coefficient * _stiffnessMatrix[inode, jnode]);
                     }
                 }
-                
             }
         }
 
@@ -208,42 +242,35 @@ public class FEMBuilder
 
         private double Error()
         {
-            if (_field is not null)
+            if (_field is null) return 0.0;
+            
+            Vector exact = new(_solver.Solution!.Value.Length);
+
+            for (int i = 0; i < _mesh.Points.Length; i++)
             {
-                Vector exact = new(_solver.Solution!.Value.Length);
-
-                for (int i = 0; i < _mesh.Points.Length; i++)
-                {
-                    var point = _mesh.Points[i];
-
-                    exact[i] = _field(point.X, point.Y);
-                }
-
-                double exactNorm = exact.Norm();
-
-                for (int i = 0; i < _mesh.Points.Length; i++)
-                {
-                    exact[i] -= _solver.Solution!.Value[i];
-                }
-
-                return exact.Norm() / exactNorm;
+                exact[i] = _field(_mesh.Points[i]);
             }
 
-            return 0.0;
-        }
+            double exactNorm = exact.Norm();
 
+            for (int i = 0; i < _mesh.Points.Length; i++)
+            {
+                exact[i] -= _solver.Solution!.Value[i];
+            }
+
+            return exact.Norm() / exactNorm;
+        }
     }
 
     #endregion
-
 
     #region Класс FEMBuilder
 
     private Mesh.Mesh _mesh = default!;
     private IBasis _basis = default!;
     private IterativeSolver _solver = default!;
-    private Func<double, double, double>? _field;
-    private Func<double, double, double> _source = default!;
+    private Func<Point2D, double>? _field;
+    private Func<Point2D, double> _source = default!;
 
     public FEMBuilder SetMesh(Mesh.Mesh mesh)
     {
@@ -263,14 +290,14 @@ public class FEMBuilder
         return this;
     }
 
-    public FEMBuilder SetTest(Func<double, double, double> source, Func<double, double, double>? field = null)
+    public FEMBuilder SetTest(Func<Point2D, double> source, Func<Point2D, double>? field = null)
     {
         _source = source;
         _field = field;
         return this;
     }
 
-    public FEM Build() => new FEM(_mesh, _basis, _solver, _source, _field);
+    public Fem Build() => new Fem(_mesh, _basis, _solver, _source, _field);
 
     #endregion
 }
