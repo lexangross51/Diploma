@@ -104,8 +104,10 @@ public class MeshBuilder : IMeshBuilder
 
         #endregion
 
-        List<double> wellsXPoints = new();
-        List<double> wellsYPoints = new();
+        HashSet<double> wellsXPoints = new();
+        HashSet<double> wellsYPoints = new();
+        SortedSet<(int, int)> wellsXIndexes = new();
+        SortedSet<(int, int)> wellsYIndexes = new();
         
         foreach (var well in _parameters.Wells)
         {
@@ -195,8 +197,25 @@ public class MeshBuilder : IMeshBuilder
                 hy *= ky;
             }
             
-            _xPoints.RemoveRange(xStartL, xEndR - xStartL + 1);
-            _yPoints.RemoveRange(yStartB, yEndT - yStartB + 1);
+            //_xPoints.RemoveRange(xStartL, xEndR - xStartL + 1);
+            wellsXIndexes.Add((xStartL, xEndR - xStartL + 1));
+            //wellsXIndexes.Add(xEndR - xStartL + 1);
+            //_yPoints.RemoveRange(yStartB, yEndT - yStartB + 1);
+            wellsYIndexes.Add((yStartB, yEndT - yStartB + 1));
+            //wellsYIndexes.Add(yEndT - yStartB + 1);
+        }
+        
+        var xCount = _xPoints.Count;
+        var yCount = _yPoints.Count;
+        
+        foreach (var idx in wellsXIndexes)
+        {
+            _xPoints.RemoveRange(idx.Item1 - (xCount - _xPoints.Count), idx.Item2);
+        }
+
+        foreach (var idx in wellsYIndexes)
+        {
+            _yPoints.RemoveRange(idx.Item1 - (yCount - _yPoints.Count), idx.Item2);
         }
         
         _xPoints.AddRange(wellsXPoints);
