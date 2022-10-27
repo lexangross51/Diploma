@@ -24,14 +24,14 @@ public partial class MainWindow
 
         FEMBuilder femBuilder = new();
 
-        double Field(Point2D p) => p.X;
+        //double Field(Point2D p) => -p.X * p.X + p.Y;
         double Source(Point2D p) => 0.0;
 
         var fem = femBuilder
             .SetMesh(_mesh)
             .SetBasis(new LinearBasis())
             .SetSolver(new LOSLU(1000, 1E-13))
-            .SetTest(Source, Field)
+            .SetTest(Source)
             .Build();
 
         fem.Solve();
