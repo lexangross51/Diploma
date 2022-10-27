@@ -11,7 +11,6 @@ public class FEMBuilder
         private readonly IterativeSolver _solver;
         private readonly Func<Point2D, double> _source;
         private readonly Func<Point2D, double>? _field;
-        private readonly Integration _gauss;
         private readonly SquareMatrix _stiffnessMatrix;
         private readonly SquareMatrix _precalcStiffnessX;
         private readonly SquareMatrix _precalcStiffnessY;
@@ -37,7 +36,7 @@ public class FEMBuilder
             _source = source;
             _field = field;
 
-            _gauss = new Integration(Quadratures.GaussOrder3());
+            var gauss = new Integration(Quadratures.GaussOrder3());
             
             _stiffnessMatrix = new SquareMatrix(_basis.Size);
             _precalcStiffnessX = new SquareMatrix(_basis.Size);
@@ -75,7 +74,7 @@ public class FEMBuilder
                         return dphiiX * dphijX;
                     };
 
-                    _precalcStiffnessX[i, j] = _precalcStiffnessX[j, i] = _gauss.Integrate2D(function, omega);
+                    _precalcStiffnessX[i, j] = _precalcStiffnessX[j, i] = gauss.Integrate2D(function, omega);
                     
                     function = (ksi, etta) =>
                     {
@@ -87,7 +86,7 @@ public class FEMBuilder
                         return dphiiY * dphijY;
                     };
                     
-                    _precalcStiffnessY[i, j] = _precalcStiffnessY[j, i] = _gauss.Integrate2D(function, omega);
+                    _precalcStiffnessY[i, j] = _precalcStiffnessY[j, i] = gauss.Integrate2D(function, omega);
 
                     if (_massMatrix is not null)
                     {
@@ -101,7 +100,7 @@ public class FEMBuilder
                             return phii * phij;
                         };
 
-                        _massMatrix[i, j] = _massMatrix[j, i] = _gauss.Integrate2D(function, omega);
+                        _massMatrix[i, j] = _massMatrix[j, i] = gauss.Integrate2D(function, omega);
                     }
                 }
             }
@@ -109,6 +108,7 @@ public class FEMBuilder
 
         private double CalculateCoefficient(int ielem)
         {
+            int i = ielem;
             return 1.0;
         }
 
@@ -201,7 +201,18 @@ public class FEMBuilder
 
         private void ApplyNeumann()
         {
+            foreach (var (ielem, theta) in _mesh.NeumannConditions)
+            {
+                var nodes = _mesh.Elements[ielem].Nodes;
+                double hx = _mesh.Points[nodes[^1]].X - _mesh.Points[nodes[0]].X;
+                double hy = _mesh.Points[nodes[^1]].Y - _mesh.Points[nodes[0]].Y;
+                double length = hx + hy;
 
+                for (int i = 0; i < _basis.Size; i++)
+                {
+                    _globalVector[nodes[i]] += length * theta / 2.0;
+                }
+            }
         }
 
         private void AssemblySLAE()
