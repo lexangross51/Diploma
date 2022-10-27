@@ -11,7 +11,7 @@ public class FiniteElement
     {
         Nodes = nodes.ToList();
         Area = area;
-        Edges = new();
-        EdgesDirect = new();
+        Edges = new List<int>(4);
+        EdgesDirect = new List<int>(4);
     }
 }

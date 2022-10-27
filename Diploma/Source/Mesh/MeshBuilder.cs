@@ -68,6 +68,97 @@ public class MeshBuilder : IMeshBuilder
                 break;
         }
     }
+
+    private bool IsEdgeExist(int i, int j)
+    {
+        return i == 0 && j == 1 || i == 0 && j == 2 || i == 1 && j == 3 || i == 2 && j == 3;
+    }
+    
+    private void NumerateEdges()
+    {
+        var connectivityList = new List<SortedSet<int>>();
+        
+        for (int i = 0; i < _points.Length; i++)
+        {
+            connectivityList.Add(new SortedSet<int>());
+        }
+
+        foreach (var element in _elements)
+        {
+            var nodes = element.Nodes;
+
+            for (int i = 0; i < 3; i++) 
+            {
+                int ind1 = nodes[i];
+
+                for (int j = i + 1; j < 4; j++) 
+                {
+                    int ind2 = nodes[j];
+
+                    if (IsEdgeExist(i, j)) 
+                    {
+                        connectivityList[ind2].Add(ind1);
+                    }
+                }
+            }
+        }
+
+        var ig = new int[_points.Length + 1];
+
+        ig[0] = 0;
+        ig[1] = 0;
+        
+        for (int i = 1; i < connectivityList.Count; i++) 
+        {
+            ig[i + 1] = ig[i] + connectivityList[i].Count;
+        }
+
+        var jg = new int[ig[^1]];
+
+        for (int i = 1, j = 0; i < connectivityList.Count; i++) 
+        {
+            foreach (var it in connectivityList[i])
+            {
+                jg[j++] = it;
+            }
+        }
+
+        foreach (var element in _elements)
+        {
+            for (int i = 0; i < 3; i++) 
+            {
+                int ind1 = element.Nodes[i];
+
+                for (int j = i + 1; j < 4; j++) 
+                {
+                    int ind2 = element.Nodes[j];
+
+                    if (ind1 < ind2) 
+                    {
+                        for (int ind = ig[ind2]; ind < ig[ind2 + 1]; ind++) 
+                        {
+                            if (jg[ind] == ind1) 
+                            {
+                                element.Edges.Add(ind);
+                                //continue;
+                            }
+                        }
+                    }
+                    else 
+                    {
+                        for (int ind = ig[ind1]; ind < ig[ind1 + 1]; ind++) 
+                        {
+                            if (jg[ind] == ind2) 
+                            {
+                                element.Edges.Add(ind);
+                                //continue;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     
     public IEnumerable<Point2D> CreatePoints()
     {
@@ -258,6 +349,17 @@ public class MeshBuilder : IMeshBuilder
 
                 _elements[ielem++] = new FiniteElement(nodes, 0);
             }
+        }
+        
+        // Нумеруем ребра элемента
+        NumerateEdges();
+
+        // И задаем направление ребра
+        // -1 - если зафиксированная нормаль не совпадает внешней
+        // 1 - если совпадает
+        foreach (var element in _elements)
+        {
+            element.EdgesDirect = new List<int>() { -1, -1, 1, 1 };
         }
 
         return _elements;
