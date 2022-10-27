@@ -21,21 +21,21 @@ public partial class MainWindow
         MeshGenerator meshGenerator = new(new MeshBuilder(MeshParameters.ReadJson("Input/")));
         _mesh = meshGenerator.CreateMesh();
         _colors = new Color[_mesh.Points.Length];
-
+        
         FEMBuilder femBuilder = new();
 
-        //double Field(Point2D p) => -p.X * p.X + p.Y;
+        double Field(Point2D p) => p.X;
         double Source(Point2D p) => 0.0;
 
         var fem = femBuilder
             .SetMesh(_mesh)
             .SetBasis(new LinearBasis())
             .SetSolver(new LOSLU(1000, 1E-13))
-            .SetTest(Source)
+            .SetTest(Source, Field)
             .Build();
 
-        fem.Solve();
-        Debug.Print(fem.Residual.ToString(CultureInfo.InvariantCulture));
+        Filtration filtration = new(_mesh, fem, new LinearBasis());
+        filtration.ModelFlows();
 
         var pressure = fem.Solution!.Value;
         double pressMin = pressure.Min();
