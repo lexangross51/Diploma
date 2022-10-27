@@ -18,8 +18,6 @@ public class FEMBuilder
         private readonly Vector _localB;
         private readonly SparseMatrix _globalMatrix;
         private readonly Vector _globalVector;
-
-        public double Residual { get; private set; }
         public ImmutableArray<double>? Solution => _solver.Solution;
         
         public Fem(
@@ -108,8 +106,7 @@ public class FEMBuilder
 
         private double CalculateCoefficient(int ielem)
         {
-            int i = ielem;
-            return 1.0;
+            return 1.0 + ielem - ielem;
         }
 
         private void BuildLocalMatrixVector(int ielem)
@@ -239,7 +236,7 @@ public class FEMBuilder
             }
         }
 
-        public void Solve()
+        public double Solve()
         {
             AssemblySLAE();
             ApplyNeumann();
@@ -248,7 +245,7 @@ public class FEMBuilder
             _solver.SetSystem(_globalMatrix, _globalVector);
             _solver.Compute();
 
-            Residual = Error();
+            return Error();
         }
 
         private double Error()
