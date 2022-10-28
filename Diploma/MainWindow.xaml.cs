@@ -31,7 +31,7 @@ public partial class MainWindow
             .SetMesh(_mesh)
             .SetBasis(new LinearBasis())
             .SetSolver(new LOSLU(1000, 1E-13))
-            .SetTest(Source, Field)
+            .SetTest(Source)
             .Build();
 
         Filtration filtration = new(_mesh, fem, new LinearBasis());
@@ -47,11 +47,11 @@ public partial class MainWindow
         foreach (var t in _mesh.Elements)
         {
             var nodes = t.Nodes;
-
+        
             double centerP = (pressure[nodes[0]] + pressure[nodes[1]] + pressure[nodes[2]] + pressure[nodes[3]]) / 4.0;
-
+        
             byte rColor, gColor, bColor;
-
+        
             if (centerP > pressMin + stepPBig * 3.0)
             {
                 rColor = 255;
@@ -78,12 +78,49 @@ public partial class MainWindow
                 gColor = 0;
                 bColor = (byte)(255 - tmp);
             }
-
+        
             _colors[nodes[0]] = new Color(rColor, gColor, bColor);
             _colors[nodes[1]] = new Color(rColor, gColor, bColor);
             _colors[nodes[2]] = new Color(rColor, gColor, bColor);
             _colors[nodes[3]] = new Color(rColor, gColor, bColor);
         }
+        
+        #region From red to white
+
+        // foreach (var t in _mesh.Elements)
+        // {
+        //     var nodes = t.Nodes;
+        //
+        //     double centerP = (pressure[nodes[0]] + pressure[nodes[1]] + pressure[nodes[2]] + pressure[nodes[3]]) / 4.0;
+        //
+        //     byte rColor, gColor, bColor;
+        //
+        //     if (centerP > pressMin + stepPBig * 2.0)
+        //     {
+        //         rColor = 255;
+        //         gColor = (byte)(127 - (centerP - (pressMin + stepPBig * 2.0)) / (stepPBig / 127.0) );
+        //         bColor = 0;
+        //     }
+        //     else if (centerP > pressMin + stepPBig)
+        //     {
+        //         rColor = 255;
+        //         gColor = (byte)(255 - (centerP - (pressMin + stepPBig)) / (stepPBig / 127.0));
+        //         bColor = 0;
+        //     }
+        //     else
+        //     {
+        //         rColor = 255;
+        //         gColor = 255;
+        //         bColor = (byte)(255 - (centerP - pressMin) / (stepPBig / 255.0));
+        //     }
+        //
+        //     _colors[nodes[0]] = new Color(rColor, gColor, bColor);
+        //     _colors[nodes[1]] = new Color(rColor, gColor, bColor);
+        //     _colors[nodes[2]] = new Color(rColor, gColor, bColor);
+        //     _colors[nodes[3]] = new Color(rColor, gColor, bColor);
+        // }
+        
+        #endregion
 
         _xMin = _mesh.Points[0].X;
         _yMin = _mesh.Points[0].Y;
@@ -115,7 +152,7 @@ public partial class MainWindow
         gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
         gl.Color(1, 0, 0, 1);
         gl.Begin(OpenGL.GL_QUADS);
-
+        
         foreach (var t in _mesh.Elements)
         {
             var nodes = t.Nodes;
@@ -143,13 +180,13 @@ public partial class MainWindow
             gl.Color(c3.R, c3.G, c3.B);
             gl.Vertex(p3.X, p3.Y);
         }
-
+        
         gl.End();
         
         gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
         gl.Color(1, 0, 0, 1);
         gl.Begin(OpenGL.GL_QUADS);
-
+        
         foreach (var t in _mesh.Elements)
         {
             var nodes = t.Nodes;
@@ -163,7 +200,7 @@ public partial class MainWindow
             gl.Vertex(p4.X, p4.Y);
             gl.Vertex(p3.X, p3.Y);
         }
-
+        
         gl.End();
         gl.Flush();
     }
