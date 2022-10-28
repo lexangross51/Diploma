@@ -126,4 +126,109 @@ public class SparseMatrix
         Array.Fill(GGl, 0.0);
         Array.Fill(GGu, 0.0);
     }
+    
+    public void ToProfileMatrix()
+    {
+        int[] ignew = Ig.ToArray();
+
+        for (int i = 0; i < Size; i++)
+        {
+            int i0 = Ig[i];
+            int i1 = Ig[i + 1];
+
+            int profile = i1 - i0;
+
+            if (profile > 0)
+            {
+                int count = i - Jg[i0];
+                ignew[i + 1] = ignew[i] + count;
+            }
+            else
+            {
+                ignew[i + 1] = ignew[i];
+            }
+        }
+
+        double[] gglnew = new double[ignew[^1]];
+        double[] ggunew = new double[ignew[^1]];
+
+        for (int i = 0; i < Size; i++)
+        {
+            int i0 = ignew[i];
+            int i1 = ignew[i + 1];
+
+            int j = i - (i1 - i0);
+
+            int i0Old = Ig[i];
+
+            for (int ik = i0; ik < i1; ik++, j++)
+            {
+                if (j == Jg[i0Old])
+                {
+                    gglnew[ik] = GGl[i0Old];
+                    ggunew[ik] = GGu[i0Old];
+                    i0Old++;
+                }
+                else
+                {
+                    gglnew[ik] = 0.0;
+                    ggunew[ik] = 0.0;
+                }
+            }
+        }
+
+        ProfileMatrix profileMatrix = new(Di.Length, gglnew.Length)
+        {
+            Ig = ignew,
+            GGl = gglnew,
+            GGu = ggunew
+        };
+    }
 }
+
+public class ProfileMatrix
+{
+    public int[] Ig { get; init; }
+    public double[] Di { get; init; }
+    public double[] GGl { get; init; }
+    public double[] GGu { get; init; }
+    public int Size { get; }
+    
+    public ProfileMatrix(int size, int sizeOffDiag)
+    {
+        Size = size;
+        Ig = new int[size + 1];
+        GGl = new double[sizeOffDiag];
+        GGu = new double[sizeOffDiag];
+        Di = new double[size];
+    }
+    
+    public static Vector operator *(ProfileMatrix matrix, Vector vector)
+    {
+        Vector product = new (vector.Length);
+
+        for (int i = 0; i < product.Length; i++) {
+            product[i] = matrix.Di[i] * vector[i];
+
+            int l = matrix.Ig[i + 1] - matrix.Ig[i];
+            int k = i - 1;
+
+            for (int j = 0; j < l; j++) {
+                int index = matrix.Ig[i] + j - 1;
+
+                product[i] += matrix.GGl[index] * vector[k];
+                product[k] += matrix.GGu[index] * vector[i];
+            }
+        }
+
+        return product;
+    }
+    
+    public void Clear()
+    {
+        Array.Fill(Di, 0.0);
+        Array.Fill(GGl, 0.0);
+        Array.Fill(GGu, 0.0);
+    }
+    
+};
