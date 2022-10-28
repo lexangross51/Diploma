@@ -51,8 +51,51 @@ public static class PortraitBuilder
         }
     }
 
-    public static void PortraitByEdges()
+    public static void PortraitByEdges(Mesh.Mesh mesh, out int[] ig, out int[] jg)
     {
-        
+        var elementsCount = mesh.Elements.Length;
+        var edgesCount = mesh.Elements[^1].Edges[^1] + 1;
+
+        var connectivityList = new List<HashSet<int>>();
+
+        for (int i = 0; i < edgesCount; i++)
+        {
+            connectivityList.Add(new HashSet<int>());
+        }
+
+        for (int ielem = 0; ielem < elementsCount; ielem++)
+        {
+            var edges = mesh.Elements[ielem].Edges;
+
+            for (int i = 0; i < 3; i++) {
+                int iedge = edges[i];
+
+                for (int j = i + 1; j < 4; j++) {
+                    int jedge = edges[j];
+
+                    connectivityList[jedge].Add(iedge);
+                }
+            }
+        }
+
+        ig = new int[edgesCount + 1];
+
+        ig[0] = 0;
+        ig[1] = 0;
+
+        for (int i = 1; i < connectivityList.Count; i++) 
+        {
+            ig[i + 1] = ig[i] + connectivityList[i].Count;
+        }
+
+        jg = new int[ig[^1]];
+
+        for (int i = 1, j = 0; i < connectivityList.Count; i++) 
+        {
+            foreach (var it in connectivityList[i])
+            {
+                jg[j++] = it;
+            }
+        }
     }
 }
