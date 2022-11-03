@@ -1,16 +1,32 @@
-﻿{
-  "Area borders" : {
-    "Left border" : 0,
-    "Right border" : 100,
-    "Bottom border": 0,
-    "Top border": 100
+﻿[
+  {
+    "LeftBottom": {
+      "X": 0.0,
+      "Y": 0.0
+    },
+    "RightTop": {
+      "X": 100.0,
+      "Y": 100.0
+    },
+    "Material": {
+      "Permeability": 1.0,
+      "Porosity": 1.0
+    },
+    "PlastPressure": 0.0
   },
-  "Material": {
-    "Permeability": 1,
-    "Porosity": 1
-  },
-  "Property" : {
-    "Saturations": [ 0.5, 0.4, 0.1 ]
-  },
-  "Plast pressure" : 130
-}
+  {
+    "LeftBottom": {
+      "X": 22.0,
+      "Y": 0.0
+    },
+    "RightTop": {
+      "X": 30.0,
+      "Y": 50.0
+    },
+    "Material": {
+      "Permeability": 1.0,
+      "Porosity": 1.0
+    },
+    "PlastPressure": 0.0
+  }
+]
