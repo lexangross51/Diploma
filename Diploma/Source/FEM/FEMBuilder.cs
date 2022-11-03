@@ -7,6 +7,7 @@ public class FEMBuilder
     public class Fem
     {
         private readonly Mesh.Mesh _mesh;
+        private readonly PhaseProperty _phaseProperty;
         private readonly IBasis _basis;
         private readonly IterativeSolver _solver;
         private readonly Func<Point2D, double> _source;
@@ -21,7 +22,8 @@ public class FEMBuilder
         public ImmutableArray<double>? Solution => _solver.Solution;
         
         public Fem(
-            Mesh.Mesh mesh, 
+            Mesh.Mesh mesh,
+            PhaseProperty phaseProperty,
             IBasis basis, 
             IterativeSolver solver,
             Func<Point2D, double> source,
@@ -29,6 +31,7 @@ public class FEMBuilder
         )
         {
             _mesh = mesh;
+            _phaseProperty = phaseProperty;
             _basis = basis;
             _solver = solver;
             _source = source;
@@ -108,15 +111,17 @@ public class FEMBuilder
         {
             if (_field is not null) return 1.0;
 
-            var area = _mesh.Elements[ielem].Area;
+            int area = _mesh.Elements[ielem].Area;
             double coefficient = 0.0;
 
-            for (int i = 0; i < _mesh.Viscosities!.Value.Length; i++)
-            {
-                coefficient += _mesh.Saturations![ielem][i];
-                coefficient /= _mesh.Viscosities.Value[i];
-            }
+            int phaseCount = _phaseProperty.Phases[ielem].Count;
 
+            for (int i = 0; i < phaseCount; i++)
+            {
+                coefficient += _phaseProperty.Phases[ielem][i].Kappa;
+                coefficient /= _phaseProperty.Phases[ielem][i].Viscosity;
+            }
+            
             coefficient *= _mesh.Materials[area].Permeability;
 
             return coefficient;
@@ -289,6 +294,7 @@ public class FEMBuilder
     #region Класс FEMBuilder
 
     private Mesh.Mesh _mesh = default!;
+    private PhaseProperty _phaseProperty = default!;
     private IBasis _basis = default!;
     private IterativeSolver _solver = default!;
     private Func<Point2D, double>? _field;
@@ -297,6 +303,12 @@ public class FEMBuilder
     public FEMBuilder SetMesh(Mesh.Mesh mesh)
     {
         _mesh = mesh;
+        return this;
+    }
+
+    public FEMBuilder SetPhaseProperties(PhaseProperty phaseProperty)
+    {
+        _phaseProperty = phaseProperty;
         return this;
     }
 
@@ -319,7 +331,7 @@ public class FEMBuilder
         return this;
     }
 
-    public Fem Build() => new Fem(_mesh, _basis, _solver, _source, _field);
+    public Fem Build() => new Fem(_mesh, _phaseProperty, _basis, _solver, _source, _field);
 
     #endregion
 }
