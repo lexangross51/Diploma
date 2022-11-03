@@ -1,1 +1,17 @@
-﻿[ 1.0, 1.0, 1.0 ]
+﻿[
+  {
+    "Density": 1,
+    "Viscosity": 1,
+    "Saturation": 0.5
+  },
+  {
+    "Density": 1,
+    "Viscosity": 1,
+    "Saturation": 0.3
+  },
+  {
+    "Density": 1,
+    "Viscosity": 1,
+    "Saturation": 0.2
+  }
+]
