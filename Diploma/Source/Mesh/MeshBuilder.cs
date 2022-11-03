@@ -7,13 +7,13 @@ public class MeshBuilder : IMeshBuilder
     private readonly List<double> _yPoints = new();
     private Point2D[] _points = default!;
     private FiniteElement[] _elements = default!;
-    private readonly List<List<double>> _saturations = new();
+    private Material[] _materials = default!;
 
     public MeshBuilder(MeshParameters parameters)
         => _parameters = parameters;
     
-    // side = 0 -> левая или нижняя граница
-    // side = 1 -> правая или верхняя граница
+    // side = 0 -> left or lower border
+    // side = 1 -> right or upper border
     private static int FindNearestIndex(IReadOnlyList<double> points, double point, int side)
     {
         for (int i = 0; i < points.Count - 1; i++)
@@ -70,10 +70,8 @@ public class MeshBuilder : IMeshBuilder
         }
     }
 
-    private bool IsEdgeExist(int i, int j)
-    {
-        return i == 0 && j == 1 || i == 0 && j == 2 || i == 1 && j == 3 || i == 2 && j == 3;
-    }
+    private static bool IsEdgeExist(int i, int j)
+        => (i == 0 && j == 1 || i == 0 && j == 2 || i == 1 && j == 3 || i == 2 && j == 3);
     
     private void NumerateEdges()
     {
@@ -141,7 +139,6 @@ public class MeshBuilder : IMeshBuilder
                             if (jg[ind] == ind1) 
                             {
                                 element.Edges.Add(ind);
-                                //continue;
                             }
                         }
                     }
@@ -152,7 +149,6 @@ public class MeshBuilder : IMeshBuilder
                             if (jg[ind] == ind2) 
                             {
                                 element.Edges.Add(ind);
-                                //continue;
                             }
                         }
                     }
@@ -163,21 +159,21 @@ public class MeshBuilder : IMeshBuilder
     
     public IEnumerable<Point2D> CreatePoints()
     {
-        double xStart = _parameters.Area.LeftBottom.X;
-        double xEnd = _parameters.Area.RightTop.X;
-        double yStart = _parameters.Area.LeftBottom.Y;
-        double yEnd = _parameters.Area.RightTop.Y;
+        // Taking data for the main area
+        double xStart = _parameters.Area[0].LeftBottom.X;
+        double xEnd = _parameters.Area[0].RightTop.X;
+        double yStart = _parameters.Area[0].LeftBottom.Y;
+        double yEnd = _parameters.Area[0].RightTop.Y;
 
         int nx = _parameters.SplitParameters.MeshNx;
         int ny = _parameters.SplitParameters.MeshNy;
         var kx = _parameters.SplitParameters.WellKx;
         var ky = _parameters.SplitParameters.WellKy;
         
-        // Если необходима вложенная сетка
+        // If a nested mesh is required
         MeshNesting(ref nx, ref ny, ref kx, ref ky);
         
-        #region Формируем равномерную сетку
-
+        // Create points for the main area 
         double hx = (xEnd - xStart) / nx;
         double hy = (yEnd - yStart) / ny;
         
@@ -193,9 +189,8 @@ public class MeshBuilder : IMeshBuilder
         {
             _yPoints.Add(_yPoints[i - 1] + hy);
         }
-
-        #endregion
-
+        
+        // Forming points in the wells area
         HashSet<double> wellsXPoints = new();
         HashSet<double> wellsYPoints = new();
         SortedSet<(int, int)> wellsXIndexes = new();
@@ -216,7 +211,7 @@ public class MeshBuilder : IMeshBuilder
             var yStartT = center.Y + radius;
             var yEndT = FindNearestIndex(_yPoints,center.Y + 3 * radius, 1);
             
-            // Нужно ли дополнительно дробить около скважины
+            // Whether it is necessary to additionally crush the mesh near the well
             if (_parameters.SplitParameters.WellNx != 0 && _parameters.SplitParameters.WellNy != 0)
             {
                 nx = (int)(_parameters.SplitParameters.WellNx / 2.0);
@@ -233,7 +228,7 @@ public class MeshBuilder : IMeshBuilder
             
             MeshNesting(ref nx, ref ny, ref kx, ref ky);
 
-            // Слева от скважины
+            // To the left of the well
             xStart = _xPoints[xStartL];
             xEnd = xEndL;
             hx = Math.Abs(kx - 1.0) < 1E-14 
@@ -247,7 +242,7 @@ public class MeshBuilder : IMeshBuilder
                 hx *= kx;
             }
             
-            // Справа от скважины
+            // To the right of the well
             xStart = xStartR;
             xEnd = _xPoints[xEndR];
             hx = Math.Abs(kx - 1.0) < 1E-14 
@@ -261,7 +256,7 @@ public class MeshBuilder : IMeshBuilder
                 hx *= kx;
             }
             
-            // Cнизу от скважины
+            // From below the well
             yStart = _yPoints[yStartB];
             yEnd = yEndB;
             hy = Math.Abs(ky - 1.0) < 1E-14 
@@ -275,7 +270,7 @@ public class MeshBuilder : IMeshBuilder
                 hy *= ky;
             }
             
-            // Сверху от скважины
+            // From above the well
             yStart = yStartT;
             yEnd = _yPoints[yEndT];
             hy = Math.Abs(kx - 1.0) < 1E-14 
@@ -289,12 +284,8 @@ public class MeshBuilder : IMeshBuilder
                 hy *= ky;
             }
             
-            //_xPoints.RemoveRange(xStartL, xEndR - xStartL + 1);
             wellsXIndexes.Add((xStartL, xEndR - xStartL + 1));
-            //wellsXIndexes.Add(xEndR - xStartL + 1);
-            //_yPoints.RemoveRange(yStartB, yEndT - yStartB + 1);
             wellsYIndexes.Add((yStartB, yEndT - yStartB + 1));
-            //wellsYIndexes.Add(yEndT - yStartB + 1);
         }
         
         var xCount = _xPoints.Count;
@@ -352,12 +343,33 @@ public class MeshBuilder : IMeshBuilder
             }
         }
         
-        // Нумеруем ребра элемента
+        // If the element is in a region with a different permeability,
+        // we change its material number
+        if (_parameters.Area.Length > 1)
+        {
+            var leftBottom = _parameters.Area[1].LeftBottom;
+            var rightTop = _parameters.Area[1].RightTop;
+
+            foreach (var element in _elements)
+            {
+                var elementNodes = element.Nodes;
+                var elementCenterX = (_points[elementNodes[3]].X + _points[elementNodes[0]].X) / 2.0;
+                var elementCenterY = (_points[elementNodes[3]].Y + _points[elementNodes[0]].Y) / 2.0;
+
+                if (elementCenterX >= leftBottom.X && elementCenterX <= rightTop.X &&
+                    elementCenterY >= leftBottom.Y && elementCenterY <= rightTop.Y)
+                {
+                    element.Area = 1;
+                }
+            }
+        }
+
+        // Numerate edges of each element
         NumerateEdges();
 
-        // И задаем направление ребра
-        // -1 - если зафиксированная нормаль не совпадает внешней
-        // 1 - если совпадает
+        // Set edges direction
+        // -1 - if the outside normal doesn't coincide with the fixed
+        // 1 - if the same
         foreach (var element in _elements)
         {
             element.EdgesDirect = new List<int>() { -1, -1, 1, 1 };
@@ -370,29 +382,29 @@ public class MeshBuilder : IMeshBuilder
     {
         int nx = _xPoints.Count - 1;
         int ny = _yPoints.Count - 1;
-        double pressure = _parameters.Area.PlastPressure;
+        double pressure = _parameters.Area[0].PlastPressure;
         
         List<DirichletCondition> dirichletConditions = new(2 * (nx + ny));
 
-        // Нижняя граница
+        // lower border
         for (int inode = 0; inode < nx + 1; inode++)
         {
             dirichletConditions.Add(new (inode, pressure));
         }
         
-        // Верхняя граница
+        // upper border
         for (int inode = (nx + 1) * ny; inode < (nx + 1) * (ny + 1); inode++)
         {
             dirichletConditions.Add(new (inode, pressure));
         }
         
-        // Левая граница
+        // left border
         for (int i = 0, inode = nx + 1; i < ny - 1; i++, inode += nx + 1)
         {
             dirichletConditions.Add(new (inode, pressure));
         }
         
-        // Правая граница
+        // right border
         for (int i = 0, inode = 2 * nx + 1; i < ny - 1; i++, inode += nx + 1)
         {
             dirichletConditions.Add(new (inode, pressure));
@@ -421,23 +433,14 @@ public class MeshBuilder : IMeshBuilder
     }
 
     public IEnumerable<Material> CreateMaterials()
-        => new[] { _parameters.Area.Material };
-    
-    public IEnumerable<IEnumerable<double>>? CreateSaturations()
     {
-        foreach (var element in _elements)
+        _materials = new Material[_parameters.Area.Length];
+
+        for (int i = 0; i < _materials.Length; i++)
         {
-            _saturations.Add(new List<double>());
-            
-            for (int i = 0; i < _parameters.Viscosities.Count; i++)
-            {
-                _saturations[^1].Add(_parameters.Area.Saturation[i]);
-            }
+            _materials[i] = _parameters.Area[i].Material;
         }
 
-        return _saturations;
+        return _materials;
     }
-
-    public IEnumerable<double> CreateViscosities()
-        => _parameters.Viscosities;
 }

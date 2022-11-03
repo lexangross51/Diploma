@@ -7,6 +7,4 @@ public interface IMeshBuilder
     IEnumerable<DirichletCondition> CreateDirichlet();
     IEnumerable<NeumannCondition> CreateNeumann();
     IEnumerable<Material> CreateMaterials();
-    IEnumerable<IEnumerable<double>>? CreateSaturations();
-    IEnumerable<double>? CreateViscosities();
 }
