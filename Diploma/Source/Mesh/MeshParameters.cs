@@ -30,7 +30,8 @@ public class DomainXYJsonConverter : JsonConverter
             permeability = Convert.ToDouble(material["Permeability"]);
             porosity = Convert.ToDouble(material["Porosity"]);
         }
-        var saturation = Convert.ToDouble(token["Property"]!["Saturation"]);
+        
+        var saturation = JsonConvert.DeserializeObject<List<double>>(token["Property"]!["Saturations"]!.ToString())!;
         var plastPressure = Convert.ToDouble(token["Plast pressure"]);
 
         return new DomainXY(
@@ -52,10 +53,10 @@ public class DomainXY
     public Point2D LeftBottom { get; }
     public Point2D RightTop { get; }
     public Material Material { get; }
-    public double Saturation { get; }
+    public List<double> Saturation { get; }
     public double PlastPressure { get; }
 
-    public DomainXY(Point2D leftBottom, Point2D rightTop, Material material, double saturation, double plastPressure)
+    public DomainXY(Point2D leftBottom, Point2D rightTop, Material material, List<double> saturation, double plastPressure)
         => (LeftBottom, RightTop, Material, Saturation, PlastPressure) = (leftBottom, rightTop, material, saturation, plastPressure);
 
     public static DomainXY ReadJson(string jsonPath)
@@ -162,4 +163,4 @@ public class MeshParameters
     }
 }
 
-#endregion
+#endregion 

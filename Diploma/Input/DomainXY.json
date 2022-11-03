@@ -10,7 +10,7 @@
     "Porosity": 1
   },
   "Property" : {
-    "Saturation": 1
+    "Saturations": [ 0.5, 0.4, 0.1 ]
   },
   "Plast pressure" : 130
 }

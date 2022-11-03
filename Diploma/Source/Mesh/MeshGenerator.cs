@@ -12,7 +12,7 @@ public class MeshGenerator
         _builder.CreateDirichlet(),
         _builder.CreateNeumann(),
         _builder.CreateMaterials(),
-        _builder.CreateProperties(),
+        _builder.CreateSaturations(),
         _builder.CreateViscosities()
     );
 }

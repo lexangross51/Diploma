@@ -7,6 +7,7 @@ public class MeshBuilder : IMeshBuilder
     private readonly List<double> _yPoints = new();
     private Point2D[] _points = default!;
     private FiniteElement[] _elements = default!;
+    private readonly List<List<double>> _saturations = new();
 
     public MeshBuilder(MeshParameters parameters)
         => _parameters = parameters;
@@ -421,10 +422,22 @@ public class MeshBuilder : IMeshBuilder
 
     public IEnumerable<Material> CreateMaterials()
         => new[] { _parameters.Area.Material };
+    
+    public IEnumerable<IEnumerable<double>>? CreateSaturations()
+    {
+        foreach (var element in _elements)
+        {
+            _saturations.Add(new List<double>());
+            
+            for (int i = 0; i < _parameters.Viscosities.Count; i++)
+            {
+                _saturations[^1].Add(_parameters.Area.Saturation[i]);
+            }
+        }
+
+        return _saturations;
+    }
 
     public IEnumerable<double> CreateViscosities()
         => _parameters.Viscosities;
-    
-    public IEnumerable<double> CreateProperties()
-        => new double[_elements.Length].Select(_ => _parameters.Area.Saturation);
 }

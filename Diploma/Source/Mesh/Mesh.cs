@@ -8,7 +8,7 @@ public class Mesh
     public ImmutableArray<NeumannCondition> NeumannConditions { get; }
     public ImmutableArray<Material> Materials { get; }
     public ImmutableArray<double>? Viscosities { get; }
-    public List<double>? Saturations { get; }
+    public List<List<double>>? Saturations { get; }
 
     public Mesh(
         IEnumerable<Point2D> points,
@@ -16,7 +16,7 @@ public class Mesh
         IEnumerable<DirichletCondition> dirichletConditions,
         IEnumerable<NeumannCondition> neumannConditions,
         IEnumerable<Material> materials,
-        IEnumerable<double>? properties = null,
+        IEnumerable<IEnumerable<double>>? saturations = null,
         IEnumerable<double>? viscosities = null)
     {
         Points = points.ToImmutableArray();
@@ -25,6 +25,6 @@ public class Mesh
         NeumannConditions = neumannConditions.ToImmutableArray();
         Materials = materials.ToImmutableArray();
         Viscosities = viscosities?.ToImmutableArray();
-        Saturations = properties?.ToList();
+        Saturations = saturations?.Select(list => list.ToList()).ToList();
     }
 }
