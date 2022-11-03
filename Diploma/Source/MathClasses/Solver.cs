@@ -11,7 +11,7 @@ public abstract class IterativeSolver
     public double Eps { get; }
     public TimeSpan? RunningTime => _runningTime;
     public ImmutableArray<double>? Solution => _solution?.ToImmutableArray();
-    
+
     protected IterativeSolver(int maxIters, double eps)
         => (MaxIters, Eps) = (maxIters, eps);
 
@@ -22,7 +22,7 @@ public abstract class IterativeSolver
 
     protected Vector Direct(Vector vector, double[] gglnew, double[] dinew)
     {
-        Vector y = new (vector.Length);
+        Vector y = new(vector.Length);
         Vector.Copy(vector, y);
 
         double sum = 0.0;
@@ -44,7 +44,7 @@ public abstract class IterativeSolver
 
     protected Vector Reverse(Vector vector, double[] ggunew)
     {
-        Vector result = new (vector.Length);
+        Vector result = new(vector.Length);
         Vector.Copy(vector, result);
 
         for (int i = _matrix.Size - 1; i >= 0; i--)
@@ -162,13 +162,12 @@ public class LOS : IterativeSolver
     }
 }
 
-
 public class LOSLU : IterativeSolver
 {
     public LOSLU(int maxIters, double eps) : base(maxIters, eps)
     {
     }
-    
+
     public override void Compute()
     {
         try
@@ -218,5 +217,130 @@ public class LOSLU : IterativeSolver
         {
             Console.WriteLine($"Exception: {ex.Message}");
         }
+    }
+}
+
+public abstract class DirectSolver
+{
+    protected TimeSpan? _runningTime;
+    protected ProfileMatrix _matrix = default!;
+    protected Vector _vector = default!;
+    protected Vector? _solution;
+
+    public TimeSpan? RunningTime => _runningTime;
+
+    public ImmutableArray<double>? Solution => _solution?.ToImmutableArray();
+
+    public void SetSystem(ProfileMatrix matrix, Vector vector)
+        => (_matrix, _vector) = (matrix, vector);
+
+    public abstract void Compute();
+
+    protected void LU(double[] dinew, double[] gglnew, double[] ggunew)
+    {
+        for (int i = 1; i < _matrix.Size; i++)
+        {
+            double sumDi = 0.0;
+
+            int j0 = i - (_matrix.Ig[i + 1] - _matrix.Ig[i]);
+
+            for (int ii = _matrix.Ig[i]; ii < _matrix.Ig[i + 1]; ii++)
+            {
+                int j = ii - _matrix.Ig[i] + j0;
+                int jbeg = _matrix.Ig[j];
+                int jend = _matrix.Ig[j + 1];
+
+                if (jbeg < jend)
+                {
+                    int i0 = j - (jend - jbeg);
+                    int jjbeg = j0 > i0 ? j0 : i0;
+                    int jjend = j < i - 1 ? j : i - 1;
+
+                    double sumAl = 0.0;
+                    double sumAu = 0.0;
+
+                    for (int k = 0; k < jjend - jjbeg; k++)
+                    {
+                        int indAu = _matrix.Ig[j] + jjbeg - i0 + k;
+                        int indAl = _matrix.Ig[i] + jjbeg - j0 + k;
+                        sumAl += ggunew[indAu] * gglnew[indAl];
+                    }
+
+                    gglnew[ii] -= sumAl;
+
+                    for (int k = 0; k < jjend - jjbeg; k++)
+                    {
+                        int indAl = _matrix.Ig[j] + jjbeg - i0 + k;
+                        int indAu = _matrix.Ig[i] + jjbeg - j0 + k;
+                        sumAu += ggunew[indAu] * gglnew[indAl];
+                    }
+
+                    ggunew[ii] -= sumAu;
+                }
+
+                if (Math.Abs(dinew[j]) < 1e-14)
+                {
+                    throw new Exception("Division by zero in LU decomposer for profile matrix");
+                }
+
+                ggunew[ii] /= dinew[j];
+
+                sumDi += gglnew[ii] * ggunew[ii];
+            }
+
+            dinew[i] -= sumDi;
+        }
+    }
+}
+
+public class LUSolver : DirectSolver
+{
+    public override void Compute()
+    {
+        _solution = new Vector(_matrix.Size);
+
+        Stopwatch sw = Stopwatch.StartNew();
+        
+        LU(_matrix.Di, _matrix.GGl, _matrix.GGu);
+
+        try {
+            for (int i = 0; i < _vector.Length; i++) {
+                int i0 = _matrix.Ig[i];
+                int i1 = _matrix.Ig[i + 1];
+
+                int j = i - (i1 - i0);
+
+                var sum = 0.0;
+
+                for (int k = i0; k < i1; k++)
+                    sum += _matrix.GGl[k] * _solution[j++];
+
+                if (Math.Abs(_matrix.Di[i]) < 1e-14) 
+                {
+                    throw new Exception("Division by zero in LUSolver.Compute()");
+                }
+
+                _solution[i] = (_vector[i] - sum) / _matrix.Di[i];
+            }
+
+            for (int i = _vector.Length - 1; i >= 0; i--)
+            {
+                int i0 = _matrix.Ig[i];
+                int i1 = _matrix.Ig[i + 1];
+
+                int j = i - (i1 - i0);
+
+                for (int k = i0; k < i1; k++)
+                    _solution[j++] -= _matrix.GGu[k] * _solution[i];
+            }
+        }
+        catch (Exception e) 
+        {
+            Console.WriteLine($"Exception: {e.Message}");
+        }
+
+        sw.Stop();
+
+        _runningTime = sw.Elapsed;
     }
 }
