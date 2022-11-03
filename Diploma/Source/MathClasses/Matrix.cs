@@ -127,7 +127,7 @@ public class SparseMatrix
         Array.Fill(GGu, 0.0);
     }
     
-    public void ToProfileMatrix()
+    public ProfileMatrix ToProfileMatrix()
     {
         int[] ignew = Ig.ToArray();
 
@@ -180,9 +180,12 @@ public class SparseMatrix
         ProfileMatrix profileMatrix = new(Di.Length, gglnew.Length)
         {
             Ig = ignew,
+            Di = Di,
             GGl = gglnew,
             GGu = ggunew
         };
+
+        return profileMatrix;
     }
 }
 
