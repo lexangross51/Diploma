@@ -106,7 +106,20 @@ public class FEMBuilder
 
         private double CalculateCoefficient(int ielem)
         {
-            return 1.0 + ielem - ielem;
+            if (_field is not null) return 1.0;
+
+            var area = _mesh.Elements[ielem].Area;
+            double coefficient = 0.0;
+
+            for (int i = 0; i < _mesh.Viscosities!.Value.Length; i++)
+            {
+                coefficient += _mesh.Saturations![ielem][i];
+                coefficient /= _mesh.Viscosities.Value[i];
+            }
+
+            coefficient *= _mesh.Materials[area].Permeability;
+
+            return coefficient;
         }
 
         private void BuildLocalMatrixVector(int ielem)
@@ -200,6 +213,7 @@ public class FEMBuilder
         {
             foreach (var (ielem, theta) in _mesh.NeumannConditions)
             {
+                var coefficient = CalculateCoefficient(ielem);
                 var nodes = _mesh.Elements[ielem].Nodes;
                 double hx = _mesh.Points[nodes[^1]].X - _mesh.Points[nodes[0]].X;
                 double hy = _mesh.Points[nodes[^1]].Y - _mesh.Points[nodes[0]].Y;
@@ -207,7 +221,7 @@ public class FEMBuilder
 
                 for (int i = 0; i < _basis.Size; i++)
                 {
-                    _globalVector[nodes[i]] += length * theta / 2.0;
+                    _globalVector[nodes[i]] += length * theta * coefficient / 2.0;
                 }
             }
         }
