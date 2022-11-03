@@ -20,9 +20,9 @@ public class Filtration
 
     public void ModelFlows()
     {
-        _fem.Solve();
-        _flows = _flowsCalculator.CalculateAverageFlows(_fem.Solution!.Value);
-        _flowsBalancer.BalanceFlows(_flows);
+        // _fem.Solve();
+        // _flows = _flowsCalculator.CalculateAverageFlows(_fem.Solution!.Value);
+        // _flowsBalancer.BalanceFlows(_flows);
     }
     
     private void CalculateDeltaT(double deltaT0)

@@ -32,6 +32,7 @@
         <Using Include="Diploma.Source.FEM" />
         <Using Include="Diploma.Source.MathClasses" />
         <Using Include="Diploma.Source.Filtration" />
+        <Using Include="Diploma.Source.PhaseComponents" />
     </ItemGroup>
     
     <ItemGroup>
