@@ -12,21 +12,6 @@
       "Permeability": 1.0,
       "Porosity": 1.0
     },
-    "PlastPressure": 0.0
-  },
-  {
-    "LeftBottom": {
-      "X": 22.0,
-      "Y": 0.0
-    },
-    "RightTop": {
-      "X": 30.0,
-      "Y": 50.0
-    },
-    "Material": {
-      "Permeability": 1.0,
-      "Porosity": 1.0
-    },
-    "PlastPressure": 0.0
+    "PlastPressure": 130.0
   }
 ]

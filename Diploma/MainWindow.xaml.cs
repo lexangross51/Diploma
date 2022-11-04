@@ -21,8 +21,6 @@ public partial class MainWindow
         MeshGenerator meshGenerator = new(new MeshBuilder(MeshParameters.ReadJson("Input/")));
         _mesh = meshGenerator.CreateMesh();
         PhaseProperty phaseProperty = new(_mesh, "Input/");
-        _colors = new Color[_mesh.Points.Length];
-        
         FEMBuilder femBuilder = new();
 
         double Field(Point2D p) => p.X;
@@ -36,11 +34,10 @@ public partial class MainWindow
             .SetTest(Source)
             .Build();
 
-        fem.Solve();
-        
-        // Filtration filtration = new(_mesh, fem, new LinearBasis());
-        // filtration.ModelFlows();
+        Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
+        filtration.ModelFlows();
 
+        _colors = new Color[_mesh.Points.Length];
         var pressure = fem.Solution!.Value;
         double pressMin = pressure.Min();
         double pressMax = pressure.Max();
