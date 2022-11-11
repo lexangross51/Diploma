@@ -94,27 +94,9 @@ public class Vector : IEnumerable<double>
         => ImmutableArray.Create(_storage);
 
     public IEnumerator<double> GetEnumerator()
-    {
-        foreach (var value in _storage)
-        {
-            yield return value;
-        }
-    }
+        => ((IEnumerable<double>)_storage).GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-    public void Add(IEnumerable<double> collection)
-    {
-        var enumerable = collection as double[] ?? collection.ToArray();
-
-        if (Length != enumerable.Length)
-        {
-            throw new ArgumentOutOfRangeException(nameof(collection), "Sizes of vector and collection not equal");
-        }
-
-        for (int i = 0; i < Length; i++)
-        {
-            _storage[i] = enumerable[i];
-        }
-    }
+    
+    public void Clear() => Array.Fill(_storage, 0.0);
 }

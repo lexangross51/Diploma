@@ -4,8 +4,8 @@ public struct LinearBasis : IBasis
 {
     public int Size => 4;
 
-    public double Phi(int ifunc, Point2D point) =>
-        ifunc switch
+    public double Phi(int ifunc, Point2D point)
+        => ifunc switch
         {
             0 => (1 - point.X) * (1 - point.Y),
             1 => point.X * (1 - point.Y),
@@ -14,8 +14,8 @@ public struct LinearBasis : IBasis
             _ => throw new ArgumentOutOfRangeException(nameof(ifunc), $"Not expected ifunc value: {ifunc}")
         };
 
-    public double DPhi(int ifunc, int ivar, Point2D point) =>
-        ivar switch
+    public double DPhi(int ifunc, int ivar, Point2D point)
+        => ivar switch
         {
             0 => ifunc switch
             {

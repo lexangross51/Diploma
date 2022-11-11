@@ -201,15 +201,15 @@ public class MeshBuilder : IMeshBuilder
             var center = well.Center;
             var radius = well.Radius;
 
-            var xStartL = FindNearestIndex(_xPoints,center.X - 3 * radius, 0);
+            var xStartL = FindNearestIndex(_xPoints,center.X - 5 * radius, 0);
             var xEndL = center.X - radius;
             var xStartR = center.X + radius;
-            var xEndR = FindNearestIndex(_xPoints,center.X + 3 * radius, 1);
+            var xEndR = FindNearestIndex(_xPoints,center.X + 5 * radius, 1);
             
-            var yStartB = FindNearestIndex(_yPoints,center.Y - 3 * radius, 0);
+            var yStartB = FindNearestIndex(_yPoints,center.Y - 5 * radius, 0);
             var yEndB = center.Y - radius;
             var yStartT = center.Y + radius;
-            var yEndT = FindNearestIndex(_yPoints,center.Y + 3 * radius, 1);
+            var yEndT = FindNearestIndex(_yPoints,center.Y + 5 * radius, 1);
             
             // Whether it is necessary to additionally crush the mesh near the well
             if (_parameters.SplitParameters.WellNx != 0 && _parameters.SplitParameters.WellNy != 0)
@@ -263,7 +263,7 @@ public class MeshBuilder : IMeshBuilder
                 ? (yEnd - yStart) / ny 
                 : (yEnd - yStart) * (1 - ky) / (1 - Math.Pow(ky, ny));
 
-            for (int i = 0; i < nx + 1; i++)
+            for (int i = 0; i < ny + 1; i++)
             {
                 wellsYPoints.Add(yEnd);
                 yEnd -= hy;
@@ -273,8 +273,8 @@ public class MeshBuilder : IMeshBuilder
             // From above the well
             yStart = yStartT;
             yEnd = _yPoints[yEndT];
-            hy = Math.Abs(kx - 1.0) < 1E-14 
-                ? (yEnd - yStart) / nx 
+            hy = Math.Abs(ky - 1.0) < 1E-14 
+                ? (yEnd - yStart) / ny 
                 : (yEnd - yStart) * (1 - ky) / (1 - Math.Pow(ky, ny));
 
             for (int i = 0; i < ny + 1; i++)
@@ -383,29 +383,31 @@ public class MeshBuilder : IMeshBuilder
         int nx = _xPoints.Count - 1;
         int ny = _yPoints.Count - 1;
         double pressure = _parameters.Area[0].PlastPressure;
-        
-        List<DirichletCondition> dirichletConditions = new(2 * (nx + ny));
 
-        // lower border
-        for (int inode = 0; inode < nx + 1; inode++)
-        {
-            dirichletConditions.Add(new (inode, pressure));
-        }
-        
-        // upper border
-        for (int inode = (nx + 1) * ny; inode < (nx + 1) * (ny + 1); inode++)
-        {
-            dirichletConditions.Add(new (inode, pressure));
-        }
+        HashSet<DirichletCondition> dirichletConditions = new(2 * (nx + ny));
+
+        // // lower border
+        // for (int inode = 0; inode < nx + 1; inode++)
+        // {
+        //     dirichletConditions.Add(new (inode, pressure));
+        // }
+        //
+        // // upper border
+        // for (int inode = (nx + 1) * ny; inode < (nx + 1) * (ny + 1); inode++)
+        // {
+        //     dirichletConditions.Add(new (inode, pressure));
+        // }
         
         // left border
-        for (int i = 0, inode = nx + 1; i < ny - 1; i++, inode += nx + 1)
+        pressure = 10;
+        for (int i = 0, inode = 0; i < ny + 1; i++, inode += nx + 1)
         {
             dirichletConditions.Add(new (inode, pressure));
         }
         
         // right border
-        for (int i = 0, inode = 2 * nx + 1; i < ny - 1; i++, inode += nx + 1)
+        pressure = 0;
+        for (int i = 0, inode = nx; i < ny + 1; i++, inode += nx + 1)
         {
             dirichletConditions.Add(new (inode, pressure));
         }

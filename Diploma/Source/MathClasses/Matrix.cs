@@ -189,6 +189,75 @@ public class SparseMatrix
     }
 }
 
+public class SymmetricSparseMatrix
+{
+    public int[] Ig { get; init; }
+    public int[] Jg { get; init; }
+    public double[] Di { get; }
+    public double[] GG { get; }
+    public int Size { get; }
+
+    public SymmetricSparseMatrix(int size, int sizeOffDiag)
+    {
+        Size = size;
+        Ig = new int[size + 1];
+        Jg = new int[sizeOffDiag];
+        GG = new double[sizeOffDiag];
+        Di = new double[size];
+    }
+
+    public static Vector operator *(SymmetricSparseMatrix matrix, Vector vector)
+    {
+        Vector product = new (vector.Length);
+
+        for (int i = 0; i < vector.Length; i++)
+        {
+            product[i] = matrix.Di[i] * vector[i];
+
+            for (int j = matrix.Ig[i]; j < matrix.Ig[i + 1]; j++)
+            {
+                product[i] += matrix.GG[j] * vector[matrix.Jg[j]];
+                product[matrix.Jg[j]] += matrix.GG[j] * vector[i];
+            }
+        }
+
+        return product;
+    }
+
+    public void PrintDense(string path)
+    {
+        double[,] a = new double[Size, Size];
+
+        for (int i = 0; i < Size; i++)
+        {
+            a[i, i] = Di[i];
+
+            for (int j = Ig[i]; j < Ig[i + 1]; j++)
+            {
+                a[i, Jg[j]] = GG[j];
+                a[Jg[j], i] = GG[j];
+            }
+        }
+
+        using var sw = new StreamWriter(path);
+        for (int i = 0; i < Size; i++)
+        {
+            for (int j = 0; j < Size; j++)
+            {
+                sw.Write(a[i, j].ToString("0.0000") + "\t\t");
+            }
+
+            sw.WriteLine();
+        }
+    }
+
+    public void Clear()
+    {
+        Array.Fill(Di, 0.0);
+        Array.Fill(GG, 0.0);
+    }
+}
+
 public class ProfileMatrix
 {
     public int[] Ig { get; init; }

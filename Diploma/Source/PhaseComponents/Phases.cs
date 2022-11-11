@@ -1,5 +1,7 @@
 namespace Diploma.Source.PhaseComponents;
 
+public readonly record struct PhasePropertyParameters(double Density, double Viscosity, double Saturation);
+
 public struct Phase
 {
     public double Density;
@@ -9,8 +11,6 @@ public struct Phase
 
 public class PhaseProperty
 {
-    private readonly record struct PhasePropertyParameters(double Density, double Viscosity, double Saturation);
-
     public List<List<Phase>> Phases { get; }
     public List<List<double>>? Saturation { get; }
 
@@ -104,6 +104,9 @@ public class PhaseComponentsTable : ICloneable
         get => _table[iphase, icomponent];
         set => _table[iphase, icomponent] = value;
     }
+
+    public int Rows => _table.GetLength(0);
+    public int Columns => _table.GetLength(1);
 
     public PhaseComponentsTable(string[] phasesNames, string[] componentsNames, double[,] data)
     {

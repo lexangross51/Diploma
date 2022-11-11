@@ -110,58 +110,6 @@ public abstract class IterativeSolver
     }
 }
 
-public class LOS : IterativeSolver
-{
-    public LOS(int maxIters, double eps) : base(maxIters, eps)
-    {
-    }
-
-    public override void Compute()
-    {
-        try
-        {
-            ArgumentNullException.ThrowIfNull(_matrix, $"{nameof(_matrix)} cannot be null, set the matrix");
-            ArgumentNullException.ThrowIfNull(_vector, $"{nameof(_vector)} cannot be null, set the vector");
-
-            _solution = new(_vector.Length);
-
-            Vector z = new(_vector.Length);
-
-            Stopwatch sw = Stopwatch.StartNew();
-
-            var r = _vector - (_matrix * _solution);
-
-            Vector.Copy(r, z);
-
-            var p = _matrix * z;
-
-            var squareNorm = r * r;
-
-            for (int index = 0; index < MaxIters && squareNorm > Eps; index++)
-            {
-                var alpha = p * r / (p * p);
-                _solution += alpha * z;
-                squareNorm = (r * r) - (alpha * alpha * (p * p));
-                r -= alpha * p;
-
-                var tmp = _matrix * r;
-
-                var beta = -(p * tmp) / (p * p);
-                z = r + (beta * z);
-                p = tmp + (beta * p);
-            }
-
-            sw.Stop();
-
-            _runningTime = sw.Elapsed;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"We had problem: {ex.Message}");
-        }
-    }
-}
-
 public class LOSLU : IterativeSolver
 {
     public LOSLU(int maxIters, double eps) : base(maxIters, eps)
@@ -220,6 +168,53 @@ public class LOSLU : IterativeSolver
     }
 }
 
+public class CGM : IterativeSolver
+{
+    public CGM(int maxIters, double eps) : base(maxIters, eps)
+    {
+    }
+
+    public override void Compute()
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(_matrix, $"{nameof(_matrix)} cannot be null, set the matrix");
+            ArgumentNullException.ThrowIfNull(_vector, $"{nameof(_vector)} cannot be null, set the vector");
+
+            double vectorNorm = _vector.Norm();
+
+            _solution = new(_vector.Length);
+
+            Vector z = new(_vector.Length);
+            var r = _vector - (_matrix * _solution);
+            Vector.Copy(r, z);
+            
+            Stopwatch sw = Stopwatch.StartNew();
+
+            double squareNorm = r * r;
+            
+            for (int iter = 0; iter < MaxIters && (Math.Sqrt(squareNorm) / vectorNorm) >= Eps; iter++)
+            {
+                var tmp = _matrix * z;
+                var alpha = r * r / (tmp * z);
+                _solution += alpha * z;
+                r -= alpha * tmp;
+                var beta = r * r / squareNorm;
+                squareNorm = r * r;
+                z = r + beta * z;
+            }
+
+            sw.Stop();
+
+            _runningTime = sw.Elapsed;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"We had problem: {ex.Message}");
+        }
+    }
+}
+
 public abstract class DirectSolver
 {
     protected TimeSpan? _runningTime;
@@ -231,8 +226,8 @@ public abstract class DirectSolver
 
     public ImmutableArray<double>? Solution => _solution?.ToImmutableArray();
 
-    public void SetSystem(ProfileMatrix matrix, Vector vector)
-        => (_matrix, _vector) = (matrix, vector);
+    public void SetSystem(SparseMatrix matrix, Vector vector)
+        => (_matrix, _vector) = (matrix.ToProfileMatrix(), vector);
 
     public abstract void Compute();
 
@@ -278,7 +273,7 @@ public abstract class DirectSolver
                     ggunew[ii] -= sumAu;
                 }
 
-                if (Math.Abs(dinew[j]) < 1e-14)
+                if (Math.Abs(dinew[j]) < 1E-16)
                 {
                     throw new Exception("Division by zero in LU decomposer for profile matrix");
                 }
@@ -315,7 +310,7 @@ public class LUSolver : DirectSolver
                 for (int k = i0; k < i1; k++)
                     sum += _matrix.GGl[k] * _solution[j++];
 
-                if (Math.Abs(_matrix.Di[i]) < 1e-14) 
+                if (Math.Abs(_matrix.Di[i]) < 1E-14) 
                 {
                     throw new Exception("Division by zero in LUSolver.Compute()");
                 }

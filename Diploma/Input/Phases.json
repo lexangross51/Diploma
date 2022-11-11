@@ -2,11 +2,11 @@
   {
     "Density": 1,
     "Viscosity": 1,
-    "Saturation": 0.6
+    "Saturation": 0.4
   },
   {
     "Density": 1,
     "Viscosity": 1,
-    "Saturation": 0.4
+    "Saturation": 0.6
   }
 ]

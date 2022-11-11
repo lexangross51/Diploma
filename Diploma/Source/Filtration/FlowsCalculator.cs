@@ -4,15 +4,17 @@ public class FlowsCalculator
 {
     private readonly Mesh.Mesh _mesh;
     private readonly IBasis _basis;
+    private readonly PhaseProperty _phaseProperty;
     private readonly Vector _averageFlows;
     private readonly Vector _precalcIntegralGradX;
     private readonly Vector _precalcIntegralGradY;
     private readonly int[] _normals = { 1, 1, 1, 1 };
 
-    public FlowsCalculator(Mesh.Mesh mesh, IBasis basis)
+    public FlowsCalculator(Mesh.Mesh mesh, IBasis basis, PhaseProperty phaseProperty)
     {
         _mesh = mesh;
         _basis = basis;
+        _phaseProperty = phaseProperty;
         
         var edgesCount = mesh.Elements[^1].Edges[^1] + 1;
 
@@ -21,7 +23,7 @@ public class FlowsCalculator
         _precalcIntegralGradY = new Vector(_basis.Size);
         
         Interval omega = new(0, 1);
-        Integration gauss = new(Quadratures.GaussOrder3());
+        Integration gauss = new(Quadratures.GaussOrder5());
 
         for (int i = 0; i < _basis.Size; i++)
         {
@@ -66,6 +68,24 @@ public class FlowsCalculator
         return gradient * hx / hy;
     }
     
+    private double CalculateCoefficient(int ielem)
+    {
+        int area = _mesh.Elements[ielem].Area;
+        double coefficient = 0.0;
+
+        int phaseCount = _phaseProperty.Phases[ielem].Count;
+
+        for (int i = 0; i < phaseCount; i++)
+        {
+            coefficient += _phaseProperty.Phases[ielem][i].Kappa;
+            coefficient /= _phaseProperty.Phases[ielem][i].Viscosity;
+        }
+            
+        coefficient *= _mesh.Materials[area].Permeability;
+
+        return coefficient;
+    }
+    
     public Vector CalculateAverageFlows(ImmutableArray<double> pressure)
     {
         List<bool> isUsedEdge = new(_averageFlows.Length);
@@ -77,15 +97,14 @@ public class FlowsCalculator
 
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
-            var area = _mesh.Elements[ielem].Area;
-            var permeability = _mesh.Materials[area].Permeability;
+            var coefficient = CalculateCoefficient(ielem);
             var edges = _mesh.Elements[ielem].Edges;
 
-            for (int localEdge = 0; localEdge < 4; localEdge++)
+            for (int localEdge = 0; localEdge < edges.Count; localEdge++)
             {
                 var globalEdge = edges[localEdge];
 
-                double flow = - permeability * CalculateGradient(pressure, ielem, localEdge) * _normals[localEdge];
+                double flow = -coefficient * CalculateGradient(pressure, ielem, localEdge) * _normals[localEdge];
 
                 if (isUsedEdge[globalEdge])
                 {

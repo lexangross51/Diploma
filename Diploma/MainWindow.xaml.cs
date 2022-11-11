@@ -23,14 +23,14 @@ public partial class MainWindow
         PhaseProperty phaseProperty = new(_mesh, "Input/");
         FEMBuilder femBuilder = new();
 
-        double Field(Point2D p) => p.X;
-        double Source(Point2D p) => 0.0;
+        double Field(Point2D p) => p.Y;
+        double Source(Point2D p) => 0;
 
         var fem = femBuilder
             .SetMesh(_mesh)
             .SetPhaseProperties(phaseProperty)
             .SetBasis(new LinearBasis())
-            .SetSolver(new LOSLU(1000, 1E-13))
+            .SetSolver(new CGM(1000, 1E-20))
             .SetTest(Source)
             .Build();
 

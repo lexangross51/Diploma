@@ -5,8 +5,8 @@
       "Y": 0.0
     },
     "RightTop": {
-      "X": 100.0,
-      "Y": 100.0
+      "X": 5.0,
+      "Y": 5.0
     },
     "Material": {
       "Permeability": 1.0,

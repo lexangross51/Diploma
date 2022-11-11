@@ -78,6 +78,8 @@ public static class PortraitBuilder
             }
         }
 
+        var orderedList = connectivityList.Select(list => list.OrderBy(val => val)).ToList();
+        
         ig = new int[edgesCount + 1];
 
         ig[0] = 0;
@@ -90,9 +92,9 @@ public static class PortraitBuilder
 
         jg = new int[ig[^1]];
 
-        for (int i = 1, j = 0; i < connectivityList.Count; i++) 
+        for (int i = 1, j = 0; i < orderedList.Count; i++) 
         {
-            foreach (var it in connectivityList[i])
+            foreach (var it in orderedList[i])
             {
                 jg[j++] = it;
             }
