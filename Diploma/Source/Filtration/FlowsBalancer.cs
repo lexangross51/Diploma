@@ -5,20 +5,19 @@ public class FlowsBalancer
     private readonly Mesh.Mesh _mesh;
     private readonly SparseMatrix _globalMatrix;
     private readonly Vector _globalVector;
+    private readonly double[] _deltaQ;
     private readonly double[] _beta;
     private readonly double[] _alpha;
     private readonly DirectSolver _solver;
-    private double[] _deltaQ;
-    
-    public double MaxImbalance { get; set; }
-    public int MaxBalanceIters { get; set; }
+    private readonly double _maxImbalance;
+    private readonly int _maxBalanceIters;
     
     public FlowsBalancer(Mesh.Mesh mesh)
     {
         _mesh = mesh;
         
-        MaxBalanceIters = 100;
-        MaxImbalance = 1E-15;
+        _maxBalanceIters = 100;
+        _maxImbalance = 1E-10;
         
         PortraitBuilder.PortraitByEdges(_mesh, out int[] ig, out int[] jg);
         _globalMatrix = new SparseMatrix(ig.Length - 1, jg.Length)
@@ -29,13 +28,98 @@ public class FlowsBalancer
 
         _globalVector = new Vector(ig.Length - 1);
         _deltaQ = new double[ig.Length - 1];
-        
-        _beta = new double[_mesh.Elements.Length].Select(_ => 1E+01).ToArray();
+
+        _beta = new double[_mesh.Elements.Length].Select(_ => 1E-05).ToArray();
         _alpha = new double[_mesh.Elements[^1].Edges[^1] + 1];
 
         _solver = new LUSolver();
     }
     
+    public void BalanceFlows(Vector flows)
+    {
+        bool isBalanced = true;
+        int iteration = 0;
+        double maxFlow = MaxFlow(flows);
+        
+        // Возможно, что сразу выполняется заданный уровень небаланса
+        for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+        {
+            if (IsWellElement(ielem)) continue;
+
+            if (ElementImbalance(ielem, flows) / maxFlow > _maxImbalance)
+            {
+                isBalanced = false;
+            }
+        }
+
+        CalculateAlpha(flows);
+        
+        #region Напечатать небалансы
+
+        using (var sw = new StreamWriter("imbalances.txt"))
+        {
+            for (int i = 0; i < _mesh.Elements.Length; i++)
+            {
+                var imbalance = ElementImbalance(i, flows);
+                var strimb = i + ": " + imbalance;
+                sw.WriteLine(strimb);
+            }
+        }
+
+        #endregion
+
+        while (!isBalanced && iteration < _maxBalanceIters)
+        {
+            AssemblyGlobalMatrix();
+            AssemblyGlobalVector(flows);
+            FixWellsFlows(flows);
+            _solver.SetSystem(_globalMatrix, _globalVector);
+            _solver.Compute();
+            Array.Copy(_solver.Solution!.Value.ToArray(), _deltaQ, _deltaQ.Length);
+
+            bool isNullImbalance = true;
+
+            for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+            {
+                if (IsWellElement(ielem)) continue;
+
+                double imbalance = ElementImbalance(ielem, flows);
+
+                if (imbalance / maxFlow > _maxImbalance)
+                {
+                    _beta[ielem] *= 10.0;
+                    isNullImbalance = false;
+                }
+            }
+
+            #region Напечатать небалансы
+
+            using(var sww = new StreamWriter("imbalances.txt"))
+            {
+                for (int i = 0; i < _mesh.Elements.Length; i++)
+                {
+                    var imbalance = ElementImbalance(i, flows);
+                    var strimb = i + ": " + imbalance;
+                    sww.WriteLine(strimb);
+                }
+            }
+
+            #endregion
+
+            if (isNullImbalance) isBalanced = true;
+            iteration++;
+        }
+
+        if (!isBalanced) return;
+        
+        CheckFlowsDirection(flows);
+
+        for (int i = 0; i < _deltaQ.Length; i++)
+        {
+            flows[i] += _deltaQ[i];
+        }
+    }
+
     private void ElementsByEdge(int globalEdge, out List<int> elements)
     {
         elements = new List<int>();
@@ -139,127 +223,6 @@ public class FlowsBalancer
         return max;
     }
 
-    public void BalanceFlows(Vector flows)
-    {
-        bool isBalanced = false;
-        int iteration = 0;
-
-        flows[3] -= 0.1;
-
-        double maxFlow = MaxFlow(flows);
-
-        CalculateAlpha(flows);
-
-        #region Напечатать небалансы
-
-        using (var sw = new StreamWriter("imbalances.txt"))
-        {
-            for (int i = 0; i < _mesh.Elements.Length; i++)
-            {
-                var imbalance = ElementImbalance(i, flows);
-                var strimb = i + ": " + imbalance;
-                sw.WriteLine(strimb);
-            }
-
-            Debug.Print("----------------------------");
-        }
-
-        #endregion
-
-        #region Напечатать направления потоков через грани каждого элемента
-
-        for (int i = 0; i < _mesh.Elements.Length; i++)
-        {
-            string dirs = i + ": ";
-            
-            for (int j = 0; j < 4; j++)
-            {
-                dirs += FlowDirection(flows, i, j).ToString() + "   ";
-            }
-        
-            if (!_mesh.NeumannConditions.IsEmpty && _mesh.NeumannConditions[0].Element == i)
-            {
-                dirs += ": here";
-            }
-            
-            Debug.Print(dirs);
-        }
-
-        #endregion
-
-        while (!isBalanced && iteration < MaxBalanceIters)
-        {
-            AssemblyGlobalMatrix();
-            _globalMatrix.Di[3] -= 10;
-            AssemblyGlobalVector(flows);
-            //_globalVector[3] += 1;
-            
-            var dop = new Vector(7)
-            {
-                [3] = 0.1
-            };
-
-            var vectorB = _globalMatrix * dop;
-            
-            _globalMatrix.PrintDense("denseMatrix.txt");
-
-            using (var sw = new StreamWriter("vector.txt"))
-            {
-                foreach (var x in _globalVector)
-                {
-                    sw.WriteLine(x);
-                }
-            }
-
-            FixWellsFlows(flows);
-            _solver.SetSystem(_globalMatrix, _globalVector);
-            _solver.Compute();
-            _deltaQ = _solver.Solution!.Value.ToArray();
-
-            bool isNullImbalance = true;
-
-            for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
-            {
-                if (IsWellElement(ielem)) continue;
-
-                double imbalance = ElementImbalance(ielem, flows);
-
-                if (imbalance / maxFlow > MaxImbalance)
-                {
-                    _beta[ielem] *= 10.0;
-                    isNullImbalance = false;
-                }
-            }
-            
-            #region Напечатать небалансы
-
-            using(var sww = new StreamWriter("imbalances.txt"))
-            {
-                for (int i = 0; i < _mesh.Elements.Length; i++)
-                {
-                    var imbalance = ElementImbalance(i, flows);
-                    var strimb = i + ": " + imbalance;
-                    sww.WriteLine(strimb);
-                }
-                Debug.Print("----------------------------");   
-            }
-
-            #endregion
-
-            if (isNullImbalance) isBalanced = true;
-            iteration++;
-        }
-
-        if (!isBalanced) return;
-        
-        CheckFlowsDirection(flows);
-
-        for (int i = 0; i < _deltaQ.Length; i++)
-        {
-            flows[i] += _deltaQ[i];
-        }
-    }
-
     private void AddToGlobal(int i, int j, double value)
     {
         if (i == j)
@@ -326,10 +289,10 @@ public class FlowsBalancer
             var edges = _mesh.Elements[ielem].Edges;
             var edgesDirect = _mesh.Elements[ielem].EdgesDirect;
             double imbalance = 0.0;
-            
+
             for (int localEdge = 0; localEdge < edges.Count; localEdge++)
             {
-                imbalance += FlowDirection(flows, ielem, localEdge) * Math.Abs(flows[edges[localEdge]]);
+                imbalance += edgesDirect[localEdge] * flows[edges[localEdge]];
             }
 
             if (IsWellElement(ielem)) imbalance = 0.0;
@@ -352,8 +315,8 @@ public class FlowsBalancer
             {
                 int globalEdge = edges[localEdge];
                 
-                //flows[globalEdge] = theta * edgesDirect[localEdge];
-                flows[globalEdge] = theta;
+                flows[globalEdge] = theta * edgesDirect[localEdge];
+                //flows[globalEdge] = theta;
                 _globalVector[globalEdge] = 0.0;
 
                 for (int k = _globalMatrix.Ig[globalEdge]; k < _globalMatrix.Ig[globalEdge + 1]; k++) 
@@ -381,14 +344,35 @@ public class FlowsBalancer
     private void CheckFlowsDirection(Vector flows)
     {
         using var sw = new StreamWriter("CheckDirection.txt");
-        sw.WriteLine($"{"Non balanced", 15}\t{"Balanced", 15}");
 
-        for (int i = 0; i < flows.Length; i++)
+        Vector tmpFlows = new(flows.Length);
+        Vector.Copy(flows, tmpFlows);
+        
+        for (int i = 0; i < _deltaQ.Length; i++)
         {
-            int nonBalancedSign = Math.Sign(flows[i]);
-            int balancedSign = Math.Sign(flows[i] + _deltaQ[i]);
+            tmpFlows[i] += _deltaQ[i];
+        }
+        
+        for (int i = 0; i < _mesh.Elements.Length; i++)
+        {
+            string dirs = string.Empty;
             
-            sw.WriteLine($"{nonBalancedSign.ToString(), 15}\t{balancedSign.ToString(), 15}");
+            for (int j = 0; j < 4; j++)
+            {
+                dirs += FlowDirection(flows, i, j) + "   ";
+            }
+
+            dirs += $"NB - {i}\n";
+            
+            for (int j = 0; j < 4; j++)
+            {
+                dirs += FlowDirection(tmpFlows, i, j) + "   ";
+            }
+
+            dirs += "B\n";
+            dirs += "------------------------------";
+            
+            sw.WriteLine(dirs);
         }
     }
 }

@@ -23,7 +23,7 @@ public partial class MainWindow
         PhaseProperty phaseProperty = new(_mesh, "Input/");
         FEMBuilder femBuilder = new();
 
-        double Field(Point2D p) => p.Y;
+        double Field(Point2D p) => p.X + p.Y;
         double Source(Point2D p) => 0;
 
         var fem = femBuilder
