@@ -41,7 +41,7 @@ public class FlowsBalancer
         int iteration = 0;
         double maxFlow = MaxFlow(flows);
         
-        // Возможно, что сразу выполняется заданный уровень небаланса
+        // It's possible the predetermined level of imbalance has already been reached
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
             if (IsWellElement(ielem)) continue;
@@ -54,15 +54,15 @@ public class FlowsBalancer
 
         CalculateAlpha(flows);
         
-        #region Напечатать небалансы
+        #region Print imbalances
 
-        using (var sw = new StreamWriter("imbalances.txt"))
+        using (var sw = new StreamWriter("Output/imbalances.txt"))
         {
             for (int i = 0; i < _mesh.Elements.Length; i++)
             {
                 var imbalance = ElementImbalance(i, flows);
-                var strimb = i + ": " + imbalance;
-                sw.WriteLine(strimb);
+                var strImb = i + ": " + imbalance;
+                sw.WriteLine(strImb);
             }
         }
 
@@ -92,15 +92,15 @@ public class FlowsBalancer
                 }
             }
 
-            #region Напечатать небалансы
+            #region Print imbalances
 
-            using(var sww = new StreamWriter("imbalances.txt"))
+            using(var sww = new StreamWriter("Output/imbalances.txt"))
             {
                 for (int i = 0; i < _mesh.Elements.Length; i++)
                 {
                     var imbalance = ElementImbalance(i, flows);
-                    var strimb = i + ": " + imbalance;
-                    sww.WriteLine(strimb);
+                    var strImb = i + ": " + imbalance;
+                    sww.WriteLine(strImb);
                 }
             }
 
@@ -199,9 +199,9 @@ public class FlowsBalancer
     private int FlowDirection(Vector flows, int ielem, int iedge)
     {
         int globalEdge = _mesh.Elements[ielem].Edges[iedge];
-        //double flow = Math.Abs(flows[globalEdge]) < 1E-14 ? 0.0 : flows[globalEdge]; 
+        double flow = Math.Abs(flows[globalEdge]) < 1E-14 ? 0.0 : flows[globalEdge]; 
 
-        return flows[globalEdge] switch
+        return flow switch
         {
             0.0 => 0,
             > 0 => _mesh.Elements[ielem].EdgesDirect[iedge],
@@ -316,7 +316,6 @@ public class FlowsBalancer
                 int globalEdge = edges[localEdge];
                 
                 flows[globalEdge] = theta * edgesDirect[localEdge];
-                //flows[globalEdge] = theta;
                 _globalVector[globalEdge] = 0.0;
 
                 for (int k = _globalMatrix.Ig[globalEdge]; k < _globalMatrix.Ig[globalEdge + 1]; k++) 
@@ -343,7 +342,7 @@ public class FlowsBalancer
 
     private void CheckFlowsDirection(Vector flows)
     {
-        using var sw = new StreamWriter("CheckDirection.txt");
+        using var sw = new StreamWriter("Output/CheckDirection.txt");
 
         Vector tmpFlows = new(flows.Length);
         Vector.Copy(flows, tmpFlows);

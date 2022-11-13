@@ -43,7 +43,9 @@ public partial class MainWindow
         double pressMax = pressure.Max();
 
         double stepPBig = (pressMax - pressMin) / 4.0;
-        double stepPSmall = stepPBig / 255.0;
+        double stepPSmall = stepPBig / 256.0;
+
+        #region Rainbow
 
         foreach (var t in _mesh.Elements)
         {
@@ -74,17 +76,19 @@ public partial class MainWindow
             }
             else
             {
-                byte tmp = (byte)(76 - ((centerP - pressMin) / (stepPSmall * (255.0 / 76.0))));
+                byte tmp = (byte)(76 - (centerP - pressMin) / (stepPSmall * (255.0 / 76.0)));
                 rColor = tmp;
                 gColor = 0;
                 bColor = (byte)(255 - tmp);
             }
-        
+
             _colors[nodes[0]] = new Color(rColor, gColor, bColor);
             _colors[nodes[1]] = new Color(rColor, gColor, bColor);
             _colors[nodes[2]] = new Color(rColor, gColor, bColor);
             _colors[nodes[3]] = new Color(rColor, gColor, bColor);
         }
+
+        #endregion
         
         #region From red to white
 

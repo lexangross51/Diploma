@@ -42,19 +42,25 @@
       <None Update="Input\MeshXY.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <None Update="Input\Phases.json">
+      <None Update="Input\AreaPhases.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
       <None Update="Input\Wells.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <None Update="Input\PrimaryComponents.json">
+      <None Update="Input\AreaPhasesComponents.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <None Update="Input\InjectedPhases.json">
+      <None Update="Input\InjectedPhase.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <None Update="Input\RemoteBordersPhases.json">
+      <None Update="Input\RemotePhases.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Input\InjectedPhaseComponents.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Input\RemotePhasesComponents.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
     </ItemGroup>

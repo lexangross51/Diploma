@@ -40,6 +40,14 @@ public class FlowsCalculator
         }
     }
 
+    private int FlowDirection(double flow, int ielem, int iedge)
+        => Math.Sign(flow) switch
+        {
+            0 => 0,
+            > 0 => _mesh.Elements[ielem].EdgesDirect[iedge],
+            _ => -_mesh.Elements[ielem].EdgesDirect[iedge]
+        };
+
     private double CalculateGradient(ImmutableArray<double> pressure, int element, int localEdge)
     {
         var nodes = _mesh.Elements[element].Nodes;
@@ -48,7 +56,7 @@ public class FlowsCalculator
         double hy = _mesh.Points[nodes[^1]].Y - _mesh.Points[nodes[0]].Y;
         double gradient = 0.0;
         
-        // Левая или правая граница
+        // Left or right border
         if (localEdge is 1 or 2)
         {
             for (int i = 0; i < _basis.Size; i++)
@@ -59,7 +67,7 @@ public class FlowsCalculator
             return gradient * hy / hx;
         }
 
-        // Нижняя или верхняя граница
+        // Lower or upper border
         for (int i = 0; i < _basis.Size; i++)
         {
             gradient += pressure[nodes[i]] * _precalcIntegralGradY[i];
@@ -73,7 +81,7 @@ public class FlowsCalculator
         int area = _mesh.Elements[ielem].Area;
         double coefficient = 0.0;
 
-        int phaseCount = _phaseProperty.Phases[ielem].Count;
+        int phaseCount = _phaseProperty.Phases![ielem].Count;
 
         for (int i = 0; i < phaseCount; i++)
         {
@@ -97,14 +105,19 @@ public class FlowsCalculator
 
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
-            var coefficient = CalculateCoefficient(ielem);
+            double coefficient = CalculateCoefficient(ielem);
             var edges = _mesh.Elements[ielem].Edges;
 
             for (int localEdge = 0; localEdge < edges.Count; localEdge++)
             {
                 var globalEdge = edges[localEdge];
 
-                double flow = -coefficient * CalculateGradient(pressure, ielem, localEdge) * _normals[localEdge];
+                double flow = -CalculateGradient(pressure, ielem, localEdge) * _normals[localEdge];
+
+                if (FlowDirection(flow, ielem, localEdge) == 1)
+                {
+                    flow *= coefficient;
+                }
 
                 if (isUsedEdge[globalEdge])
                 {
@@ -117,7 +130,7 @@ public class FlowsCalculator
                 }
             }
         }
-
+        
         return _averageFlows;
     }
 }
