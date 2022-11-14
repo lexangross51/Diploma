@@ -6,7 +6,7 @@ public class Filtration
     private readonly PhaseProperty _phaseProperty;
     private readonly FEMBuilder.FEM _fem;
     private readonly PhaseComponentsTable[] _phasesComponents;
-    private readonly PhaseComponentsTable _remoteBordersPhases;
+    private readonly PhaseComponentsTable _remotePhasesComponents;
     private readonly FlowsCalculator _flowsCalculator;
     private readonly FlowsBalancer _flowsBalancer;
     private Vector _flows = default!;
@@ -22,11 +22,11 @@ public class Filtration
         _fem = fem;
         var componentsTable = PhaseComponentsTable.ReadJson("Input/AreaPhasesComponents.json");
         var componentsPerWell = PhaseComponentsTable.ReadJson("Input/InjectedPhaseComponents.json");
+        _remotePhasesComponents = PhaseComponentsTable.ReadJson("Input/RemotePhasesComponents.json");
         
         _phasesComponents = new PhaseComponentsTable[_mesh.Elements.Length]
                                 .Select(_ => componentsTable.Clone() as PhaseComponentsTable)
                                 .ToArray()!;
-        _remoteBordersPhases = PhaseComponentsTable.ReadJson("Input/RemotePhasesComponents.json");
 
         foreach (var condition in _mesh.NeumannConditions)
         {

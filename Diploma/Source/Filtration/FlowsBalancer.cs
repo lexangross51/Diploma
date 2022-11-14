@@ -62,6 +62,9 @@ public class FlowsBalancer
             {
                 var imbalance = ElementImbalance(i, flows);
                 var strImb = i + ": " + imbalance;
+
+                if (IsWellElement(i)) strImb += "(Well)";
+                
                 sw.WriteLine(strImb);
             }
         }
@@ -100,6 +103,9 @@ public class FlowsBalancer
                 {
                     var imbalance = ElementImbalance(i, flows);
                     var strImb = i + ": " + imbalance;
+                    
+                    if (IsWellElement(i)) strImb += "(Well)";
+                    
                     sww.WriteLine(strImb);
                 }
             }
@@ -361,7 +367,8 @@ public class FlowsBalancer
                 dirs += FlowDirection(flows, i, j) + "   ";
             }
 
-            dirs += $"NB - {i}\n";
+            if (IsWellElement(i)) dirs += $"NB - {i}(Well)\n";
+            else dirs += $"NB - {i}\n";
             
             for (int j = 0; j < 4; j++)
             {
