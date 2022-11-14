@@ -13,7 +13,9 @@ public class Filtration
     private readonly double[,] _flowsOutPhases;
     private readonly double[,] _volumeOutPhases;
     private double _deltaT;
-    private List<(int, double)> _abandon;
+    private List<(int, int)> _abandon;
+    private double[] _saturationMaxCrit = { 0.4, 0.6 };
+    private double[] _saturationMinCrit = { 0.3, 0.7 };
 
     public Filtration(Mesh.Mesh mesh, PhaseProperty phaseProperty, FEMBuilder.FEM fem, IBasis basis)
     {
@@ -41,16 +43,18 @@ public class Filtration
 
         _flowsOutPhases = new double[edgesCount, phasesCount];
         _volumeOutPhases = new double[edgesCount, phasesCount];
-        _abandon = new List<(int, double)>();
+        _abandon = new List<(int, int)>();
     }
 
-    public void ModelFlows()
+    public void ModelFiltration()
     {
         _fem.Solve();
         _flows = _flowsCalculator.CalculateAverageFlows(_fem.Solution!.Value);
         _flowsBalancer.BalanceFlows(_flows);
         CalculateFlowOutPhases();
         CalculateDeltaT(0.1);
+        //CalculateVolumesOutPhases();
+        //CalculateNewSaturations();
     }
 
     private int FlowDirection(int ielem, int localEdge)
@@ -102,7 +106,7 @@ public class Filtration
             }
         }
         
-        // Учет от скважин
+        // Accounting from wells
         foreach (var condition in _mesh.NeumannConditions)
         {
             var ielem = condition.Element;
@@ -127,7 +131,7 @@ public class Filtration
             }
         }
         
-        // Учет от удаленных границ
+        // Accounting from remote boundaries
         int nx = _mesh.Elements[0].Nodes[2] - 1;
         int ny = _mesh.Elements.Length / nx;
 
@@ -206,19 +210,76 @@ public class Filtration
     private void CalculateDeltaT(double deltaT0)
     {
         _deltaT = deltaT0;
+        var abandonH = new List<(int, int)>();
 
-        var abandonH = new List<(int, double)>();
-
+        // Forming set of abandonH and calculate deltaT
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
             if (IsWellElement(ielem)) continue;
 
-            var saturations = _phaseProperty.Saturation![ielem];
+            var leftBottom = _mesh.Points[_mesh.Elements[ielem].Nodes[0]];
+            var rightTop = _mesh.Points[_mesh.Elements[ielem].Nodes[^1]];
             
+            var porosity = _mesh.Materials[_mesh.Elements[ielem].Area].Porosity;
+            var mes = (rightTop.X - leftBottom.X) * (rightTop.Y - leftBottom.Y);
+            var edges = _mesh.Elements[ielem].Edges;
+            var saturations = _phaseProperty.Saturation![ielem];
+
+            for (int iphase = 0; iphase < saturations.Count; iphase++)
+            {
+                if (saturations[iphase] < _saturationMaxCrit[iphase])
+                {
+                    abandonH.Add((ielem, iphase));
+                    continue;
+                }
+
+                double sumPhaseFlowOut = 0.0;
+
+                for (int localEdge = 0; localEdge < edges.Count; localEdge++)
+                {
+                    if (FlowDirection(ielem, localEdge) == 1)
+                    {
+                        sumPhaseFlowOut += _flowsOutPhases[edges[localEdge], iphase];
+                    }
+                }
+
+                var deltaTe = mes * porosity * saturations[iphase] / sumPhaseFlowOut;
+
+                if (deltaTe < _deltaT) _deltaT = deltaTe;
+            }
+        }
+
+        // Form the set abandon for the elements of which the pushing procedure will be carried out
+        foreach (var pair in abandonH)
+        {
+            var leftBottom = _mesh.Points[_mesh.Elements[pair.Item1].Nodes[0]];
+            var rightTop = _mesh.Points[_mesh.Elements[pair.Item1].Nodes[^1]];
+            
+            var porosity = _mesh.Materials[_mesh.Elements[pair.Item1].Area].Porosity;
+            var mes = (rightTop.X - leftBottom.X) * (rightTop.Y - leftBottom.Y);
+            var edges = _mesh.Elements[pair.Item1].Edges;
+            var saturations = _phaseProperty.Saturation![pair.Item1];
+            
+            double sumPhaseVolumeOut = 0.0;
+
+            for (int localEdge = 0; localEdge < edges.Count; localEdge++)
+            {
+                if (FlowDirection(pair.Item1, localEdge) == 1)
+                {
+                    sumPhaseVolumeOut += _flowsOutPhases[edges[localEdge], pair.Item2];
+                }
+            }
+
+            sumPhaseVolumeOut *= _deltaT;
+
+            if (sumPhaseVolumeOut > mes * porosity * saturations[pair.Item2])
+            {
+                _abandon.Add(pair);
+            }
         }
     }
 
-    private void CalculateVolumes()
+    private void CalculateVolumesOutPhases()
     {
         
     }

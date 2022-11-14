@@ -35,7 +35,7 @@ public partial class MainWindow
             .Build();
 
         Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
-        filtration.ModelFlows();
+        filtration.ModelFiltration();
 
         _colors = new Color[_mesh.Points.Length];
         var pressure = fem.Solution!.Value;
