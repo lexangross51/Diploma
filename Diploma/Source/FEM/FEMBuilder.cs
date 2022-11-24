@@ -37,8 +37,6 @@ public class FEMBuilder
             _source = source;
             _field = field;
 
-            var gauss = new Integration(Quadratures.GaussOrder5());
-            
             _stiffnessMatrix = new SquareMatrix(_basis.Size);
             _precalcStiffnessX = new SquareMatrix(_basis.Size);
             _precalcStiffnessY = new SquareMatrix(_basis.Size);
@@ -172,7 +170,7 @@ public class FEMBuilder
             int area = _mesh.Elements[ielem].Area;
             double coefficient = 0.0;
 
-            int phaseCount = _phaseProperty.Phases[ielem].Count;
+            int phaseCount = _phaseProperty.Phases![ielem].Count;
 
             for (int i = 0; i < phaseCount; i++)
             {
@@ -184,6 +182,9 @@ public class FEMBuilder
 
             return coefficient;
         }
+        
+        private bool IsWellElement(int ielem)
+            => Enumerable.Any(_mesh.NeumannConditions, condition => condition.Element == ielem);
 
         private void BuildLocalMatrixVector(int ielem)
         {
@@ -350,6 +351,8 @@ public class FEMBuilder
 
             for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
             {
+                if (IsWellElement(ielem)) continue;
+                
                 var nodes = _mesh.Elements[ielem].Nodes;
                 var coefficient = CalculateCoefficient(ielem);
 

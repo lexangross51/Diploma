@@ -14,8 +14,9 @@ public class Filtration
     private readonly double[,] _volumeOutPhases;
     private double _deltaT;
     private readonly List<(int, int)> _abandon;
-    private readonly double[] _saturationMaxCrit = { 0.35, 0.65 };
-    private readonly double[] _saturationMinCrit = { 0.3, 0.7 };
+    private readonly double[] _saturationMaxCrit = { 0.5, 0.5 };
+    private readonly double[] _saturationMinCrit = { 0.01, 0.01 };
+    private int _timeStart, _timeEnd;
 
     public Filtration(Mesh.Mesh mesh, PhaseProperty phaseProperty, FEMBuilder.FEM fem, IBasis basis)
     {
@@ -46,15 +47,35 @@ public class Filtration
         _abandon = new List<(int, int)>();
     }
 
-    public void ModelFiltration()
+    public void ModelFiltration(int timeStart, int timeEnd)
     {
-        _fem.Solve();
-        _flows = _flowsCalculator.CalculateAverageFlows(_fem.Solution!.Value);
-        //_flowsBalancer.BalanceFlows(_flows);
-        CalculateFlowOutPhases();
-        CalculateDeltaT(0.1);
-        CalculateVolumesOutPhases();
-        //CalculateNewSaturations();
+        _timeStart = timeStart;
+        _timeEnd = timeEnd;
+
+        for (int timeMoment = _timeStart; timeMoment < _timeEnd; timeMoment++)
+        {
+            _abandon.Clear();
+
+            for (int i = 0; i < _flowsOutPhases.GetLength(0); i++)
+            {
+                for (int j = 0; j < _flowsOutPhases.GetLength(1); j++)
+                {
+                    _flowsOutPhases[i, j] = 0.0;
+                    _volumeOutPhases[i, j] = 0.0;
+                }
+            }
+
+            _fem.Solve();
+            PrintPressure(timeMoment);
+            PrintSaturation(timeMoment);
+            
+            _flows = _flowsCalculator.CalculateAverageFlows(_fem.Solution!.Value);
+            //_flowsBalancer.BalanceFlows(_flows);
+            CalculateFlowOutPhases();
+            CalculateDeltaT(0.1);
+            CalculateVolumesOutPhases();
+            CalculateNewSaturations(timeMoment);
+        }
     }
 
     private int FlowDirection(int ielem, int localEdge)
@@ -211,6 +232,7 @@ public class Filtration
     {
         _deltaT = deltaT0;
         var abandonH = new List<(int, int)>();
+        var abandonH2 = new List<(int, int)>();
 
         // Forming set of abandonH and calculate deltaT
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
@@ -227,6 +249,12 @@ public class Filtration
 
             for (int iphase = 0; iphase < saturations.Count; iphase++)
             {
+                if (saturations[iphase] < _saturationMinCrit[iphase])
+                {
+                    abandonH2.Add((ielem, iphase));
+                    continue;
+                }
+                
                 if (saturations[iphase] < _saturationMaxCrit[iphase])
                 {
                     abandonH.Add((ielem, iphase));
@@ -242,7 +270,55 @@ public class Filtration
             }
         }
 
+        // // Check if there is enough mix at the selected delta time
+        // bool isOptimalDeltaT = false;
+        //
+        // using var sw = new StreamWriter("Output/CheckMixEnough.txt");
+        //
+        // while (!isOptimalDeltaT)
+        // {
+        //     sw.WriteLine($"Delta time: {_deltaT}");
+        //     isOptimalDeltaT = true;
+        //     int totalCount = 0;
+        //
+        //     for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+        //     {
+        //         if (IsWellElement(ielem)) continue;
+        //
+        //         var leftBottom = _mesh.Points[_mesh.Elements[ielem].Nodes[0]];
+        //         var rightTop = _mesh.Points[_mesh.Elements[ielem].Nodes[^1]];
+        //
+        //         var porosity = _mesh.Materials[_mesh.Elements[ielem].Area].Porosity;
+        //         var mes = (rightTop.X - leftBottom.X) * (rightTop.Y - leftBottom.Y);
+        //         var saturations = _phaseProperty.Saturation![ielem];
+        //         var edges = _mesh.Elements[ielem].Edges;
+        //
+        //         for (int iphase = 0; iphase < saturations.Count; iphase++)
+        //         {
+        //             double phaseVolume = mes * porosity * saturations[iphase];
+        //             double volumeOut = edges.Where((t, localEdge) => FlowDirection(ielem, localEdge) == 1)
+        //                 .Sum(t => _flowsOutPhases[t, iphase]);
+        //
+        //             if (phaseVolume < volumeOut * _deltaT)
+        //             {
+        //                 isOptimalDeltaT = false;                                
+        //                 totalCount++;                                           
+        //                 sw.WriteLine($"{ielem}: {volumeOut * _deltaT}, {phaseVolume}");
+        //             }
+        //         }
+        //     }
+        //     
+        //     sw.WriteLine($"Total count: {totalCount}");
+        //     sw.WriteLine("--------------------------------------------------");
+        //     sw.WriteLine("--------------------------------------------------");
+        //
+        //     if (!isOptimalDeltaT) _deltaT /= 2.0;
+        // }
+
         // Form the set abandon for the elements of which the pushing procedure will be carried out
+        
+        using var sw = new StreamWriter("Output/CheckMixEnough.txt");
+        
         foreach (var pair in abandonH)
         {
             var (ielem, iphase) = pair;
@@ -253,15 +329,21 @@ public class Filtration
             var mes = (rightTop.X - leftBottom.X) * (rightTop.Y - leftBottom.Y);
             var edges = _mesh.Elements[ielem].Edges;
             var saturations = _phaseProperty.Saturation![ielem];
-
-            double sumPhaseVolumeOut = edges.Where((_, localEdge) => FlowDirection(ielem, localEdge) == 1)
+        
+            double phaseVolumeOut = edges.Where((_, localEdge) => FlowDirection(ielem, localEdge) == 1)
                 .Sum(t => _flowsOutPhases[t, iphase]);
-            sumPhaseVolumeOut *= _deltaT;
-
-            if (sumPhaseVolumeOut > mes * porosity * saturations[iphase])
+            phaseVolumeOut *= _deltaT;
+        
+            if (phaseVolumeOut > mes * porosity * saturations[iphase])
             {
                 _abandon.Add(pair);
+                sw.WriteLine($"{ielem}: {iphase}, {phaseVolumeOut}, {mes * porosity * saturations[iphase]}");
             }
+        }
+
+        foreach (var pair in abandonH2)
+        {
+            _abandon.Add(pair);
         }
     }
 
@@ -274,7 +356,7 @@ public class Filtration
             iMissed.Add(new HashSet<int>());
         }
         
-        double[,] phaseVolumes = new double[_mesh.Elements.Length, _phaseProperty.Phases![0].Count];
+        double[] phaseVolumes = new double[_phaseProperty.Phases![0].Count];
         double[] phasesFractions = new double[_phaseProperty.Phases![0].Count];
         double[] newVolumes = new double[_volumeOutPhases.GetLength(0)];
 
@@ -286,25 +368,27 @@ public class Filtration
             iMissed[pair.Item1].Add(pair.Item2);
         }
 
-        // or iphase saturation on ielem < min critical saturation
-        for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
-        {
-            if (IsWellElement(ielem)) continue;
-            
-            var saturations = _phaseProperty.Saturation?[ielem];
-
-            for (int iphase = 0; iphase < saturations?.Count; iphase++)
-            {
-                if (saturations[iphase] < _saturationMinCrit[iphase])
-                {
-                    iMissed[ielem].Add(iphase);
-                }
-            }
-        }
+        // // or iphase saturation on ielem < min critical saturation
+        // for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+        // {
+        //     if (IsWellElement(ielem)) continue;
+        //     
+        //     var saturations = _phaseProperty.Saturation![ielem];
+        //
+        //     for (int iphase = 0; iphase < saturations.Count; iphase++)
+        //     {
+        //         if (saturations[iphase] < _saturationMinCrit[iphase])
+        //         {
+        //             iMissed[ielem].Add(iphase);
+        //         }
+        //     }
+        // }
         
         // Calculate out phases volumes
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
+            Array.Fill(phaseVolumes, 0.0, 0, phaseVolumes.Length);
+            
             if (IsWellElement(ielem)) continue;
             
             var leftBottom = _mesh.Points[_mesh.Elements[ielem].Nodes[0]];
@@ -338,7 +422,7 @@ public class Filtration
 
             foreach (var iphase in iMissed[ielem])
             {
-                phaseVolumes[ielem, iphase] = mes * porosity * saturations[iphase];
+                phaseVolumes[iphase] = mes * porosity * saturations[iphase];
             }
 
             for (int iphase = 0; iphase < phases.Count; iphase++)
@@ -375,7 +459,7 @@ public class Filtration
 
             for (int iphase = 0; iphase < phases.Count; iphase++)
             {
-                volumeMissed += phaseVolumes[ielem, iphase];
+                volumeMissed += phaseVolumes[iphase];
             }
 
             for (int localEdge = 0; localEdge < edges.Count; localEdge++)
@@ -400,21 +484,112 @@ public class Filtration
                         if (iMissed[ielem].Contains(iphase))
                         {
                             _volumeOutPhases[globalEdge, iphase] =
-                                Math.Abs(_flows[globalEdge]) / flowOut * phaseVolumes[ielem, iphase];
+                                Math.Abs(_flows[globalEdge]) / flowOut * phaseVolumes[iphase];
                         }
                         else
                         {
                             _volumeOutPhases[globalEdge, iphase] = phasesFractions[iphase] * newVolumes[globalEdge];
                         }
                     }
+                }
+            }
+        }
 
+
+        using var sw = new StreamWriter("Output/CheckVolumeSign.txt");
+        
+        for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+        {
+            if (IsWellElement(ielem)) continue;
+
+            var edges = _mesh.Elements[ielem].Edges;
+            var saturations = _phaseProperty.Saturation![ielem];
+
+            for (int localEdge = 0; localEdge < edges.Count; localEdge++)
+            {
+                for (int iphase = 0; iphase < saturations.Count; iphase++)
+                {
+                    if (_volumeOutPhases[edges[localEdge], iphase] < 0 &&
+                        Math.Abs(_volumeOutPhases[edges[localEdge], iphase]) > 1E-15)
+                    {
+                        sw.WriteLine($"{ielem}: {localEdge}, {iphase}, {_volumeOutPhases[edges[localEdge], iphase]}");
+                    }
                 }
             }
         }
     }
 
-    private void CalculateNewSaturations()
+    private void CalculateNewSaturations(int timeMoment)
     {
+        double[] phasesVolumes = new double[_phaseProperty.Phases![0].Count];
         
+        for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+        {
+            if (IsWellElement(ielem)) continue;;
+            
+            Array.Fill(phasesVolumes, 0.0, 0, phasesVolumes.Length);
+            
+            var leftBottom = _mesh.Points[_mesh.Elements[ielem].Nodes[0]];
+            var rightTop = _mesh.Points[_mesh.Elements[ielem].Nodes[^1]];
+            
+            double porosity = _mesh.Materials[_mesh.Elements[ielem].Area].Porosity;
+            double mes = (rightTop.X - leftBottom.X) * (rightTop.Y - leftBottom.Y);
+            
+            var edges = _mesh.Elements[ielem].Edges;
+            var saturations = _phaseProperty.Saturation![ielem];
+            var componentsTable = _phasesComponents[ielem];
+
+            double phasesSum = 0.0;
+            
+            for (int iphase = 0; iphase < saturations.Count; iphase++)
+            {
+                // Current phase volume in the element
+                phasesVolumes[iphase] = mes * porosity * saturations[iphase];
+
+                double inVolume = 0.0, outVolume = 0.0;
+
+                // Count the leaked and flowed volumes of the phase
+                for (int localEdge = 0; localEdge < edges.Count; localEdge++)
+                {
+                    if (FlowDirection(ielem, localEdge) == 1)
+                    {
+                        outVolume += _volumeOutPhases[edges[localEdge], iphase];
+                    }
+                    else if (FlowDirection(ielem, localEdge) == -1)
+                    {
+                        inVolume += _volumeOutPhases[edges[localEdge], iphase];
+                    }
+                }
+                
+                // Calculate the new phase volume in the element
+                phasesVolumes[iphase] = phasesVolumes[iphase] + inVolume - outVolume;
+                phasesSum += phasesVolumes[iphase];
+            }
+
+            for (int iphase = 0; iphase < saturations.Count; iphase++)
+            {
+                saturations[iphase] = phasesVolumes[iphase] / phasesSum;
+            }
+        }
+    }
+
+    private void PrintPressure(int timeMoment)
+    {
+        using var sw = new StreamWriter("Output/Pressure" + timeMoment + ".txt");
+        
+        for (int i = 0; i < _mesh.Points.Length; i++)
+        {
+            sw.WriteLine(_fem.Solution!.Value[i]);
+        }
+    }
+    
+    private void PrintSaturation(int timeMoment)
+    {
+        using var sw = new StreamWriter("Output/Saturation" + timeMoment + ".txt");
+        
+        for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+        {
+            sw.WriteLine(IsWellElement(ielem) ? 0.0 : _phaseProperty.Saturation![ielem][0]);
+        }
     }
 }

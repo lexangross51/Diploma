@@ -5,12 +5,12 @@
       "Y": 0.0
     },
     "RightTop": {
-      "X": 15.0,
-      "Y": 15.0
+      "X": 10.0,
+      "Y": 10.0
     },
     "Material": {
-      "Permeability": 1.0,
-      "Porosity": 1.0
+      "Permeability": 100.0,
+      "Porosity": 1
     },
     "PlastPressure": 120.0
   }

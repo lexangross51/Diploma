@@ -37,6 +37,9 @@ public class FlowsBalancer
     
     public void BalanceFlows(Vector flows)
     {
+        Array.Fill(_alpha, 0.0, 0, _alpha.Length);
+        Array.Fill(_beta, 1E-05, 0, _beta.Length);
+        
         bool isBalanced = true;
         int iteration = 0;
         double maxFlow = MaxFlow(flows);

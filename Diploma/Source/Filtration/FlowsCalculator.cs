@@ -1,3 +1,5 @@
+using System.Windows.Annotations;
+
 namespace Diploma.Source.Filtration;
 
 public class FlowsCalculator
@@ -93,6 +95,9 @@ public class FlowsCalculator
 
         return coefficient;
     }
+    
+    private bool IsWellElement(int ielem)
+        => Enumerable.Any(_mesh.NeumannConditions, condition => condition.Element == ielem);
     
     public Vector CalculateAverageFlows(ImmutableArray<double> pressure)
     {

@@ -5,11 +5,31 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:sharpGl="clr-namespace:SharpGL.WPF;assembly=SharpGL.WPF"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="450" Width="800"
+        KeyDown="MainWindow_OnKeyDown">
     <DockPanel>
-        <sharpGl:OpenGLControl RenderContextType="FBO" DockPanel.Dock="Left" 
-                               OpenGLInitialized="OpenGLControl_OnOpenGLInitialized"
-                               OpenGLDraw="OpenGLControl_OnOpenGLDraw"
-                               Resized="OpenGLControl_OnResized"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- <GroupBox Grid.Column="0" Header="Давление" -->
+            <!--           Margin="2, -1, 0, 1"> -->
+            <!--     <sharpGl:OpenGLControl x:Name="PressureControl" Margin="3" RenderContextType="FBO" DockPanel.Dock="Left" -->
+            <!--                            OpenGLInitialized="OpenGLControlPressure_OnOpenGLInitialized" -->
+            <!--                            OpenGLDraw="OpenGLControlPressure_OnOpenGLDraw" -->
+            <!--                            Resized="OpenGLControlPressure_OnResized" /> -->
+            <!-- </GroupBox> -->
+
+            <GroupBox Grid.Column="1" Header="Нефтенасыщенность"
+                      Margin="0, -1, 2, 1">
+                <sharpGl:OpenGLControl x:Name="SaturationControl" Margin="3" RenderContextType="FBO" DockPanel.Dock="Left"
+                                       OpenGLInitialized="OpenGLControlSaturation_OnOpenGLInitialized"
+                                       OpenGLDraw="OpenGLControlSaturation_OnOpenGLDraw"
+                                       Resized="OpenGLControlSaturation_OnResized" />
+            </GroupBox>
+
+        </Grid>
     </DockPanel>
 </Window>
