@@ -14,7 +14,7 @@ public class Filtration
     private readonly double[,] _volumeOutPhases;
     private double _deltaT;
     private readonly List<(int, int)> _abandon;
-    private readonly double[] _saturationMaxCrit = { 0.5, 0.5 };
+    private readonly double[] _saturationMaxCrit = { 0.4, 0.4 };
     private readonly double[] _saturationMinCrit = { 0.01, 0.01 };
     private int _timeStart, _timeEnd;
 
@@ -315,9 +315,8 @@ public class Filtration
         //     if (!isOptimalDeltaT) _deltaT /= 2.0;
         // }
 
-        // Form the set abandon for the elements of which the pushing procedure will be carried out
-        
-        using var sw = new StreamWriter("Output/CheckMixEnough.txt");
+        // Form the set abandon for the elements of which the pushing procedure will be carried ou
+        using var sww = new StreamWriter("Output/CheckMixEnough.txt");
         
         foreach (var pair in abandonH)
         {
@@ -337,7 +336,7 @@ public class Filtration
             if (phaseVolumeOut > mes * porosity * saturations[iphase])
             {
                 _abandon.Add(pair);
-                sw.WriteLine($"{ielem}: {iphase}, {phaseVolumeOut}, {mes * porosity * saturations[iphase]}");
+                sww.WriteLine($"{ielem}: {iphase}, {phaseVolumeOut}, {mes * porosity * saturations[iphase]}");
             }
         }
 

@@ -1,5 +1,3 @@
-using System.Windows.Annotations;
-
 namespace Diploma.Source.Filtration;
 
 public class FlowsCalculator
@@ -91,13 +89,27 @@ public class FlowsCalculator
             coefficient /= _phaseProperty.Phases[ielem][i].Viscosity;
         }
             
-        coefficient *= _mesh.Materials[area].Permeability;
+        coefficient *= _mesh.Materials[area].Permeability * 9.86923E-04;
 
         return coefficient;
     }
     
     private bool IsWellElement(int ielem)
         => Enumerable.Any(_mesh.NeumannConditions, condition => condition.Element == ielem);
+
+    private void FixWellsFlows()
+    {
+        foreach (var (ielem, flow) in _mesh.NeumannConditions)
+        {
+            var edges = _mesh.Elements[ielem].Edges;
+            var edgesDirect = _mesh.Elements[ielem].EdgesDirect;
+
+            for (int localEdge = 0; localEdge < edges.Count; localEdge++)
+            {
+                _averageFlows[edges[localEdge]] = edgesDirect[localEdge] * flow;
+            }
+        }
+    }
     
     public Vector CalculateAverageFlows(ImmutableArray<double> pressure)
     {
@@ -110,6 +122,8 @@ public class FlowsCalculator
 
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
+            if (IsWellElement(ielem)) continue;
+
             double coefficient = CalculateCoefficient(ielem);
             var edges = _mesh.Elements[ielem].Edges;
 
@@ -135,6 +149,8 @@ public class FlowsCalculator
                 }
             }
         }
+        
+        FixWellsFlows();
         
         return _averageFlows;
     }

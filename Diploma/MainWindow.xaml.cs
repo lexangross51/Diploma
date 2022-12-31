@@ -1,5 +1,4 @@
 ﻿using System.Windows.Input;
-
 namespace Diploma;
 
 public partial class MainWindow
@@ -20,7 +19,21 @@ public partial class MainWindow
     private readonly double _xMin, _xMax, _yMin, _yMax;
     private readonly double[] _pressure;
     private readonly double[] _saturation;
-    private int _timeStart = 0, _timeEnd = 50, _timeMoment = 0;
+    private int _timeStart = 0, _timeEnd = 1, _timeMoment;
+    
+    byte[,] _pressureLegendColors =
+    {
+        { 255, 0, 0 },
+        { 255, 102, 0 },
+        { 255, 255, 0 },
+        { 0, 255, 0 },
+        { 128, 166, 255 },
+        { 0, 0, 255 },
+        { 139, 0, 255 },
+        { 139, 0, 255 }
+    };
+
+    private double[] _pressureLegendValues = new double[8]; 
 
     public MainWindow()
     {
@@ -32,7 +45,7 @@ public partial class MainWindow
         _pressure = new double[_mesh.Points.Length];
         _saturation = new double[_mesh.Elements.Length];
 
-        double Field(Point2D p) => p.X + p.Y;
+        double Field(Point2D p) => p.X;
         double Source(Point2D p) => 0;
 
         var fem = femBuilder
@@ -57,7 +70,11 @@ public partial class MainWindow
         _yMax = _mesh.Points[^1].Y;
 
         InitializeComponent();
+
+        TimeMoment.Text = "0";
     }
+
+    #region Interface
 
     private void MainWindow_OnKeyDown(object sender, KeyEventArgs e)
     {
@@ -74,10 +91,14 @@ public partial class MainWindow
                 break;
             }
         }
+
+        TimeMoment.Text = _timeMoment.ToString();
     }
+
+    #endregion
     
     #region Pressure control
-
+    
     private void MakePressureColors(int timeMoment)
     {
         var pressureLines = File.ReadAllLines("Output/Pressure" + timeMoment + ".txt");
@@ -133,87 +154,89 @@ public partial class MainWindow
             _colorsPressure[nodes[2]] = new Color(rColor, gColor, bColor);
             _colorsPressure[nodes[3]] = new Color(rColor, gColor, bColor);
         }
+
+        _pressureLegendValues[0] = _pressure.Max();
+        _pressureLegendValues[7] = _pressure.Min();
+        double step = (_pressureLegendValues[0] - _pressureLegendValues[7]) / 7;
+
+        for (int i = 1; i < 7; i++)
+        {
+            _pressureLegendValues[i] = _pressureLegendValues[0] - i * step;
+        }
     }
     
-    private void OpenGLControlPressure_OnOpenGLInitialized(object sender, OpenGLRoutedEventArgs args)
+    private void PressureControl_OnOpenGLDraw(object sender, OpenGLRoutedEventArgs args)
     {
-        // OpenGL gl = PressureControl.OpenGL;
-        //
-        // gl.ClearColor(1, 1, 1, 1.0f);
-        // gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
-        // gl.MatrixMode(OpenGL.GL_PROJECTION);
-        // gl.LoadIdentity();
-        // gl.Ortho2D(_xMin - 1, _xMax + 1, _yMin - 1, _yMax + 1);
-        // gl.Viewport(0, 0, gl.RenderContextProvider.Width, gl.RenderContextProvider.Height);
+        OpenGL gl = PressureControl.OpenGL;
+        
+        
+        gl.ClearColor(1, 1, 1, 1.0f);
+        gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
+        gl.MatrixMode(OpenGL.GL_PROJECTION);
+        gl.LoadIdentity();
+        gl.Ortho2D(_xMin - 1, _xMax + 1, _yMin - 1, _yMax + 1);
+        gl.Viewport(0, 0, gl.RenderContextProvider.Width, gl.RenderContextProvider.Height);
+        
+        MakePressureColors(_timeMoment);
+        
+        gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT);
+        gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
+        gl.Color(1, 0, 0, 1);
+        gl.Begin(OpenGL.GL_QUADS);
+        
+        foreach (var t in _mesh.Elements)
+        {
+            var nodes = t.Nodes;
+            var p1 = _mesh.Points[nodes[0]];
+            var c1 = _colorsPressure[nodes[0]];
+        
+            var p2 = _mesh.Points[nodes[1]];
+            var c2 = _colorsPressure[nodes[1]];
+        
+            var p3 = _mesh.Points[nodes[2]];
+            var c3 = _colorsPressure[nodes[2]];
+        
+            var p4 = _mesh.Points[nodes[3]];
+            var c4 = _colorsPressure[nodes[3]];
+        
+            gl.Color(c1.R, c1.G, c1.B);
+            gl.Vertex(p1.X, p1.Y);
+        
+            gl.Color(c2.R, c2.G, c2.B);
+            gl.Vertex(p2.X, p2.Y);
+        
+            gl.Color(c4.R, c4.G, c4.B);
+            gl.Vertex(p4.X, p4.Y);
+        
+            gl.Color(c3.R, c3.G, c3.B);
+            gl.Vertex(p3.X, p3.Y);
+        }
+        
+        gl.End();
+        
+        gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
+        gl.Color(1, 0, 0, 1);
+        gl.Begin(OpenGL.GL_QUADS);
+        
+        foreach (var t in _mesh.Elements)
+        {
+            var nodes = t.Nodes;
+            var p1 = _mesh.Points[nodes[0]];
+            var p2 = _mesh.Points[nodes[1]];
+            var p3 = _mesh.Points[nodes[2]];
+            var p4 = _mesh.Points[nodes[3]];
+        
+            gl.Vertex(p1.X, p1.Y);
+            gl.Vertex(p2.X, p2.Y);
+            gl.Vertex(p4.X, p4.Y);
+            gl.Vertex(p3.X, p3.Y);
+        }
+        
+        gl.End();
+        gl.Finish();
     }
-
-    private void OpenGLControlPressure_OnOpenGLDraw(object sender, OpenGLRoutedEventArgs args)
-    {
-        // OpenGL gl = PressureControl.OpenGL;
-        //
-        // MakePressureColors(_timeMoment);
-        //
-        // gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT);
-        // gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
-        // gl.Color(1, 0, 0, 1);
-        // gl.Begin(OpenGL.GL_QUADS);
-        //
-        // foreach (var t in _mesh.Elements)
-        // {
-        //     var nodes = t.Nodes;
-        //     var p1 = _mesh.Points[nodes[0]];
-        //     var c1 = _colorsPressure[nodes[0]];
-        //
-        //     var p2 = _mesh.Points[nodes[1]];
-        //     var c2 = _colorsPressure[nodes[1]];
-        //
-        //     var p3 = _mesh.Points[nodes[2]];
-        //     var c3 = _colorsPressure[nodes[2]];
-        //
-        //     var p4 = _mesh.Points[nodes[3]];
-        //     var c4 = _colorsPressure[nodes[3]];
-        //
-        //     gl.Color(c1.R, c1.G, c1.B);
-        //     gl.Vertex(p1.X, p1.Y);
-        //
-        //     gl.Color(c2.R, c2.G, c2.B);
-        //     gl.Vertex(p2.X, p2.Y);
-        //
-        //     gl.Color(c4.R, c4.G, c4.B);
-        //     gl.Vertex(p4.X, p4.Y);
-        //
-        //     gl.Color(c3.R, c3.G, c3.B);
-        //     gl.Vertex(p3.X, p3.Y);
-        // }
-        //
-        // gl.End();
-        //
-        // gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
-        // gl.Color(1, 0, 0, 1);
-        // gl.Begin(OpenGL.GL_QUADS);
-        //
-        // foreach (var t in _mesh.Elements)
-        // {
-        //     var nodes = t.Nodes;
-        //     var p1 = _mesh.Points[nodes[0]];
-        //     var p2 = _mesh.Points[nodes[1]];
-        //     var p3 = _mesh.Points[nodes[2]];
-        //     var p4 = _mesh.Points[nodes[3]];
-        //
-        //     gl.Vertex(p1.X, p1.Y);
-        //     gl.Vertex(p2.X, p2.Y);
-        //     gl.Vertex(p4.X, p4.Y);
-        //     gl.Vertex(p3.X, p3.Y);
-        // }
-        //
-        // gl.End();
-        // gl.Finish();
-    }
-
-    private void OpenGLControlPressure_OnResized(object sender, OpenGLRoutedEventArgs args)
-        => OpenGLControlPressure_OnOpenGLInitialized(sender, args);
-
-        #endregion
+    
+    #endregion
 
     #region Saturation control
 
@@ -277,7 +300,7 @@ public partial class MainWindow
         }
     }
 
-    private void OpenGLControlSaturation_OnOpenGLInitialized(object sender, OpenGLRoutedEventArgs args)
+    private void OpenGLControlSaturation_OnOpenGLDraw(object sender, OpenGLRoutedEventArgs args)
     {
         OpenGL gl = SaturationControl.OpenGL;
         
@@ -287,14 +310,9 @@ public partial class MainWindow
         gl.LoadIdentity();
         gl.Ortho2D(_xMin - 1, _xMax + 1, _yMin - 1, _yMax + 1);
         gl.Viewport(0, 0, gl.RenderContextProvider.Width, gl.RenderContextProvider.Height);
-    }
-
-    private void OpenGLControlSaturation_OnOpenGLDraw(object sender, OpenGLRoutedEventArgs args)
-    {
+        
         MakeSaturationsColors(_timeMoment);
-        
-        OpenGL gl = SaturationControl.OpenGL;
-        
+
         gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT);
         
         gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
@@ -352,8 +370,83 @@ public partial class MainWindow
         gl.Finish();
     }
 
-    private void OpenGLControlSaturation_OnResized(object sender, OpenGLRoutedEventArgs args)
-        => OpenGLControlSaturation_OnOpenGLInitialized(sender, args);
-
     #endregion
+
+    #region Legends
+
+    // Pressure legend
+    private void PressureLegend_OnOpenGLDraw(object sender, OpenGLRoutedEventArgs args)
+    {
+        OpenGL gl = PressureLegend.OpenGL;
+        
+        gl.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
+        gl.MatrixMode(OpenGL.GL_PROJECTION);
+        gl.LoadIdentity();
+        gl.Ortho2D(0, gl.RenderContextProvider.Width, 0, gl.RenderContextProvider.Height);
+    
+        double xMin = gl.RenderContextProvider.Width * 0.05;
+        double xMax = gl.RenderContextProvider.Width * 0.95;
+        double yMin = gl.RenderContextProvider.Height * 0.05;
+        double yMax = gl.RenderContextProvider.Height * 0.5;
+        double hx = (xMax - xMin) / 7;
+        double x = xMin;
+    
+        gl.ShadeModel(OpenGL.GL_SMOOTH);
+        gl.Begin(OpenGL.GL_QUADS);
+        
+        for (int i = 0; i < 7; x += hx, i++)
+        {
+            gl.Color(_pressureLegendColors[i, 0], _pressureLegendColors[i, 1], _pressureLegendColors[i, 2]);
+            gl.Vertex(x, yMin);
+            gl.Vertex(x, yMax);
+            gl.Color(_pressureLegendColors[i + 1, 0], _pressureLegendColors[i + 1, 1], _pressureLegendColors[i + 1, 2]);
+            gl.Vertex(x + hx, yMax);
+            gl.Vertex(x + hx, yMin);
+        }
+        
+        gl.End();
+    
+        x = xMin;
+        
+        gl.Color(0, 0, 0);
+        gl.Begin(OpenGL.GL_LINES);
+        
+        for (int i = 0; i < 7; x += hx, i++)
+        {
+            gl.Vertex(x, yMin);
+            gl.Vertex(x, gl.RenderContextProvider.Height * 0.6);
+        }
+        
+        gl.Vertex(x, yMin);
+        gl.Vertex(x, gl.RenderContextProvider.Height * 0.6);
+        gl.End();
+        gl.Finish();
+    
+        x = gl.RenderContextProvider.Width * 0.01;
+        
+        for (int i = 0; i < 7; x += hx, i++)
+        {
+            var axisText = $"{_pressureLegendValues[i]:E7}";
+            gl.DrawText((int)x, 30, 0f, 0f, 0f, "Arial", 10, axisText);
+        }
+        
+        var axisTex = $"{_pressureLegendValues[7]:E7}";
+        gl.DrawText((int)(x - gl.RenderContextProvider.Width * 0.01), 30, 0f, 0f, 0f, "Arial", 10, axisTex);
+    }
+    //
+    // // Saturation legend
+    // private void SaturationLegend_OnOpenGLDraw(object sender, OpenGLRoutedEventArgs args)
+    // {
+    //     OpenGL gl = SaturationLegend.OpenGL;
+    //     
+    //     gl.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    //     gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
+    //     gl.MatrixMode(OpenGL.GL_PROJECTION);
+    //     gl.LoadIdentity();
+    //     gl.Ortho2D(0, 1920, 0, 1080);
+    // }
+    
+    #endregion
+
 }

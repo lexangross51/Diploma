@@ -1,4 +1,4 @@
-﻿namespace Diploma.Source.Mesh;
+﻿    namespace Diploma.Source.Mesh;
 
 public class MeshBuilder : IMeshBuilder
 {
