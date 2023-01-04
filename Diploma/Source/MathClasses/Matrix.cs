@@ -75,10 +75,8 @@ public class SparseMatrix
         Di = new double[size];
     }
 
-    public static Vector operator *(SparseMatrix matrix, Vector vector)
+    public static void Dot(SparseMatrix matrix, Vector vector, Vector product)
     {
-        Vector product = new (vector.Length);
-
         for (int i = 0; i < vector.Length; i++)
         {
             product[i] = matrix.Di[i] * vector[i];
@@ -89,8 +87,6 @@ public class SparseMatrix
                 product[matrix.Jg[j]] += matrix.GGu[j] * vector[i];
             }
         }
-
-        return product;
     }
 
     public void PrintDense(string path)

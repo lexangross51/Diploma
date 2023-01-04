@@ -20,8 +20,8 @@ public partial class MainWindow
     private readonly double[] _pressure;
     private readonly double[] _saturation;
     private int _timeStart = 0, _timeEnd = 1, _timeMoment;
-    
-    byte[,] _pressureLegendColors =
+
+    private readonly byte[,] _pressureLegendColors =
     {
         { 255, 0, 0 },
         { 255, 102, 0 },
@@ -33,7 +33,7 @@ public partial class MainWindow
         { 139, 0, 255 }
     };
 
-    private double[] _pressureLegendValues = new double[8]; 
+    private readonly double[] _pressureLegendValues = new double[8]; 
 
     public MainWindow()
     {
@@ -45,7 +45,7 @@ public partial class MainWindow
         _pressure = new double[_mesh.Points.Length];
         _saturation = new double[_mesh.Elements.Length];
 
-        double Field(Point2D p) => p.X;
+        double Field(Point2D p) => p.X*p.X - p.Y*p.Y;
         double Source(Point2D p) => 0;
 
         var fem = femBuilder
@@ -53,7 +53,7 @@ public partial class MainWindow
             .SetPhaseProperties(phaseProperty)
             .SetBasis(new LinearBasis())
             .SetSolver(new CGM(1000, 1E-20))
-            .SetTest(Source)
+            .SetTest(Source, Field)
             .Build();
 
         Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());

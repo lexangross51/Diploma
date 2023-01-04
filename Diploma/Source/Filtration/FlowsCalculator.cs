@@ -48,7 +48,7 @@ public class FlowsCalculator
             _ => -_mesh.Elements[ielem].EdgesDirect[iedge]
         };
 
-    private double CalculateGradient(ImmutableArray<double> pressure, int element, int localEdge)
+    private double CalculateGradient(Vector pressure, int element, int localEdge)
     {
         var nodes = _mesh.Elements[element].Nodes;
 
@@ -111,7 +111,7 @@ public class FlowsCalculator
         }
     }
     
-    public Vector CalculateAverageFlows(ImmutableArray<double> pressure)
+    public Vector CalculateAverageFlows(Vector pressure)
     {
         List<bool> isUsedEdge = new(_averageFlows.Length);
 

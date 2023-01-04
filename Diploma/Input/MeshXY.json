@@ -3,7 +3,7 @@
   "MeshNy": 12,
   "WellNx": 10,
   "WellNy": 10,
-  "WellKx": 1.5,
-  "WellKy": 1.5,
-  "Nesting": 1
+  "WellKx": 1,
+  "WellKy": 1,
+  "Nesting": 2
 }

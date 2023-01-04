@@ -81,7 +81,7 @@ public class FlowsBalancer
             FixWellsFlows(flows);
             _solver.SetSystem(_globalMatrix, _globalVector);
             _solver.Compute();
-            Array.Copy(_solver.Solution!.Value.ToArray(), _deltaQ, _deltaQ.Length);
+            Array.Copy(_solver.Solution!.ToArray(), _deltaQ, _deltaQ.Length);
 
             bool isNullImbalance = true;
 
