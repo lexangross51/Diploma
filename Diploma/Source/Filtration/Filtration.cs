@@ -66,9 +66,10 @@ public class Filtration
             }
 
             _fem.Solve();
-            PrintPressure(timeMoment);
-            PrintSaturation(timeMoment);
             
+            DataWriter.WritePressure($"Pressure{timeMoment}.txt", _fem.Solution!);
+            DataWriter.WriteSaturation($"Saturation{timeMoment}.txt", _mesh, _phaseProperty.Saturation!);
+
             _flows = _flowsCalculator.CalculateAverageFlows(_fem.Solution!);
             //_flowsBalancer.BalanceFlows(_flows);
             CalculateFlowOutPhases();
@@ -569,26 +570,6 @@ public class Filtration
             {
                 saturations[iphase] = phasesVolumes[iphase] / phasesSum;
             }
-        }
-    }
-
-    private void PrintPressure(int timeMoment)
-    {
-        using var sw = new StreamWriter("Output/Pressure" + timeMoment + ".txt");
-        
-        for (int i = 0; i < _mesh.Points.Length; i++)
-        {
-            sw.WriteLine(_fem.Solution![i]);
-        }
-    }
-    
-    private void PrintSaturation(int timeMoment)
-    {
-        using var sw = new StreamWriter("Output/Saturation" + timeMoment + ".txt");
-        
-        for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
-        {
-            sw.WriteLine(IsWellElement(ielem) ? 0.0 : _phaseProperty.Saturation![ielem][0]);
         }
     }
 }
