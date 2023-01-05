@@ -12,10 +12,12 @@
             <Label Content="Time moment: "/>
             <TextBlock Width="60" x:Name="TimeMoment"/> 
         </StatusBar>
+        
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition />
-                <ColumnDefinition />
+                <ColumnDefinition Width="8*"/>
+                <ColumnDefinition Width="8*"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <GroupBox Grid.Column="0" Header="Давление" Margin="2, -1, 0, 1">
@@ -40,9 +42,9 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="8*"/>
                     </Grid.RowDefinitions>
-                    <!-- <sharpGl:OpenGLControl Grid.Row="0" x:Name="SaturationLegend" Margin="3" RenderContextType="DIBSection"  -->
-                    <!--                        Height="50" -->
-                    <!--                        OpenGLDraw="SaturationLegend_OnOpenGLDraw"/> -->
+                    <sharpGl:OpenGLControl Grid.Row="0" x:Name="SaturationLegend" Margin="3" RenderContextType="DIBSection"
+                                           Height="50"
+                                           OpenGLDraw="SaturationLegend_OnOpenGLDraw"/>
                     <sharpGl:OpenGLControl Grid.Row="1" x:Name="SaturationControl" Margin="3" RenderContextType="DIBSection" 
                                            DockPanel.Dock="Left"
                                            OpenGLDraw="OpenGLControlSaturation_OnOpenGLDraw"/>
