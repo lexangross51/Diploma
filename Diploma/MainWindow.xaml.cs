@@ -14,7 +14,8 @@ public partial class MainWindow
             => (R, G, B) = (r, g, b);
     }
 
-    private readonly Projection _projection = new();
+    private Projection _viewport = new();
+    private Projection _graphArea = new();
     private readonly Mesh _mesh;
     private int _timeStart = 0, _timeEnd = 1, _timeMoment;
     
@@ -45,11 +46,16 @@ public partial class MainWindow
         _colorsPressure = new Color[_mesh.Elements.Length];
         _colorsSaturartion = new Color[_mesh.Elements.Length];
 
-        _projection.Left = (float)_mesh.Points[0].X;
-        _projection.Bottom = (float)_mesh.Points[0].Y;
-        _projection.Right = (float)_mesh.Points[_mesh.Elements[_mesh.Elements[0].Nodes[2] - 2].Nodes[1]].X; 
-        _projection.Top = (float)_mesh.Points[^1].Y;
+        _graphArea.Left = _mesh.Points[0].X;
+        _graphArea.Bottom = _mesh.Points[0].Y;
+        _graphArea.Right = _mesh.Points[_mesh.Elements[_mesh.Elements[0].Nodes[2] - 2].Nodes[1]].X; 
+        _graphArea.Top = _mesh.Points[^1].Y;
 
+        _viewport.Left = _graphArea.Left - 0.07 * _graphArea.Width;
+        _viewport.Right = _graphArea.Right + 0.05 * _graphArea.Width;
+        _viewport.Bottom = _graphArea.Bottom - 0.05 * _graphArea.Height;
+        _viewport.Top = _graphArea.Top + 0.05 * _graphArea.Height;
+        
         InitializeComponent();
 
         TimeMoment.Text = "0";

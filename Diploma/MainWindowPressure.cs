@@ -1,4 +1,6 @@
-﻿namespace Diploma;
+﻿using System.Windows.Input;
+
+namespace Diploma;
 
 public partial class MainWindow
 {
@@ -74,7 +76,7 @@ public partial class MainWindow
             _pressureLegendValues[i] = _pressureLegendValues[0] - i * step;
         }
     }
-    
+
     private void PressureControl_OnOpenGLDraw(object sender, OpenGLRoutedEventArgs args)
     {
         OpenGL gl = PressureControl.OpenGL;
@@ -83,35 +85,31 @@ public partial class MainWindow
         gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
         gl.MatrixMode(OpenGL.GL_PROJECTION);
         gl.LoadIdentity();
-        gl.Ortho2D(_projection.Left - 1, _projection.Right + 1, _projection.Bottom - 1, _projection.Top + 1);
-        gl.Viewport(0, 0, gl.RenderContextProvider.Width, gl.RenderContextProvider.Height);
-        
+        gl.Ortho2D(_viewport.Left, _viewport.Right, _viewport.Bottom, _viewport.Top);
+
         MakePressureColors(_timeMoment);
-        
-        gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT);
+
         gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
-        gl.Color(1, 0, 0, 1);
         gl.ShadeModel(OpenGL.GL_SMOOTH);
         gl.Begin(OpenGL.GL_QUADS);
-
+        
         for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
-            var t = _mesh.Elements[ielem];
-            var nodes = t.Nodes;
-
+            var nodes = _mesh.Elements[ielem].Nodes;
+        
             var c = _colorsPressure[ielem];
             var p1 = _mesh.Points[nodes[0]];
             var p2 = _mesh.Points[nodes[1]];
             var p3 = _mesh.Points[nodes[2]];
             var p4 = _mesh.Points[nodes[3]];
-
+        
             gl.Color(c.R, c.G, c.B);
             gl.Vertex(p1.X, p1.Y);
             gl.Vertex(p2.X, p2.Y);
             gl.Vertex(p4.X, p4.Y);
             gl.Vertex(p3.X, p3.Y);
         }
-
+        
         gl.End();
         
         gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
@@ -133,6 +131,9 @@ public partial class MainWindow
         }
         
         gl.End();
+        
+        DrawAxes(PressureControl.OpenGL);
+        
         gl.Finish();
     }
     

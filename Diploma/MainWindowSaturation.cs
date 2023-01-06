@@ -1,4 +1,6 @@
-﻿namespace Diploma;
+﻿using System.Windows.Input;
+
+namespace Diploma;
 
 public partial class MainWindow
 {
@@ -76,8 +78,7 @@ public partial class MainWindow
         gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
         gl.MatrixMode(OpenGL.GL_PROJECTION);
         gl.LoadIdentity();
-        gl.Ortho2D(_projection.Left - 1, _projection.Right + 1, _projection.Bottom - 1, _projection.Top + 1);
-        gl.Viewport(0, 0, gl.RenderContextProvider.Width, gl.RenderContextProvider.Height);
+        gl.Ortho2D(_viewport.Left, _viewport.Right, _viewport.Bottom, _viewport.Top);
         
         MakeSaturationsColors(_timeMoment);
 
@@ -125,6 +126,9 @@ public partial class MainWindow
         }
         
         gl.End();
+        
+        DrawAxes(SaturationControl.OpenGL);
+        
         gl.Finish();
     }
     

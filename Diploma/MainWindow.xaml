@@ -5,12 +5,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:sharpGl="clr-namespace:SharpGL.WPF;assembly=SharpGL.WPF"
         mc:Ignorable="d"
-        Title="Фильтрация" Height="450" Width="800"
+        Title="Фильтрация" Height="900" Width="1600"
         KeyDown="MainWindow_OnKeyDown">
     <DockPanel>
         <StatusBar DockPanel.Dock="Bottom">
             <Label Content="Time moment: "/>
             <TextBlock Width="60" x:Name="TimeMoment"/> 
+            
+            <Label Content="X:"/>
+            <TextBlock Width="30" x:Name="XPos"/>
+            <Label Content="Y:"/>
+            <TextBlock Width="30" x:Name="YPos"/>
         </StatusBar>
         
         <Grid>
@@ -20,7 +25,7 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <GroupBox Grid.Column="0" Header="Давление" Margin="2, -1, 0, 1">
+            <GroupBox Grid.Column="0" Header="Давление" x:Name="PressureGroup" Margin="2, -1, 0, 1">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -30,9 +35,14 @@
                     <sharpGl:OpenGLControl Grid.Row="0" x:Name="PressureLegend" Margin="3" RenderContextType="DIBSection"
                                            Height="50"
                                            OpenGLDraw="PressureLegend_OnOpenGLDraw"/>
-                    <sharpGl:OpenGLControl Grid.Row="1" x:Name="PressureControl" Margin="3" RenderContextType="DIBSection" 
+                    <sharpGl:OpenGLControl Grid.Row="1" x:Name="PressureControl" Margin="3" RenderContextType="DIBSection"
+                                           BorderBrush="Black" BorderThickness="2, 0, 0, 2"
                                            DockPanel.Dock="Left"
-                                           OpenGLDraw="PressureControl_OnOpenGLDraw"/>
+                                           OpenGLDraw="PressureControl_OnOpenGLDraw"
+                                           MouseMove="PressureControl_OnMouseMove"
+                                           MouseWheel="PressureControl_OnMouseWheel"
+                                           MouseRightButtonDown="PressureControl_OnMouseRightButtonDown"
+                                           MouseRightButtonUp="PressureControl_OnMouseRightButtonUp"/>
                 </Grid>
             </GroupBox>
 
@@ -45,9 +55,14 @@
                     <sharpGl:OpenGLControl Grid.Row="0" x:Name="SaturationLegend" Margin="3" RenderContextType="DIBSection"
                                            Height="50"
                                            OpenGLDraw="SaturationLegend_OnOpenGLDraw"/>
-                    <sharpGl:OpenGLControl Grid.Row="1" x:Name="SaturationControl" Margin="3" RenderContextType="DIBSection" 
+                    <sharpGl:OpenGLControl Grid.Row="1" x:Name="SaturationControl" Margin="3" RenderContextType="DIBSection"
+                                           BorderBrush="Black" BorderThickness="2, 0, 0, 2"
                                            DockPanel.Dock="Left"
-                                           OpenGLDraw="OpenGLControlSaturation_OnOpenGLDraw"/>
+                                           OpenGLDraw="OpenGLControlSaturation_OnOpenGLDraw"
+                                           MouseMove="SaturationControl_OnMouseMove"
+                                           MouseWheel="SaturationControl_OnMouseWheel"
+                                           MouseRightButtonDown="SaturationControl_OnMouseRightButtonDown"
+                                           MouseRightButtonUp="SaturationControl_OnMouseRightButtonUp"/>
                 </Grid>
             </GroupBox>
 
