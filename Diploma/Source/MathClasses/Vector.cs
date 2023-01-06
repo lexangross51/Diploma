@@ -26,42 +26,6 @@ public class Vector : IEnumerable<double>
         return result;
     }
 
-    public static Vector operator *(double constant, Vector vector)
-    {
-        Vector result = new(vector.Length);
-
-        for (int i = 0; i < vector.Length; i++)
-        {
-            result[i] = vector[i] * constant;
-        }
-
-        return result;
-    }
-
-    public static Vector operator +(Vector a, Vector b)
-    {
-        Vector result = new(a.Length);
-
-        for (int i = 0; i < a.Length; i++)
-        {
-            result[i] = a[i] + b[i];
-        }
-
-        return result;
-    }
-
-    public static Vector operator -(Vector a, Vector b)
-    {
-        Vector result = new(a.Length);
-
-        for (int i = 0; i < a.Length; i++)
-        {
-            result[i] = a[i] - b[i];
-        }
-
-        return result;
-    }
-
     public static void Copy(Vector source, Vector destination)
     {
         for (int i = 0; i < source.Length; i++)

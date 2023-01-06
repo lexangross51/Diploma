@@ -19,8 +19,7 @@ public class FEMBuilder
         private readonly Vector _localB;
         private readonly SparseMatrix _globalMatrix;
         private readonly Vector _globalVector;
-        private readonly Integration _gauss;
-        public ImmutableArray<double>? Solution => _solver.Solution;
+        public Vector? Solution { get; private set; }
         
         public FEM(
             Mesh.Mesh mesh,
@@ -37,7 +36,6 @@ public class FEMBuilder
             _solver = solver;
             _source = source;
             _field = field;
-            _gauss = new Integration(Quadratures.GaussOrder5());
 
             _stiffnessMatrix = new SquareMatrix(_basis.Size);
             _precalcStiffnessX = new SquareMatrix(_basis.Size);
@@ -107,8 +105,8 @@ public class FEMBuilder
 
             #region Численный расчет матриц жесткости и массы
 
-            // Считаем интегралы для матрицы жесткости и массы один раз
-            // Интегрируем на шаблоне
+            // Count the integrals for the stiffness matrix and mass once
+            // Integrate on the template
             //Rectangle omega = new(new Point2D(0, 0), new Point2D(1, 1));
             //
             // for (int i = 0; i < _basis.Size; i++)
@@ -211,7 +209,7 @@ public class FEMBuilder
                 
                 for (int j = 0; j < _basis.Size; j++)
                 {
-                    _localB[i] += hx * hy * _massMatrix![i, j] / 36.0 * _source(_mesh.Points[nodes[j]]);
+                    _localB[i] += hx * hy * _massMatrix[i, j] / 36.0 * _source(_mesh.Points[nodes[j]]);
                 }
             }
         }
@@ -305,9 +303,18 @@ public class FEMBuilder
                 double hy = _mesh.Points[nodes[^1]].Y - _mesh.Points[nodes[0]].Y;
                 double length = hx + hy;
             
+                // Left border
+                // _globalVector[nodes[0]] += theta / 2.0;
+                // _globalVector[nodes[2]] += theta / 2.0;
+                
+                // for (int i = 0; i < _basis.Size; i++)
+                // {
+                //     _globalVector[nodes[i]] += length * theta / 2.0;
+                // }
+                
                 for (int i = 0; i < _basis.Size; i++)
                 {
-                    _globalVector[nodes[i]] += length * theta / 2.0;
+                    _globalVector[nodes[i]] += theta;
                 }
             }
             
@@ -372,6 +379,7 @@ public class FEMBuilder
 
             _solver.SetSystem(_globalMatrix, _globalVector);
             _solver.Compute();
+            Solution = _solver.Solution;
 
             return Error();
         }
@@ -380,7 +388,7 @@ public class FEMBuilder
         {
             if (_field is null) return 0.0;
             
-            Vector exact = new(_solver.Solution!.Value.Length);
+            Vector exact = new(_solver.Solution!.Length);
 
             for (int i = 0; i < _mesh.Points.Length; i++)
             {
@@ -391,7 +399,7 @@ public class FEMBuilder
 
             for (int i = 0; i < _mesh.Points.Length; i++)
             {
-                exact[i] -= _solver.Solution!.Value[i];
+                exact[i] -= _solver.Solution![i];
             }
 
             return exact.Norm() / exactNorm;

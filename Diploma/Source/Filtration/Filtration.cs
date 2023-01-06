@@ -5,10 +5,10 @@ public class Filtration
     private readonly Mesh.Mesh _mesh;
     private readonly PhaseProperty _phaseProperty;
     private readonly FEMBuilder.FEM _fem;
-    private readonly PhaseComponentsTable[] _phasesComponents;
-    private readonly PhaseComponentsTable _remotePhasesComponents;
+    //private readonly PhaseComponentsTable[] _phasesComponents;
+    //private readonly PhaseComponentsTable _remotePhasesComponents;
     private readonly FlowsCalculator _flowsCalculator;
-    private readonly FlowsBalancer _flowsBalancer;
+    //private readonly FlowsBalancer _flowsBalancer;
     private Vector _flows = default!;
     private readonly double[,] _flowsOutPhases;
     private readonly double[,] _volumeOutPhases;
@@ -23,21 +23,21 @@ public class Filtration
         _mesh = mesh;
         _phaseProperty = phaseProperty;
         _fem = fem;
-        var componentsTable = PhaseComponentsTable.ReadJson("Input/AreaPhasesComponents.json");
-        var componentsPerWell = PhaseComponentsTable.ReadJson("Input/InjectedPhaseComponents.json");
-        _remotePhasesComponents = PhaseComponentsTable.ReadJson("Input/RemotePhasesComponents.json");
+        // var componentsTable = PhaseComponentsTable.ReadJson("Input/AreaPhasesComponents.json");
+        // var componentsPerWell = PhaseComponentsTable.ReadJson("Input/InjectedPhaseComponents.json");
+        //_remotePhasesComponents = PhaseComponentsTable.ReadJson("Input/RemotePhasesComponents.json");
         
-        _phasesComponents = new PhaseComponentsTable[_mesh.Elements.Length]
-                                .Select(_ => componentsTable.Clone() as PhaseComponentsTable)
-                                .ToArray()!;
+        // _phasesComponents = new PhaseComponentsTable[_mesh.Elements.Length]
+        //                         .Select(_ => componentsTable.Clone() as PhaseComponentsTable)
+        //                         .ToArray()!;
 
-        foreach (var condition in _mesh.NeumannConditions)
-        {
-            _phasesComponents[condition.Element] = (componentsPerWell.Clone() as PhaseComponentsTable)!;
-        }
+        // foreach (var condition in _mesh.NeumannConditions)
+        // {
+        //     _phasesComponents[condition.Element] = (componentsPerWell.Clone() as PhaseComponentsTable)!;
+        // }
         
         _flowsCalculator = new FlowsCalculator(_mesh, basis, phaseProperty);
-        _flowsBalancer = new FlowsBalancer(_mesh);
+        //_flowsBalancer = new FlowsBalancer(_mesh);
 
         int edgesCount = _mesh.Elements[^1].Edges[^1] + 1;
         int phasesCount = _phaseProperty.Phases![0].Count;
@@ -66,15 +66,16 @@ public class Filtration
             }
 
             _fem.Solve();
-            PrintPressure(timeMoment);
-            PrintSaturation(timeMoment);
             
-            _flows = _flowsCalculator.CalculateAverageFlows(_fem.Solution!.Value);
+            DataWriter.WritePressure($"Pressure{timeMoment}.txt", _fem.Solution!);
+            DataWriter.WriteSaturation($"Saturation{timeMoment}.txt", _mesh, _phaseProperty.Saturation!);
+
+            _flows = _flowsCalculator.CalculateAverageFlows(_fem.Solution!);
             //_flowsBalancer.BalanceFlows(_flows);
             CalculateFlowOutPhases();
             CalculateDeltaT(0.1);
             CalculateVolumesOutPhases();
-            CalculateNewSaturations(timeMoment);
+            CalculateNewSaturations();
         }
     }
 
@@ -518,13 +519,13 @@ public class Filtration
         }
     }
 
-    private void CalculateNewSaturations(int timeMoment)
+    private void CalculateNewSaturations()
     {
         double[] phasesVolumes = new double[_phaseProperty.Phases![0].Count];
         
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
-            if (IsWellElement(ielem)) continue;;
+            if (IsWellElement(ielem)) continue;
             
             Array.Fill(phasesVolumes, 0.0, 0, phasesVolumes.Length);
             
@@ -536,7 +537,7 @@ public class Filtration
             
             var edges = _mesh.Elements[ielem].Edges;
             var saturations = _phaseProperty.Saturation![ielem];
-            var componentsTable = _phasesComponents[ielem];
+            //var componentsTable = _phasesComponents[ielem];
 
             double phasesSum = 0.0;
             
@@ -569,26 +570,6 @@ public class Filtration
             {
                 saturations[iphase] = phasesVolumes[iphase] / phasesSum;
             }
-        }
-    }
-
-    private void PrintPressure(int timeMoment)
-    {
-        using var sw = new StreamWriter("Output/Pressure" + timeMoment + ".txt");
-        
-        for (int i = 0; i < _mesh.Points.Length; i++)
-        {
-            sw.WriteLine(_fem.Solution!.Value[i]);
-        }
-    }
-    
-    private void PrintSaturation(int timeMoment)
-    {
-        using var sw = new StreamWriter("Output/Saturation" + timeMoment + ".txt");
-        
-        for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
-        {
-            sw.WriteLine(IsWellElement(ielem) ? 0.0 : _phaseProperty.Saturation![ielem][0]);
         }
     }
 }
