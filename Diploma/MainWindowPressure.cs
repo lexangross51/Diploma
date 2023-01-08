@@ -112,25 +112,25 @@ public partial class MainWindow
         
         gl.End();
         
-        gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
-        gl.Color(1, 0, 0, 1);
-        gl.Begin(OpenGL.GL_QUADS);
-        
-        foreach (var t in _mesh.Elements)
-        {
-            var nodes = t.Nodes;
-            var p1 = _mesh.Points[nodes[0]];
-            var p2 = _mesh.Points[nodes[1]];
-            var p3 = _mesh.Points[nodes[2]];
-            var p4 = _mesh.Points[nodes[3]];
-        
-            gl.Vertex(p1.X, p1.Y);
-            gl.Vertex(p2.X, p2.Y);
-            gl.Vertex(p4.X, p4.Y);
-            gl.Vertex(p3.X, p3.Y);
-        }
-        
-        gl.End();
+        // gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
+        // gl.Color(1, 0, 0, 1);
+        // gl.Begin(OpenGL.GL_QUADS);
+        //
+        // foreach (var t in _mesh.Elements)
+        // {
+        //     var nodes = t.Nodes;
+        //     var p1 = _mesh.Points[nodes[0]];
+        //     var p2 = _mesh.Points[nodes[1]];
+        //     var p3 = _mesh.Points[nodes[2]];
+        //     var p4 = _mesh.Points[nodes[3]];
+        //
+        //     gl.Vertex(p1.X, p1.Y);
+        //     gl.Vertex(p2.X, p2.Y);
+        //     gl.Vertex(p4.X, p4.Y);
+        //     gl.Vertex(p3.X, p3.Y);
+        // }
+        //
+        // gl.End();
         
         DrawAxes(PressureControl.OpenGL);
         
@@ -190,11 +190,11 @@ public partial class MainWindow
         
         for (int i = 0; i < 7; x += hx, i++)
         {
-            var axisText = $"{_pressureLegendValues[i]:E7}";
+            var axisText = $"{_pressureLegendValues[i]:E5}";
             gl.DrawText((int)x, 30, 0f, 0f, 0f, "Arial", 10, axisText);
         }
         
-        var axisTex = $"{_pressureLegendValues[7]:E7}";
+        var axisTex = $"{_pressureLegendValues[7]:E5}";
         gl.DrawText((int)(x - gl.RenderContextProvider.Width * 0.01), 30, 0f, 0f, 0f, "Arial", 10, axisTex);
     }
 }

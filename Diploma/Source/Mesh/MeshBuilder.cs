@@ -14,20 +14,41 @@ public class MeshBuilder : IMeshBuilder
     
     // side = 0 -> left or lower border
     // side = 1 -> right or upper border
-    private static int FindNearestIndex(IReadOnlyList<double> points, double point, int side)
+    private static (int, int) FindNearestIndex(IReadOnlyList<double> points, double center, double radius)
     {
+        int begin = -1, end = -1;
+        
         for (int i = 0; i < points.Count - 1; i++)
         {
-            if (Math.Abs(point - points[i]) < 1E-14) return i;
-            if (Math.Abs(point - points[i + 1]) < 1E-14) return i + 1;
+            // if (Math.Abs(point - points[i]) < 1E-14) return i;
+            // if (Math.Abs(point - points[i + 1]) < 1E-14) return i + 1;
             
-            if (point > points[i] && point < points[i + 1])
+            // if (point > points[i] && point < points[i + 1])
+            // {
+            //     return side == 0 ? i : i + 1;
+            // }
+
+            if (center - radius > points[i] && center - radius < points[i + 1])
             {
-                return side == 0 ? i : i + 1;
+                begin = i - 1;
+            }
+            
+            if (center + radius > points[i] && center + radius < points[i + 1])
+            {
+                end = i + 2;
             }
         }
 
-        return -1;
+        // if (Math.Abs(center - points[begin]) > 2 * Math.Abs(center - points[end]))
+        // {
+        //     end++;
+        // }
+        // else if (2 * Math.Abs(center - points[begin]) < Math.Abs(center - points[end]))
+        // {
+        //     begin--;
+        // }
+        
+        return (begin, end);
     }
 
     private bool IsContain(FiniteElement element, Point2D point)
@@ -201,15 +222,15 @@ public class MeshBuilder : IMeshBuilder
             var center = well.Center;
             var radius = well.Radius;
 
-            var xStartL = FindNearestIndex(_xPoints,center.X - 5 * radius, 0);
+            var (xStartL, xEndR) = FindNearestIndex(_xPoints,center.X, 6 * radius);
             var xEndL = center.X - radius;
             var xStartR = center.X + radius;
-            var xEndR = FindNearestIndex(_xPoints,center.X + 5 * radius, 1);
+            //var xEndR = FindNearestIndex(_xPoints,center.X + 5 * radius, 1);
             
-            var yStartB = FindNearestIndex(_yPoints,center.Y - 5 * radius, 0);
+            var (yStartB, yEndT) = FindNearestIndex(_yPoints,center.Y, 6 * radius);
             var yEndB = center.Y - radius;
             var yStartT = center.Y + radius;
-            var yEndT = FindNearestIndex(_yPoints,center.Y + 5 * radius, 1);
+            //var yEndT = FindNearestIndex(_yPoints,center.Y + 5 * radius, 1);
             
             // Whether it is necessary to additionally crush the mesh near the well
             if (_parameters.SplitParameters.WellNx != 0 && _parameters.SplitParameters.WellNy != 0)
