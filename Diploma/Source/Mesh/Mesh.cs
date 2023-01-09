@@ -11,14 +11,14 @@ public class Mesh
     public Mesh(
         IEnumerable<Point2D> points,
         IEnumerable<FiniteElement> elements,
+        IEnumerable<Material> materials,
         IEnumerable<DirichletCondition> dirichletConditions,
-        IEnumerable<NeumannCondition> neumannConditions,
-        IEnumerable<Material> materials)
+        IEnumerable<NeumannCondition> neumannConditions)
     {
         Points = points.ToImmutableArray();
         Elements = elements.ToImmutableArray();
+        Materials = materials.ToImmutableArray();
         DirichletConditions = dirichletConditions.ToImmutableArray();
         NeumannConditions = neumannConditions.ToImmutableArray();
-        Materials = materials.ToImmutableArray();
     }
 }

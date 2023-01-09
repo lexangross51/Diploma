@@ -30,7 +30,7 @@ public class FlowsBalancer
         _deltaQ = new double[ig.Length - 1];
 
         _beta = new double[_mesh.Elements.Length].Select(_ => 1E-05).ToArray();
-        _alpha = new double[_mesh.Elements[^1].Edges[^1] + 1];
+        _alpha = new double[_mesh.Elements[^1].EdgesIndices[^1] + 1];
 
         _solver = new LUSolver();
     }
@@ -137,7 +137,7 @@ public class FlowsBalancer
 
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
-            var edges = _mesh.Elements[ielem].Edges;
+            var edges = _mesh.Elements[ielem].EdgesIndices;
             
             for (int localEdge = 0; localEdge < edges.Count; localEdge++)
             {
@@ -161,7 +161,7 @@ public class FlowsBalancer
     {
         if (IsWellElement(ielem)) return 0.0;
 
-        var edges = _mesh.Elements[ielem].Edges;
+        var edges = _mesh.Elements[ielem].EdgesIndices;
         var edgesDirect = _mesh.Elements[ielem].EdgesDirect;
         double imbalance = 0.0;
 
@@ -207,7 +207,7 @@ public class FlowsBalancer
 
     private int FlowDirection(Vector flows, int ielem, int iedge)
     {
-        int globalEdge = _mesh.Elements[ielem].Edges[iedge];
+        int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
         double flow = Math.Abs(flows[globalEdge]) < 1E-14 ? 0.0 : flows[globalEdge]; 
 
         return flow switch
@@ -224,7 +224,7 @@ public class FlowsBalancer
 
         foreach (var element in _mesh.Elements)
         {
-            var edges = element.Edges;
+            var edges = element.EdgesIndices;
 
             max = edges.Select(globalEdge => Math.Abs(flows[globalEdge])).Prepend(max).Max();
         }
@@ -270,7 +270,7 @@ public class FlowsBalancer
 
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
-            var edges = _mesh.Elements[ielem].Edges;
+            var edges = _mesh.Elements[ielem].EdgesIndices;
             var edgesDirect = _mesh.Elements[ielem].EdgesDirect;
 
             for (int i = 0; i < edges.Count; i++)
@@ -295,7 +295,7 @@ public class FlowsBalancer
         
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
-            var edges = _mesh.Elements[ielem].Edges;
+            var edges = _mesh.Elements[ielem].EdgesIndices;
             var edgesDirect = _mesh.Elements[ielem].EdgesDirect;
             double imbalance = 0.0;
 
@@ -315,9 +315,9 @@ public class FlowsBalancer
 
     private void FixWellsFlows(Vector flows)
     {
-        foreach (var (ielem, theta) in _mesh.NeumannConditions)
+        foreach (var (ielem, iedge, theta) in _mesh.NeumannConditions)
         {
-            var edges = _mesh.Elements[ielem].Edges;
+            var edges = _mesh.Elements[ielem].EdgesIndices;
             var edgesDirect = _mesh.Elements[ielem].EdgesDirect;
 
             for (int localEdge = 0; localEdge < edges.Count; localEdge++)

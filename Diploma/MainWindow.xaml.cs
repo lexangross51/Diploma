@@ -17,7 +17,7 @@ public partial class MainWindow
     private Projection _viewport = new();
     private Projection _graphArea = new();
     private readonly Mesh _mesh;
-    private int _timeStart = 0, _timeEnd = 1, _timeMoment;
+    private int _timeStart = 0, _timeEnd = 100, _timeMoment;
     
     public MainWindow()
     {
@@ -29,7 +29,7 @@ public partial class MainWindow
         _pressure = new double[_mesh.Points.Length];
         _saturation = new double[_mesh.Elements.Length];
 
-        //double Field(Point2D p) => p.X*p.X - p.Y*p.Y;
+        //double Field(Point2D p) => -p.X*p.X - p.Y*p.Y;
         double Source(Point2D p) => 0;
 
         var fem = femBuilder

@@ -16,7 +16,7 @@ public class FlowsCalculator
         _basis = basis;
         _phaseProperty = phaseProperty;
         
-        var edgesCount = mesh.Elements[^1].Edges[^1] + 1;
+        var edgesCount = mesh.Elements[^1].EdgesIndices[^1] + 1;
 
         _averageFlows = new Vector(edgesCount);
         _precalcIntegralGradX = new Vector(_basis.Size);
@@ -85,29 +85,22 @@ public class FlowsCalculator
 
         for (int i = 0; i < phaseCount; i++)
         {
-            coefficient += _phaseProperty.Phases[ielem][i].Kappa;
-            coefficient /= _phaseProperty.Phases[ielem][i].Viscosity;
+            coefficient += _phaseProperty.Phases[ielem][i].Kappa / _phaseProperty.Phases[ielem][i].Viscosity;
         }
             
         coefficient *= _mesh.Materials[area].Permeability * 9.86923E-04;
 
         return coefficient;
     }
-    
-    private bool IsWellElement(int ielem)
-        => Enumerable.Any(_mesh.NeumannConditions, condition => condition.Element == ielem);
 
     private void FixWellsFlows()
     {
-        foreach (var (ielem, flow) in _mesh.NeumannConditions)
+        foreach (var (ielem, iedge, flow) in _mesh.NeumannConditions)
         {
-            var edges = _mesh.Elements[ielem].Edges;
-            var edgesDirect = _mesh.Elements[ielem].EdgesDirect;
+            var globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
+            var edgeDirect = _mesh.Elements[ielem].EdgesDirect[iedge];
 
-            for (int localEdge = 0; localEdge < edges.Count; localEdge++)
-            {
-                _averageFlows[edges[localEdge]] = edgesDirect[localEdge] * flow;
-            }
+            _averageFlows[globalEdge] = edgeDirect * flow;
         }
     }
     
@@ -122,10 +115,10 @@ public class FlowsCalculator
 
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
-            if (IsWellElement(ielem)) continue;
+            if (_mesh.Elements[ielem].IsFictitious) continue;
 
             double coefficient = CalculateCoefficient(ielem);
-            var edges = _mesh.Elements[ielem].Edges;
+            var edges = _mesh.Elements[ielem].EdgesIndices;
 
             for (int localEdge = 0; localEdge < edges.Count; localEdge++)
             {
