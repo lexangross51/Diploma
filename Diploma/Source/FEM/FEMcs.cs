@@ -164,24 +164,19 @@ public class FEMBuilder
         {
             if (_field is not null) return 1.0;
 
+            int phaseCount = _phaseProperty.Phases![ielem].Count;
             int area = _mesh.Elements[ielem].Area;
             double coefficient = 0.0;
 
-            int phaseCount = _phaseProperty.Phases![ielem].Count;
-
             for (int i = 0; i < phaseCount; i++)
             {
-                coefficient += _phaseProperty.Phases[ielem][i].Kappa;
-                coefficient /= _phaseProperty.Phases[ielem][i].Viscosity;
+                coefficient += _phaseProperty.Phases[ielem][i].Kappa / _phaseProperty.Phases[ielem][i].Viscosity;
             }
             
             coefficient *= _mesh.Materials[area].Permeability * 9.86923E-04;
 
             return coefficient;
         }
-        
-        private bool IsWellElement(int ielem)
-            => Enumerable.Any(_mesh.NeumannConditions, condition => condition.Element == ielem);
 
         private void BuildLocalMatrixVector(int ielem)
         {
@@ -296,28 +291,18 @@ public class FEMBuilder
 
         private void ApplyNeumann()
         {
-            foreach (var (ielem, theta) in _mesh.NeumannConditions)
+            foreach (var (ielem, iedge, theta) in _mesh.NeumannConditions)
             {
-                var nodes = _mesh.Elements[ielem].Nodes;
-                double hx = _mesh.Points[nodes[^1]].X - _mesh.Points[nodes[0]].X;
-                double hy = _mesh.Points[nodes[^1]].Y - _mesh.Points[nodes[0]].Y;
-                double length = hx + hy;
-            
-                // Left border
-                // _globalVector[nodes[0]] += theta / 2.0;
-                // _globalVector[nodes[2]] += theta / 2.0;
-                
-                // for (int i = 0; i < _basis.Size; i++)
-                // {
-                //     _globalVector[nodes[i]] += length * theta / 2.0;
-                // }
-                
-                for (int i = 0; i < _basis.Size; i++)
-                {
-                    _globalVector[nodes[i]] += theta;
-                }
+                var edge = _mesh.Elements[ielem].Edges[iedge];
+                var edgeLenght = _mesh.Points[edge.Node2].X - _mesh.Points[edge.Node1].X +
+                                        _mesh.Points[edge.Node2].Y - _mesh.Points[edge.Node1].Y;
+
+                _globalVector[edge.Node1] += edgeLenght * theta / 2.0;
+                _globalVector[edge.Node2] += edgeLenght * theta / 2.0;
             }
-            
+
+            #region The volume source
+
             // Rectangle omega = new(new Point2D(0, 0), new Point2D(1, 1));
             //
             // foreach (var (ielem, theta) in _mesh.NeumannConditions)
@@ -343,6 +328,8 @@ public class FEMBuilder
             //         _globalVector[nodes[inode]] += _localB[inode] * hx * hy * theta;
             //     }
             // }
+
+            #endregion
         }
 
         private void AssemblySLAE()
@@ -352,7 +339,7 @@ public class FEMBuilder
 
             for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
             {
-                if (IsWellElement(ielem)) continue;
+                if (_mesh.Elements[ielem].IsFictitious) continue;
                 
                 var nodes = _mesh.Elements[ielem].Nodes;
                 var coefficient = CalculateCoefficient(ielem);
@@ -448,7 +435,7 @@ public class FEMBuilder
         return this;
     }
 
-    public FEM Build() => new FEM(_mesh, _phaseProperty, _basis, _solver, _source, _field);
+    public FEM Build() => new(_mesh, _phaseProperty, _basis, _solver, _source, _field);
 
     #endregion
 }
