@@ -31,6 +31,12 @@ public partial class MainWindow
 
         for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
+            if (_mesh.Elements[ielem].IsFictitious)
+            {
+                _colorsPressure[ielem] = new Color(255, 255, 255);
+                continue;
+            }
+            
             var t = _mesh.Elements[ielem];
             var nodes = t.Nodes;
 
@@ -88,7 +94,7 @@ public partial class MainWindow
         gl.Ortho2D(_viewport.Left, _viewport.Right, _viewport.Bottom, _viewport.Top);
 
         MakePressureColors(_timeMoment);
-
+        
         gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
         gl.ShadeModel(OpenGL.GL_SMOOTH);
         gl.Begin(OpenGL.GL_QUADS);
