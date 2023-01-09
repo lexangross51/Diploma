@@ -29,6 +29,12 @@ public partial class MainWindow
         
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
+            if (_mesh.Elements[ielem].IsFictitious)
+            {
+                _colorsSaturartion[ielem] = new Color(255, 255, 255);
+                continue;
+            }
+            
             double centerP = _saturation[ielem];
         
             byte rColor, gColor, bColor;
@@ -53,11 +59,6 @@ public partial class MainWindow
             }
 
             _colorsSaturartion[ielem] = new Color(rColor, gColor, bColor);
-        }
-
-        foreach (var ielem in _mesh.NeumannConditions.Select(condition => condition.Element))
-        {
-            _colorsSaturartion[ielem] = new Color(255, 255, 255);
         }
         
         _saturationLegendValues[0] = _saturation.Max();
