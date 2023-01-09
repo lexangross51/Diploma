@@ -12,8 +12,6 @@ public class MeshBuilder : IMeshBuilder
     public MeshBuilder(MeshParameters parameters)
         => _parameters = parameters;
     
-    // side = 0 -> left or lower border
-    // side = 1 -> right or upper border
     private static (int, int) FindNearestIndex(IReadOnlyList<double> points, double center, double radius)
     {
         int begin = -1, end = -1;
@@ -54,7 +52,7 @@ public class MeshBuilder : IMeshBuilder
     private bool IsContain(FiniteElement element, Point2D point)
     {
         var leftBottom = _points[element.Nodes[0]];
-        var rightTop = _points[element.Nodes[3]];
+        var rightTop = _points[element.Nodes[^1]];
 
         return point.X >= leftBottom.X && point.X <= rightTop.X &&
                point.Y >= leftBottom.Y && point.Y <= rightTop.Y;
@@ -93,6 +91,17 @@ public class MeshBuilder : IMeshBuilder
 
     private static bool IsEdgeExist(int i, int j)
         => (i == 0 && j == 1 || i == 0 && j == 2 || i == 1 && j == 3 || i == 2 && j == 3);
+
+    private void CreateEdges()
+    {
+        foreach (var element in _elements)
+        {
+            element.Edges.Add(new Edge(element.Nodes[0], element.Nodes[1]));
+            element.Edges.Add(new Edge(element.Nodes[0], element.Nodes[2]));
+            element.Edges.Add(new Edge(element.Nodes[1], element.Nodes[3]));
+            element.Edges.Add(new Edge(element.Nodes[2], element.Nodes[3]));
+        }
+    }
     
     private void NumerateEdges()
     {
@@ -159,7 +168,7 @@ public class MeshBuilder : IMeshBuilder
                         {
                             if (jg[ind] == ind1) 
                             {
-                                element.Edges.Add(ind);
+                                element.EdgesIndices.Add(ind);
                             }
                         }
                     }
@@ -169,7 +178,7 @@ public class MeshBuilder : IMeshBuilder
                         {
                             if (jg[ind] == ind2) 
                             {
-                                element.Edges.Add(ind);
+                                element.EdgesIndices.Add(ind);
                             }
                         }
                     }
@@ -374,8 +383,8 @@ public class MeshBuilder : IMeshBuilder
             foreach (var element in _elements)
             {
                 var elementNodes = element.Nodes;
-                var elementCenterX = (_points[elementNodes[3]].X + _points[elementNodes[0]].X) / 2.0;
-                var elementCenterY = (_points[elementNodes[3]].Y + _points[elementNodes[0]].Y) / 2.0;
+                var elementCenterX = (_points[elementNodes[^1]].X + _points[elementNodes[0]].X) / 2.0;
+                var elementCenterY = (_points[elementNodes[^1]].Y + _points[elementNodes[0]].Y) / 2.0;
 
                 if (elementCenterX >= leftBottom.X && elementCenterX <= rightTop.X &&
                     elementCenterY >= leftBottom.Y && elementCenterY <= rightTop.Y)
@@ -385,6 +394,9 @@ public class MeshBuilder : IMeshBuilder
             }
         }
 
+        // Create list of edges for each element
+        CreateEdges();
+        
         // Numerate edges of each element
         NumerateEdges();
 
