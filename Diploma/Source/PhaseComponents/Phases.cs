@@ -6,12 +6,15 @@ public struct Phase
     [JsonProperty("Density")] public double Density;
     [JsonProperty("Viscosity")] public double Viscosity;
     [JsonProperty("Saturation")] public double Kappa;
+    
+    public static double KappaDependence(double saturation) => saturation;
 }
 
 public class PhaseProperty
 {
     public List<List<Phase>>? Phases { get; }
     public List<List<double>>? Saturation { get; }
+    public List<Phase>? InjectedPhases { get; }
     public List<Phase>? RemoteBordersPhases { get; }
 
     public PhaseProperty(Mesh.Mesh mesh, string folderName)
@@ -41,6 +44,7 @@ public class PhaseProperty
 
         Saturation = new List<List<double>>();
         Phases = new List<List<Phase>>();
+        InjectedPhases = new List<Phase>();
         RemoteBordersPhases = new List<Phase>();
         
         for (int ielem = 0; ielem < mesh.Elements.Length; ielem++)
@@ -51,22 +55,25 @@ public class PhaseProperty
             for (int iphase = 0; iphase < phasesCount; iphase++)
             {
                 Saturation?[ielem].Add(phaseParameters[iphase].Kappa);
+                phaseParameters[iphase].Kappa = Phase.KappaDependence(phaseParameters[iphase].Kappa);
                 Phases?[ielem].Add(phaseParameters[iphase]);
             }
         }
 
-        if (wellPhaseParameters is not null)
+        for (var ielem = 0; ielem < mesh.Elements.Length; ielem++)
         {
-            foreach (var ielem in mesh.NeumannConditions.Select(condition => condition.Element))
+            if (mesh.Elements[ielem].IsFictitious)
             {
                 Saturation?[ielem].Clear();
                 Phases?[ielem].Clear();
-        
-                foreach (var wellPhase in wellPhaseParameters)
-                {
-                    Saturation?[ielem].Add(wellPhase.Kappa);
-                    Phases?[ielem].Add(wellPhase);
-                }
+            }
+        }
+
+        if (wellPhaseParameters != null)
+        {
+            foreach (var phase in wellPhaseParameters)
+            {
+                InjectedPhases.Add(phase);
             }
         }
 
