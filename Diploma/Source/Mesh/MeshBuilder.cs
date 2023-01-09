@@ -49,10 +49,10 @@ public class MeshBuilder : IMeshBuilder
         return (begin, end);
     }
 
-    private bool IsContain(FiniteElement element, Point2D point)
+    private bool IsContain(int ielem, Point2D point)
     {
-        var leftBottom = _points[element.Nodes[0]];
-        var rightTop = _points[element.Nodes[^1]];
+        var leftBottom = _points[_elements[ielem].Nodes[0]];
+        var rightTop = _points[_elements[ielem].Nodes[^1]];
 
         return point.X >= leftBottom.X && point.X <= rightTop.X &&
                point.Y >= leftBottom.Y && point.Y <= rightTop.Y;
@@ -451,17 +451,29 @@ public class MeshBuilder : IMeshBuilder
     public IEnumerable<NeumannCondition> CreateNeumann()
     {
         List<NeumannCondition> neumannConditions = new(_parameters.Wells.Length);
-        
+        List<int> elementsToDelete = new List<int>();
+        int nx = _xPoints.Count - 1;
+
         foreach (var well in _parameters.Wells)
         {
-            for (int i = 0; i < _elements.Length; i++)
+            for (int ielem = 0; ielem < _elements.Length; ielem++)
             {
-                if (IsContain(_elements[i], well.Center))
+                if (IsContain(ielem, well.Center))
                 {
-                    neumannConditions.Add(new(i, well.Power));
+                    elementsToDelete.Add(ielem);
+                    
+                    neumannConditions.Add(new NeumannCondition(ielem - 1, 2, well.Power));
+                    neumannConditions.Add(new NeumannCondition(ielem + 1, 1, well.Power));
+                    neumannConditions.Add(new NeumannCondition(ielem - nx, 3, well.Power));
+                    neumannConditions.Add(new NeumannCondition(ielem + nx, 0, well.Power));
                     break;
                 }
             }
+        }
+
+        foreach (var ielem in elementsToDelete)
+        {
+            
         }
 
         return neumannConditions;
