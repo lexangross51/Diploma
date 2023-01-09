@@ -2,9 +2,6 @@
 
 public static class DataWriter
 {
-    private static bool IsWellElement(Mesh.Mesh mesh, int ielem)
-        => Enumerable.Any(mesh.NeumannConditions, condition => condition.Element == ielem);
-    
     public static void WritePressure(string filename, Vector pressure)
     {
         if (!Directory.Exists("Pressure"))
@@ -31,7 +28,7 @@ public static class DataWriter
 
         for (var ielem = 0; ielem < saturation.Count; ielem++)
         {
-            sw.WriteLine(IsWellElement(mesh, ielem) ? 0.0 : saturation[ielem][0]);
+            sw.WriteLine(mesh.Elements[ielem].IsFictitious ? 0.0 : saturation[ielem][0]);
         }
     }
 }
