@@ -1,12 +1,12 @@
 ﻿[
   {
     "LeftBottom": {
-      "X": 0.0,
-      "Y": 0.0
+      "X": 0,
+      "Y": 0
     },
     "RightTop": {
-      "X": 500.0,
-      "Y": 500.0
+      "X": 5.0,
+      "Y": 1.0
     },
     "Material": {
       "Permeability": 490.0,

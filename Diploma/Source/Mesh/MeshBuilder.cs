@@ -5,9 +5,8 @@ public class MeshBuilder : IMeshBuilder
     private readonly MeshParameters _parameters;
     private readonly List<double> _xPoints = new();
     private readonly List<double> _yPoints = new();
-    private Point2D[] _points = default!;
-    private FiniteElement[] _elements = default!;
-    private Material[] _materials = default!;
+    private List<Point2D> _points = default!;
+    private List<FiniteElement> _elements = default!;
 
     public MeshBuilder(MeshParameters parameters)
         => _parameters = parameters;
@@ -54,8 +53,8 @@ public class MeshBuilder : IMeshBuilder
         var leftBottom = _points[_elements[ielem].Nodes[0]];
         var rightTop = _points[_elements[ielem].Nodes[^1]];
 
-        return point.X >= leftBottom.X && point.X <= rightTop.X &&
-               point.Y >= leftBottom.Y && point.Y <= rightTop.Y;
+        return point.X > leftBottom.X && point.X < rightTop.X &&
+               point.Y > leftBottom.Y && point.Y < rightTop.Y;
     }
 
     private void MeshNesting(ref int nx, ref int ny, ref double kx, ref double ky)
@@ -107,15 +106,13 @@ public class MeshBuilder : IMeshBuilder
     {
         var connectivityList = new List<SortedSet<int>>();
         
-        for (int i = 0; i < _points.Length; i++)
+        for (int i = 0; i < _points.Count; i++)
         {
             connectivityList.Add(new SortedSet<int>());
         }
 
-        foreach (var element in _elements)
+        foreach (var nodes in _elements.Select(element => element.Nodes))
         {
-            var nodes = element.Nodes;
-
             for (int i = 0; i < 3; i++) 
             {
                 int ind1 = nodes[i];
@@ -132,7 +129,7 @@ public class MeshBuilder : IMeshBuilder
             }
         }
 
-        var ig = new int[_points.Length + 1];
+        var ig = new int[_points.Count + 1];
 
         ig[0] = 0;
         ig[1] = 0;
@@ -337,15 +334,15 @@ public class MeshBuilder : IMeshBuilder
         _xPoints.Sort();
         _yPoints.Sort();
 
-        _points = new Point2D[_xPoints.Count * _yPoints.Count];
+        _points = new List<Point2D>(_xPoints.Count * _yPoints.Count);
 
-        int ip = 0;
+        //int ip = 0;
         
         foreach (var y in _yPoints)
         {
             foreach (var x in _xPoints)
             {
-                _points[ip++] = new Point2D(x, y);
+                _points.Add(new Point2D(x, y));
             }
         }
 
@@ -354,11 +351,12 @@ public class MeshBuilder : IMeshBuilder
 
     public IEnumerable<FiniteElement> CreateElements()
     {
-        _elements = new FiniteElement[(_xPoints.Count - 1) * (_yPoints.Count - 1)];
+        _elements = new List<FiniteElement>((_xPoints.Count - 1) * (_yPoints.Count - 1));
+        
         int[] nodes = new int[4];
         int nx = _xPoints.Count - 1;
         int ny = _yPoints.Count - 1;
-        int ielem = 0;
+        //int ielem = 0;
         
         for (int i = 0; i < ny; i++)
         {
@@ -369,7 +367,7 @@ public class MeshBuilder : IMeshBuilder
                 nodes[2] = j + i * (nx + 1) + (nx + 1);
                 nodes[3] = j + i * (nx + 1) + (nx + 1) + 1;
 
-                _elements[ielem++] = new FiniteElement(nodes, 0);
+                _elements.Add(new FiniteElement(nodes, 0));
             }
         }
         
@@ -399,6 +397,19 @@ public class MeshBuilder : IMeshBuilder
         
         // Numerate edges of each element
         NumerateEdges();
+        
+        // If a well falls into an element, we mark it as fictitious
+        foreach (var well in _parameters.Wells)
+        {
+            for (int ielem = 0; ielem < _elements.Count; ielem++)
+            {
+                if (IsContain(ielem, well.Center))
+                {
+                    _elements[ielem].IsFictitious = true;
+                    break;
+                }
+            }
+        }
 
         // Set edges direction
         // -1 - if the outside normal doesn't coincide with the fixed
@@ -418,31 +429,31 @@ public class MeshBuilder : IMeshBuilder
         double pressure = _parameters.Area[0].PlastPressure;
 
         HashSet<DirichletCondition> dirichletConditions = new(2 * (nx + ny));
-
-        // lower border
-        for (int inode = 0; inode < nx + 1; inode++)
-        {
-            dirichletConditions.Add(new (inode, pressure));
-        }
-        
-        // upper border
-        for (int inode = (nx + 1) * ny; inode < (nx + 1) * (ny + 1); inode++)
-        {
-            dirichletConditions.Add(new (inode, pressure));
-        }
-        
+        //
+        // // lower border
+        // for (int inode = 0; inode < nx + 1; inode++)
+        // {
+        //     dirichletConditions.Add(new DirichletCondition(inode, pressure));
+        // }
+        //
+        // // upper border
+        // for (int inode = (nx + 1) * ny; inode < (nx + 1) * (ny + 1); inode++)
+        // {
+        //     dirichletConditions.Add(new DirichletCondition(inode, pressure));
+        // }
+        //
         // left border
-        //pressure = 10;
+        pressure = 10;
         for (int i = 0, inode = 0; i < ny + 1; i++, inode += nx + 1)
         {
-            dirichletConditions.Add(new (inode, pressure));
+            dirichletConditions.Add(new DirichletCondition(inode, pressure));
         }
         
         // right border
-        //pressure = 0;
+        pressure = 0;
         for (int i = 0, inode = nx; i < ny + 1; i++, inode += nx + 1)
         {
-            dirichletConditions.Add(new (inode, pressure));
+            dirichletConditions.Add(new DirichletCondition(inode, pressure));
         }
 
         return dirichletConditions;
@@ -450,18 +461,15 @@ public class MeshBuilder : IMeshBuilder
 
     public IEnumerable<NeumannCondition> CreateNeumann()
     {
-        List<NeumannCondition> neumannConditions = new(_parameters.Wells.Length);
-        List<int> elementsToDelete = new List<int>();
+        List<NeumannCondition> neumannConditions = new (_parameters.Wells.Length);
         int nx = _xPoints.Count - 1;
 
         foreach (var well in _parameters.Wells)
         {
-            for (int ielem = 0; ielem < _elements.Length; ielem++)
+            for (int ielem = 0; ielem < _elements.Count; ielem++)
             {
                 if (IsContain(ielem, well.Center))
                 {
-                    elementsToDelete.Add(ielem);
-                    
                     neumannConditions.Add(new NeumannCondition(ielem - 1, 2, well.Power));
                     neumannConditions.Add(new NeumannCondition(ielem + 1, 1, well.Power));
                     neumannConditions.Add(new NeumannCondition(ielem - nx, 3, well.Power));
@@ -471,23 +479,15 @@ public class MeshBuilder : IMeshBuilder
             }
         }
 
-        foreach (var ielem in elementsToDelete)
-        {
-            
-        }
-
         return neumannConditions;
     }
 
     public IEnumerable<Material> CreateMaterials()
     {
-        _materials = new Material[_parameters.Area.Length];
+        List<Material> materials = new(_parameters.Area.Length);
+        
+        materials.AddRange(_parameters.Area.Select(area => area.Material));
 
-        for (int i = 0; i < _materials.Length; i++)
-        {
-            _materials[i] = _parameters.Area[i].Material;
-        }
-
-        return _materials;
+        return materials;
     }
 }
