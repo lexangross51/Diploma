@@ -6,11 +6,12 @@
         xmlns:sharpGl="clr-namespace:SharpGL.WPF;assembly=SharpGL.WPF"
         mc:Ignorable="d"
         Title="Фильтрация" Height="900" Width="1600"
-        KeyDown="MainWindow_OnKeyDown">
+        KeyDown="MainWindow_OnKeyDown"
+        DataContext="{Binding RelativeSource={RelativeSource Self}}">
     <DockPanel>
         <StatusBar DockPanel.Dock="Bottom">
             <Label Content="Time moment: "/>
-            <TextBlock Width="60" x:Name="TimeMoment"/> 
+            <TextBlock Width="60" Text="{Binding Path=TimeMoment, UpdateSourceTrigger=PropertyChanged}"/> 
             
             <Label Content="X:"/>
             <TextBlock Width="30" x:Name="XPos"/>

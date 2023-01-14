@@ -116,8 +116,7 @@ public class FlowsCalculator
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
             if (_mesh.Elements[ielem].IsFictitious) continue;
-
-            double coefficient = CalculateCoefficient(ielem);
+            
             var edges = _mesh.Elements[ielem].EdgesIndices;
 
             for (int localEdge = 0; localEdge < edges.Count; localEdge++)
@@ -125,11 +124,6 @@ public class FlowsCalculator
                 var globalEdge = edges[localEdge];
 
                 double flow = -CalculateGradient(pressure, ielem, localEdge) * _normals[localEdge];
-
-                if (FlowDirection(flow, ielem, localEdge) == 1)
-                {
-                    flow *= coefficient;
-                }
 
                 if (isUsedEdge[globalEdge])
                 {
@@ -142,6 +136,21 @@ public class FlowsCalculator
                 }
             }
         }
+
+        // for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+        // {
+        //     double coefficient = CalculateCoefficient(ielem);
+        //
+        //     for (int localEdge = 0; localEdge < 4; localEdge++)
+        //     {
+        //         int globalEdge = _mesh.Elements[ielem].EdgesIndices[localEdge];
+        //
+        //         if (FlowDirection(_averageFlows[globalEdge], ielem, localEdge) == 1)
+        //         {
+        //             _averageFlows[globalEdge] *= coefficient;
+        //         }
+        //     }
+        // }
         
         FixWellsFlows();
         

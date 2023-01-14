@@ -13,17 +13,15 @@ public partial class MainWindow
         {
             case Key.Up:
             {
-                if (_timeMoment < _timeEnd - 1) _timeMoment++;
+                if (_timeMoment < _timeEnd - 1) TimeMoment++;
                 break;
             }
             case Key.Down:
             {
-                if (_timeMoment > _timeStart) _timeMoment--;
+                if (_timeMoment > _timeStart) TimeMoment--;
                 break;
             }
         }
-
-        TimeMoment.Text = _timeMoment.ToString();
     }
 
     private void PressureControl_OnMouseMove(object sender, MouseEventArgs e)

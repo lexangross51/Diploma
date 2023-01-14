@@ -1,8 +1,10 @@
-﻿using Diploma.Source;
+﻿using System.ComponentModel;
+using Diploma.Source;
+using Microsoft.Win32;
 
 namespace Diploma;
 
-public partial class MainWindow
+public partial class MainWindow : INotifyPropertyChanged
 {
     public readonly struct Color
     {
@@ -14,11 +16,13 @@ public partial class MainWindow
             => (R, G, B) = (r, g, b);
     }
 
+    public event PropertyChangedEventHandler? PropertyChanged;
+
     private Projection _viewport = new();
     private Projection _graphArea = new();
     private readonly Mesh _mesh;
-    private int _timeStart = 0, _timeEnd = 100, _timeMoment;
-    
+    private int _timeStart = 0, _timeEnd = 2, _timeMoment;
+
     public MainWindow()
     {
         MeshGenerator meshGenerator = new(new MeshBuilder(MeshParameters.ReadJson("Input/")));
@@ -29,7 +33,7 @@ public partial class MainWindow
         _pressure = new double[_mesh.Points.Length];
         _saturation = new double[_mesh.Elements.Length];
 
-        //double Field(Point2D p) => -p.X*p.X - p.Y*p.Y;
+        //double Field(Point2D p) => 10 - p.X;
         double Source(Point2D p) => 0;
 
         var fem = femBuilder
@@ -57,7 +61,20 @@ public partial class MainWindow
         _viewport.Top = _graphArea.Top + 0.05 * _graphArea.Height;
         
         InitializeComponent();
+    }
+    
+    protected virtual void OnPropertyChanged(string propertyName = "")
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 
-        TimeMoment.Text = "0";
+    public int TimeMoment
+    {
+        get => _timeMoment;
+        set
+        {
+            _timeMoment = value;
+            OnPropertyChanged(nameof(TimeMoment));
+        }
     }
 }
