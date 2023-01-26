@@ -21,7 +21,7 @@ public partial class MainWindow : INotifyPropertyChanged
     private Projection _viewport = new();
     private Projection _graphArea = new();
     private readonly Mesh _mesh;
-    private int _timeStart = 0, _timeEnd = 2, _timeMoment;
+    private int _timeStart = 0, _timeEnd = 1, _timeMoment;
 
     public MainWindow()
     {

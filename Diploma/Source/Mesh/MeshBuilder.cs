@@ -429,28 +429,28 @@ public class MeshBuilder : IMeshBuilder
         double pressure = _parameters.Area[0].PlastPressure;
 
         HashSet<DirichletCondition> dirichletConditions = new(2 * (nx + ny));
-        //
-        // // lower border
-        // for (int inode = 0; inode < nx + 1; inode++)
-        // {
-        //     dirichletConditions.Add(new DirichletCondition(inode, pressure));
-        // }
-        //
-        // // upper border
-        // for (int inode = (nx + 1) * ny; inode < (nx + 1) * (ny + 1); inode++)
-        // {
-        //     dirichletConditions.Add(new DirichletCondition(inode, pressure));
-        // }
-        //
+        
+        // lower border
+        for (int inode = 0; inode < nx + 1; inode++)
+        {
+            dirichletConditions.Add(new DirichletCondition(inode, pressure));
+        }
+        
+        // upper border
+        for (int inode = (nx + 1) * ny; inode < (nx + 1) * (ny + 1); inode++)
+        {
+            dirichletConditions.Add(new DirichletCondition(inode, pressure));
+        }
+        
         // left border
-        pressure = 10;
+        //pressure = 10;
         for (int i = 0, inode = 0; i < ny + 1; i++, inode += nx + 1)
         {
             dirichletConditions.Add(new DirichletCondition(inode, pressure));
         }
         
         // right border
-        pressure = 0;
+        //pressure = 0;
         for (int i = 0, inode = nx; i < ny + 1; i++, inode += nx + 1)
         {
             dirichletConditions.Add(new DirichletCondition(inode, pressure));

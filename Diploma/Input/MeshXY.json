@@ -1,9 +1,9 @@
 {
-  "MeshNx": 10,
-  "MeshNy": 1,
-  "WellNx": 0,
-  "WellNy": 0,
-  "WellKx": 1,
-  "WellKy": 1,
-  "Nesting": 0
+  "MeshNx": 30,
+  "MeshNy": 30,
+  "WellNx": 8,
+  "WellNy": 8,
+  "WellKx": 1.5,
+  "WellKy": 1.5,
+  "Nesting": 1
  }
