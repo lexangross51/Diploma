@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:sharpGl="clr-namespace:SharpGL.WPF;assembly=SharpGL.WPF"
         mc:Ignorable="d"
-        Title="Фильтрация" Height="900" Width="1600"
+        Title="Фильтрация" Height="700" Width="1400"
         KeyDown="MainWindow_OnKeyDown">
     <DockPanel>
         <StatusBar DockPanel.Dock="Bottom">

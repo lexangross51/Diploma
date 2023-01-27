@@ -30,26 +30,31 @@ public partial class MainWindow
         _saturation = new double[_mesh.Elements.Length];
 
         //double Field(Point2D p) => p.X*p.X - p.Y*p.Y;
-        double Source(Point2D p) => 0;
+        //double Source(Point2D p) => 0;
 
-        var fem = femBuilder
-            .SetMesh(_mesh)
-            .SetPhaseProperties(phaseProperty)
-            .SetBasis(new LinearBasis())
-            .SetSolver(new CGM(1000, 1E-20))
-            .SetTest(Source)
-            .Build();
-
-        Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
-        filtration.ModelFiltration(_timeStart, _timeEnd);
+        // var fem = femBuilder
+        //     .SetMesh(_mesh)
+        //     .SetPhaseProperties(phaseProperty)
+        //     .SetBasis(new LinearBasis())
+        //     .SetSolver(new CGM(1000, 1E-20))
+        //     .SetTest(Source)
+        //     .Build();
+        //
+        // Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
+        // filtration.ModelFiltration(_timeStart, _timeEnd);
 
         _colorsPressure = new Color[_mesh.Elements.Length];
         _colorsSaturartion = new Color[_mesh.Elements.Length];
 
-        _graphArea.Left = _mesh.Points[0].X;
-        _graphArea.Bottom = _mesh.Points[0].Y;
-        _graphArea.Right = _mesh.Points[_mesh.Elements[_mesh.Elements[0].Nodes[2] - 2].Nodes[1]].X; 
-        _graphArea.Top = _mesh.Points[^1].Y;
+        // _graphArea.Left = _mesh.Points[0].X;
+        // _graphArea.Bottom = _mesh.Points[0].Y;
+        // _graphArea.Right = _mesh.Points[_mesh.Elements[_mesh.Elements[0].Nodes[2] - 2].Nodes[1]].X; 
+        // _graphArea.Top = _mesh.Points[^1].Y;
+        
+        _graphArea.Left = -1;
+        _graphArea.Bottom = -1;
+        _graphArea.Right = 2; 
+        _graphArea.Top = 2;
 
         _viewport.Left = _graphArea.Left - 0.07 * _graphArea.Width;
         _viewport.Right = _graphArea.Right + 0.05 * _graphArea.Width;
