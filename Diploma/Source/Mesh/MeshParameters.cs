@@ -113,13 +113,7 @@ public class Well
     }
 }
 
-public readonly record struct SplitParameters
-(
-    int MeshNx, int MeshNy, 
-    int WellNx, int WellNy, 
-    double WellKx, double WellKy, 
-    int Nesting
-)
+public readonly record struct SplitParameters(int MeshNx, int MeshNy, int Nesting)
 {
     public static SplitParameters ReadJson(string path)
     {

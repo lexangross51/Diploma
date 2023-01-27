@@ -1,71 +1,36 @@
-﻿using System.Dynamic;
-
-namespace Diploma.Source.Mesh;
+﻿namespace Diploma.Source.Mesh;
 
 public class MeshBuilder : IMeshBuilder
 {
     private readonly MeshParameters _parameters;
-    private List<Point2D> _points = default!, _wellPoints;
-    private List<FiniteElement> _elements = default!, _wellElements;
+    private List<Point2D> _points = default!;
+    private List<Point2D>? _wellPoints;
+    private List<FiniteElement>? _wellElements;
     private Material[] _materials = default!;
+    private Dictionary<int, FiniteElement> _elements = default!;
 
     public MeshBuilder(MeshParameters parameters)
         => _parameters = parameters;
     
-    // side = 0 -> left or lower border
-    // side = 1 -> right or upper border
-    private static int FindNearestIndex(IReadOnlyList<double> points, double point, int side)
-    {
-        for (int i = 0; i < points.Count - 1; i++)
-        {
-            if (Math.Abs(point - points[i]) < 1E-14) return i;
-            if (Math.Abs(point - points[i + 1]) < 1E-14) return i + 1;
-            
-            if (point > points[i] && point < points[i + 1])
-            {
-                return side == 0 ? i : i + 1;
-            }
-        }
-
-        return -1;
-    }
-
-    private bool IsContain(FiniteElement element, Point2D point)
-    {
-        var leftBottom = _points[element.Nodes[0]];
-        var rightTop = _points[element.Nodes[3]];
-
-        return point.X >= leftBottom.X && point.X <= rightTop.X &&
-               point.Y >= leftBottom.Y && point.Y <= rightTop.Y;
-    }
-
-    private void MeshNesting(ref int nx, ref int ny, ref double kx, ref double ky)
+    private void MeshNesting(ref int nx, ref int ny)
     {
         switch (_parameters.SplitParameters.Nesting)
         {
             case 1:
                 nx *= 2;
                 ny *= 2;
-                kx = Math.Sqrt(kx);
-                ky = Math.Sqrt(ky);
                 break;
             case 2:
                 nx *= 4;
                 ny *= 4;
-                kx = Math.Sqrt(Math.Sqrt(kx));
-                ky = Math.Sqrt(Math.Sqrt(ky));
                 break;
             case 3:
                 nx *= 8;
                 ny *= 8;
-                kx = Math.Sqrt(Math.Sqrt(Math.Sqrt(kx)));
-                ky = Math.Sqrt(Math.Sqrt(Math.Sqrt(ky)));
                 break;
             case 4:
                 nx *= 16;
                 ny *= 16;
-                kx = Math.Sqrt(Math.Sqrt(Math.Sqrt(Math.Sqrt(kx))));
-                ky = Math.Sqrt(Math.Sqrt(Math.Sqrt(Math.Sqrt(ky))));
                 break;
         }
     }
@@ -168,11 +133,9 @@ public class MeshBuilder : IMeshBuilder
         
         int nx = _parameters.SplitParameters.MeshNx;
         int ny = _parameters.SplitParameters.MeshNy;
-        var kx = _parameters.SplitParameters.WellKx;
-        var ky = _parameters.SplitParameters.WellKy;
-        
+
         // If a nested mesh is required
-        MeshNesting(ref nx, ref ny, ref kx, ref ky);
+        MeshNesting(ref nx, ref ny);
         
         // Create points for the main area 
         double hx = (xEnd - xStart) / nx;
@@ -188,9 +151,10 @@ public class MeshBuilder : IMeshBuilder
                 _points.Add(new Point2D(x, y));
             }
         }
-        
+
         // Generate elements ------------------------------------------------->
         int[] nodes = new int[4];
+        int ielem = 0;
 
         for (int i = 0; i < ny; i++)
         {
@@ -201,7 +165,7 @@ public class MeshBuilder : IMeshBuilder
                 nodes[2] = j + i * (nx + 1) + nx + 1;
                 nodes[3] = j + i * (nx + 1) + nx + 1 + 1;
 
-                _elements.Add(new FiniteElement(nodes, 0));
+                _elements.Add(ielem++, new FiniteElement(nodes, 0));
             }
         }
     }
@@ -210,13 +174,11 @@ public class MeshBuilder : IMeshBuilder
     {
         int nx = _parameters.SplitParameters.MeshNx;
         int ny = _parameters.SplitParameters.MeshNy;
-        double kx = _parameters.SplitParameters.WellKx;
-        double ky = _parameters.SplitParameters.WellKy;
-        
-        MeshNesting(ref nx, ref ny, ref kx, ref ky);
+
+        MeshNesting(ref nx, ref ny);
         
         _points = new List<Point2D>((nx + 1) * (ny + 1));
-        _elements = new List<FiniteElement>(nx * ny);
+        _elements = new Dictionary<int, FiniteElement>(nx * ny);
         
         CreateUniformMesh();
 
@@ -224,8 +186,9 @@ public class MeshBuilder : IMeshBuilder
         {
             _wellPoints = new List<Point2D>();
             _wellElements = new List<FiniteElement>();
-
-            int maxNodeNum = _elements[^1].Nodes[^1] + 1;
+            
+            int maxNodeNum = _elements[nx * ny - 1].Nodes[^1] + 1;
+            int maxElemNum = _elements.Count;
 
             foreach (var well in _parameters.Wells)
             {
@@ -241,8 +204,8 @@ public class MeshBuilder : IMeshBuilder
                 rightTop = _points[_elements[intersected[^1]].Nodes[^1]];
                 int p = (int)Math.Sqrt(intersected.Count);
 
-                CreateWellPoints(leftBottom, rightTop, well.Center, well.Radius, p, p - 1);
-                CreateWellElements(p, p - 1);
+                CreateWellPoints(leftBottom, rightTop, well.Center, well.Radius, p, p == 1 ? p : p - 1);
+                CreateWellElements(p, p == 1 ? p : p - 1);
 
                 int elem = 0;
                 int shift = _wellElements[0].Nodes[2] - _wellElements[0].Nodes[0];
@@ -343,30 +306,39 @@ public class MeshBuilder : IMeshBuilder
                 // Delete intersected elements
                 for (int ielem = 0; ielem < intersected.Count; ielem++)
                 {
-                    _elements.RemoveAt(intersected[ielem]);
-
-                    for (int i = 0; i < intersected.Count; i++)
-                    {
-                        intersected[i]--;
-                    }
+                    _elements.Remove(intersected[ielem]);
+                
+                    // for (int i = 0; i < intersected.Count; i++)
+                    // {
+                    //     intersected[i]--;
+                    // }
                 }
-
+                
                 // Delete points from _wellPoints which already in _points
                 for (int i = 0; i < 4 * p; i++)
                 {
                     _wellPoints.RemoveAt(0);
                 }
 
-                _elements.AddRange(_wellElements);
+                foreach (var element in _wellElements)
+                {
+                    _elements.Add(maxElemNum++, element);
+                }
+                
                 _points.AddRange(_wellPoints);
             }
         }
 
-        return (_points, _elements);
+        return (_points, _elements.Values);
     }
 
     private void CreateWellPoints(Point2D leftBottom, Point2D rightTop, Point2D center, double r, int p, int m)
     {
+        int nx = _parameters.SplitParameters.MeshNx;
+        int ny = _parameters.SplitParameters.MeshNy;
+
+        MeshNesting(ref nx, ref ny);
+        
         double hx = (rightTop.X - leftBottom.X) / p;
         double hy = (rightTop.Y - leftBottom.Y) / p;
         
@@ -491,22 +463,22 @@ public class MeshBuilder : IMeshBuilder
         {
             for (int j = (i - 1) * (p + 1); j < i * (p + 1); j++)
             {
-                _wellPoints.Add(region1[j]);
+                _wellPoints!.Add(region1[j]);
             }
             
             for (int j = (i - 1) * (p - 1); j < i * (p - 1); j++)
             {
-                _wellPoints.Add(region4[j]);
+                _wellPoints!.Add(region4[j]);
             }
             
             for (int j = i * (p + 1) - 1; j >= (i - 1) * (p + 1); j--)
             {
-                _wellPoints.Add(region2[j]);
+                _wellPoints!.Add(region2[j]);
             }
             
             for (int j = i * (p - 1) - 1; j >= (i - 1) * (p - 1); j--)
             {
-                _wellPoints.Add(region3[j]);
+                _wellPoints!.Add(region3[j]);
             }
         }
     }
@@ -535,14 +507,14 @@ public class MeshBuilder : IMeshBuilder
                 }
                 else
                 {
-                    nodes[0] = _wellElements[(i - 1) * 4 * p + j - 2].Nodes[1];
+                    nodes[0] = _wellElements![(i - 1) * 4 * p + j - 2].Nodes[1];
                     nodes[1] = nodes[0] + 1;
-                    nodes[2] = _wellElements[(i - 1) * 4 * p + j - 2].Nodes[3];
+                    nodes[2] = _wellElements![(i - 1) * 4 * p + j - 2].Nodes[3];
                     nodes[3] = nodes[2] + 1;
                 }
                 
                 Array.Sort(nodes);
-                _wellElements.Add(new FiniteElement(nodes, 0));
+                _wellElements!.Add(new FiniteElement(nodes, 0));
             }
         }
     }
@@ -555,8 +527,8 @@ public class MeshBuilder : IMeshBuilder
         int intersectCnt = 0;
         
         elements = new List<int>();
-        
-        for (int ielem = 0; ielem < _elements.Count; ielem++)
+
+        foreach (var ielem in _elements.Keys)
         {
             var nodes = _elements[ielem].Nodes;
             var p1 = _points[nodes[0]];

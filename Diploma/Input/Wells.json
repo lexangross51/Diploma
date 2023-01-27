@@ -1,24 +1,8 @@
 ﻿[
   {
     "Center": {
-      "X": 20,
+      "X": 25,
       "Y": 25
-    },
-    "Radius": 1,
-    "Power": -40
-  },
-  {
-    "Center": {
-      "X": 41,
-      "Y": 35
-    },
-    "Radius": 1,
-    "Power": -40
-  },
-  {
-    "Center": {
-      "X": 40,
-      "Y": 10
     },
     "Radius": 1,
     "Power": -40
