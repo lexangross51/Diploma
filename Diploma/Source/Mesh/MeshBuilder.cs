@@ -5,19 +5,9 @@ namespace Diploma.Source.Mesh;
 public class MeshBuilder : IMeshBuilder
 {
     private readonly MeshParameters _parameters;
-    private readonly List<double> _xPoints = new();
-    private readonly List<double> _yPoints = new();
-    private List<Point2D> _points = default!;
-    private List<Point2D> _wellPoints;
-    private List<FiniteElement> _elements = default!;
-    private List<FiniteElement> _wellElements;
+    private List<Point2D> _points = default!, _wellPoints;
+    private List<FiniteElement> _elements = default!, _wellElements;
     private Material[] _materials = default!;
-    
-    // private double d1 = 1;
-    // private double d2 = 1;
-    // private int p = 2;
-    // private int m = 1;
-    // private double r = 0.1;
 
     public MeshBuilder(MeshParameters parameters)
         => _parameters = parameters;
@@ -167,183 +157,332 @@ public class MeshBuilder : IMeshBuilder
         // }
     }
 
-    public IEnumerable<Point2D> CreatePoints()
+    private void CreateUniformMesh()
     {
-        // _points = new List<Point2D>(_xPoints.Count * _yPoints.Count);
-        //
-        // // Taking data for the main area
-        // double xStart = _parameters.Area[0].LeftBottom.X;
-        // double xEnd = _parameters.Area[0].RightTop.X;
-        // double yStart = _parameters.Area[0].LeftBottom.Y;
-        // double yEnd = _parameters.Area[0].RightTop.Y;
-        //
-        // int nx = _parameters.SplitParameters.MeshNx;
-        // int ny = _parameters.SplitParameters.MeshNy;
-        // var kx = _parameters.SplitParameters.WellKx;
-        // var ky = _parameters.SplitParameters.WellKy;
-        //
-        // // If a nested mesh is required
-        // MeshNesting(ref nx, ref ny, ref kx, ref ky);
-        //
-        // // Create points for the main area 
-        // double hx = (xEnd - xStart) / nx;
-        // double hy = (yEnd - yStart) / ny;
-        //
-        // _xPoints.Add(xStart);
-        // _yPoints.Add(yStart);
-        //
-        // for (int i = 1; i < nx + 1; i++)
-        // {
-        //     _xPoints.Add(_xPoints[i - 1] + hx);
-        // }
-        //
-        // for (int i = 1; i < ny + 1; i++)
-        // {
-        //     _yPoints.Add(_yPoints[i - 1] + hy);
-        // }
-        //
-        // foreach (var y in _yPoints)
-        // {
-        //     foreach (var x in _xPoints)
-        //     {
-        //         _points.Add(new Point2D(x, y));
-        //     }
-        // }
+        // Generate points --------------------------------------------------->
+        // Taking data for the main area
+        double xStart = _parameters.Area[0].LeftBottom.X;
+        double xEnd = _parameters.Area[0].RightTop.X;
+        double yStart = _parameters.Area[0].LeftBottom.Y;
+        double yEnd = _parameters.Area[0].RightTop.Y;
         
-        _wellPoints = new List<Point2D>();
+        int nx = _parameters.SplitParameters.MeshNx;
+        int ny = _parameters.SplitParameters.MeshNy;
+        var kx = _parameters.SplitParameters.WellKx;
+        var ky = _parameters.SplitParameters.WellKy;
+        
+        // If a nested mesh is required
+        MeshNesting(ref nx, ref ny, ref kx, ref ky);
+        
+        // Create points for the main area 
+        double hx = (xEnd - xStart) / nx;
+        double hy = (yEnd - yStart) / ny;
 
-        foreach (var well in _parameters.Wells)
+        for (int i = 1; i < ny + 2; i++)
         {
-            Point2D leftBottom = new(well.Center.X - well.Radius / 0.2, well.Center.Y - well.Radius / 0.2);
-            Point2D rightTop = new(well.Center.X + well.Radius / 0.2, well.Center.Y + well.Radius / 0.2);
-            
-            _wellPoints.Clear();
+            for (int j = 1; j < nx + 2; j++)
+            {
+                double x = xStart + (j - 1) * hx;
+                double y = yStart + (i - 1) * hy;
+                
+                _points.Add(new Point2D(x, y));
+            }
+        }
+        
+        // Generate elements ------------------------------------------------->
+        int[] nodes = new int[4];
 
-            CreateWellPoints(leftBottom, rightTop, 3, 2, well.Center, well.Radius);
-            _points = _wellPoints;
+        for (int i = 0; i < ny; i++)
+        {
+            for (int j = 0; j < nx; j++)
+            {
+                nodes[0] = j + i * (nx + 1);
+                nodes[1] = j + i * (nx + 1) + 1;
+                nodes[2] = j + i * (nx + 1) + nx + 1;
+                nodes[3] = j + i * (nx + 1) + nx + 1 + 1;
+
+                _elements.Add(new FiniteElement(nodes, 0));
+            }
+        }
+    }
+    
+    public (IEnumerable<Point2D>, IEnumerable<FiniteElement>) CreatePointsAndElements()
+    {
+        int nx = _parameters.SplitParameters.MeshNx;
+        int ny = _parameters.SplitParameters.MeshNy;
+        double kx = _parameters.SplitParameters.WellKx;
+        double ky = _parameters.SplitParameters.WellKy;
+        
+        MeshNesting(ref nx, ref ny, ref kx, ref ky);
+        
+        _points = new List<Point2D>((nx + 1) * (ny + 1));
+        _elements = new List<FiniteElement>(nx * ny);
+        
+        CreateUniformMesh();
+
+        if (_parameters.Wells.Length != 0)
+        {
+            _wellPoints = new List<Point2D>();
+            _wellElements = new List<FiniteElement>();
+
+            int maxNodeNum = _elements[^1].Nodes[^1] + 1;
+
+            foreach (var well in _parameters.Wells)
+            {
+                _wellPoints.Clear();
+                _wellElements.Clear();
+
+                Point2D leftBottom = new(well.Center.X - well.Radius / 0.2, well.Center.Y - well.Radius / 0.2);
+                Point2D rightTop = new(well.Center.X + well.Radius / 0.2, well.Center.Y + well.Radius / 0.2);
+
+                FindIntersections(leftBottom, rightTop, out List<int> intersected);
+
+                leftBottom = _points[_elements[intersected[0]].Nodes[0]];
+                rightTop = _points[_elements[intersected[^1]].Nodes[^1]];
+                int p = (int)Math.Sqrt(intersected.Count);
+
+                CreateWellPoints(leftBottom, rightTop, well.Center, well.Radius, p, p - 1);
+                CreateWellElements(p, p - 1);
+
+                int elem = 0;
+                int shift = _wellElements[0].Nodes[2] - _wellElements[0].Nodes[0];
+                
+                // Renumber nodes on bottom side
+                for (int i = 0; i < p; i++)
+                {
+                    _wellElements[elem].Nodes[0] = _elements[intersected[i]].Nodes[0];
+                    _wellElements[elem].Nodes[1] = _elements[intersected[i]].Nodes[1];
+                    _wellElements[elem].Nodes[2] = maxNodeNum;
+                    _wellElements[elem].Nodes[3] = maxNodeNum + 1;
+                    elem++;
+                    maxNodeNum++;
+                }
+
+                // Renumber nodes on right side
+                for (int i = 0, j = p - 1; i < p; i++, j += p)
+                {
+                    _wellElements[elem].Nodes[1] = _elements[intersected[j]].Nodes[1];
+                    _wellElements[elem].Nodes[3] = _elements[intersected[j]].Nodes[3];
+                    _wellElements[elem].Nodes[0] = maxNodeNum;
+                    _wellElements[elem].Nodes[2] = maxNodeNum + 1;
+                    elem++;
+                    maxNodeNum++;
+                }
+
+                // Renumber nodes on top side
+                for (int i = 0, j = p * p - 1; i < p; i++, j--)
+                {
+                    _wellElements[elem].Nodes[2] = _elements[intersected[j]].Nodes[2];
+                    _wellElements[elem].Nodes[3] = _elements[intersected[j]].Nodes[3];
+                    _wellElements[elem].Nodes[1] = maxNodeNum;
+                    _wellElements[elem].Nodes[0] = maxNodeNum + 1;
+                    elem++;
+                    maxNodeNum++;
+                }
+
+                // Renumber nodes on left side
+                for (int i = 0, j = p * p - p; i < p; i++, j -= p)
+                {
+                    _wellElements[elem].Nodes[0] = _elements[intersected[j]].Nodes[0];
+                    _wellElements[elem].Nodes[2] = _elements[intersected[j]].Nodes[2];
+                    _wellElements[elem].Nodes[3] = maxNodeNum;
+                    _wellElements[elem].Nodes[1] = i == p - 1 ? maxNodeNum + 1 - shift : maxNodeNum + 1;
+
+                    elem++;
+                    maxNodeNum++;
+                }
+
+                // Renumber other nodes
+                for (int i = elem; i < _wellElements.Count;)
+                {
+                    // Bottom side
+                    for (int j = 0; j < p; j++)
+                    {
+                        _wellElements[i].Nodes[0] = maxNodeNum - shift;
+                        _wellElements[i].Nodes[1] = maxNodeNum + 1 - shift;
+                        _wellElements[i].Nodes[2] = maxNodeNum;
+                        _wellElements[i].Nodes[3] = maxNodeNum + 1;
+                        i++;
+                        maxNodeNum++;
+                    }
+
+                    // Right side
+                    for (int j = 0; j < p; j++)
+                    {
+                        _wellElements[i].Nodes[0] = maxNodeNum;
+                        _wellElements[i].Nodes[1] = maxNodeNum - shift;
+                        _wellElements[i].Nodes[2] = maxNodeNum + 1;
+                        _wellElements[i].Nodes[3] = maxNodeNum + 1 - shift;
+                        i++;
+                        maxNodeNum++;
+                    }
+
+                    // Top side
+                    for (int j = 0; j < p; j++)
+                    {
+                        _wellElements[i].Nodes[0] = maxNodeNum + 1;
+                        _wellElements[i].Nodes[1] = maxNodeNum;
+                        _wellElements[i].Nodes[2] = maxNodeNum + 1 - shift;
+                        _wellElements[i].Nodes[3] = maxNodeNum - shift;
+                        i++;
+                        maxNodeNum++;
+                    }
+
+                    // Left side
+                    for (int j = 0; j < p; j++)
+                    {
+                        _wellElements[i].Nodes[3] = maxNodeNum;
+                        _wellElements[i].Nodes[1] = j == p - 1 ? maxNodeNum + 1 - shift : maxNodeNum + 1;
+                        _wellElements[i].Nodes[2] = _wellElements[i].Nodes[3] - shift;
+                        _wellElements[i].Nodes[0] = _wellElements[i].Nodes[1] - shift;
+                        i++;
+                        maxNodeNum++;
+                    }
+                }
+
+                // Delete intersected elements
+                for (int ielem = 0; ielem < intersected.Count; ielem++)
+                {
+                    _elements.RemoveAt(intersected[ielem]);
+
+                    for (int i = 0; i < intersected.Count; i++)
+                    {
+                        intersected[i]--;
+                    }
+                }
+
+                // Delete points from _wellPoints which already in _points
+                for (int i = 0; i < 4 * p; i++)
+                {
+                    _wellPoints.RemoveAt(0);
+                }
+
+                _elements.AddRange(_wellElements);
+                _points.AddRange(_wellPoints);
+            }
         }
 
-        return _points;
+        return (_points, _elements);
     }
 
-    private void CreateWellPoints(Point2D leftBottom, Point2D rightTop, int p, int m, Point2D center, double r)
+    private void CreateWellPoints(Point2D leftBottom, Point2D rightTop, Point2D center, double r, int p, int m)
     {
         double hx = (rightTop.X - leftBottom.X) / p;
         double hy = (rightTop.Y - leftBottom.Y) / p;
         
         // Region 1
-        Point2D[] coor1 = new Point2D[(p + 1) * (m + 1)];
+        Point2D[] region1 = new Point2D[(p + 1) * (m + 1)];
         
         for (int i = 1; i < p + 2; i++)
         {
-            coor1[i - 1] = new Point2D(leftBottom.X + (i - 1) * hx, leftBottom.Y);
+            region1[i - 1] = new Point2D(leftBottom.X + (i - 1) * hx, leftBottom.Y);
         }
         
         for (int i = 1; i < p + 2; i++)
         {
-            double x = r * Math.Cos(5 * Math.PI / 4 + (i - 1) * Math.PI / 2 / p) + center.X / 2;
-            double y = r * Math.Sin(5 * Math.PI / 4 + (i - 1) * Math.PI / 2 / p) + center.Y / 2;
+            double x = r * Math.Cos(5 * Math.PI / 4 + (i - 1) * Math.PI / 2 / p) + center.X;
+            double y = r * Math.Sin(5 * Math.PI / 4 + (i - 1) * Math.PI / 2 / p) + center.Y;
         
-            coor1[m * (p + 1) + i - 1] = new Point2D(x, y);
+            region1[m * (p + 1) + i - 1] = new Point2D(x, y);
         }
         
         for (int i = 1; i < m; i++)
         {
             for (int j = 1; j < p + 2; j++)
             {
-                double dx = (coor1[m * (p + 1) + j - 1].X - coor1[j - 1].X) / m;
-                double dy = (coor1[m * (p + 1) + j - 1].Y - coor1[j - 1].Y) / m;
-                double x = coor1[(i - 1) * (p + 1) + j - 1].X + dx;
-                double y = coor1[(i - 1) * (p + 1) + j - 1].Y + dy;
+                double dx = (region1[m * (p + 1) + j - 1].X - region1[j - 1].X) / m;
+                double dy = (region1[m * (p + 1) + j - 1].Y - region1[j - 1].Y) / m;
+                double x = region1[(i - 1) * (p + 1) + j - 1].X + dx;
+                double y = region1[(i - 1) * (p + 1) + j - 1].Y + dy;
         
-                coor1[i * (p + 1) + j - 1] = new Point2D(x, y);
+                region1[i * (p + 1) + j - 1] = new Point2D(x, y);
             }   
         }
         
         // Region 2
-        Point2D[] coor2 = new Point2D[(p + 1) * (m + 1)];
+        Point2D[] region2 = new Point2D[(p + 1) * (m + 1)];
         
         for (int i = 1; i < p + 2; i++)
         {
-            coor2[i - 1] = new Point2D(leftBottom.X + (i - 1) * hx, rightTop.Y);
+            region2[i - 1] = new Point2D(leftBottom.X + (i - 1) * hx, rightTop.Y);
         }
         
         for (int i = 1; i < p + 2; i++)
         {
-            double x = r * Math.Cos(3 * Math.PI / 4 - (i - 1) * Math.PI / 2 / p) + center.X / 2;
-            double y = r * Math.Sin(3 * Math.PI / 4 - (i - 1) * Math.PI / 2 / p) + center.Y / 2;
+            double x = r * Math.Cos(3 * Math.PI / 4 - (i - 1) * Math.PI / 2 / p) + center.X;
+            double y = r * Math.Sin(3 * Math.PI / 4 - (i - 1) * Math.PI / 2 / p) + center.Y;
         
-            coor2[m * (p + 1) + i - 1] = new Point2D(x, y);
+            region2[m * (p + 1) + i - 1] = new Point2D(x, y);
         }
         
         for (int i = 1; i < m; i++)
         {
             for (int j = 1; j < p + 2; j++)
             {
-                double dx = (coor2[m * (p + 1) + j - 1].X - coor2[j - 1].X) / m;
-                double dy = (coor2[m * (p + 1) + j - 1].Y - coor2[j - 1].Y) / m;
-                double x = coor2[(i - 1) * (p + 1) + j - 1].X + dx;
-                double y = coor2[(i - 1) * (p + 1) + j - 1].Y + dy;
+                double dx = (region2[m * (p + 1) + j - 1].X - region2[j - 1].X) / m;
+                double dy = (region2[m * (p + 1) + j - 1].Y - region2[j - 1].Y) / m;
+                double x = region2[(i - 1) * (p + 1) + j - 1].X + dx;
+                double y = region2[(i - 1) * (p + 1) + j - 1].Y + dy;
         
-                coor2[i * (p + 1) + j - 1] = new Point2D(x, y);
+                region2[i * (p + 1) + j - 1] = new Point2D(x, y);
             }   
         }
         
         // Region 3
-        Point2D[] coor3 = new Point2D[(p - 1) * (m + 1)];
+        Point2D[] region3 = new Point2D[(p - 1) * (m + 1)];
         
         for (int i = 1; i < p; i++)
         {
-            coor3[i - 1] = new Point2D(leftBottom.X, leftBottom.Y + i * hy);
+            region3[i - 1] = new Point2D(leftBottom.X, leftBottom.Y + i * hy);
         }
         
         for (int i = 1; i < p; i++)
         {
-            double x = r * Math.Cos(5 * Math.PI / 4 - i * Math.PI / 2 / p) + center.X / 2;
-            double y = r * Math.Sin(5 * Math.PI / 4 - i * Math.PI / 2 / p) + center.Y / 2;
+            double x = r * Math.Cos(5 * Math.PI / 4 - i * Math.PI / 2 / p) + center.X;
+            double y = r * Math.Sin(5 * Math.PI / 4 - i * Math.PI / 2 / p) + center.Y;
         
-            coor3[m * (p - 1) + i - 1] = new Point2D(x, y);
+            region3[m * (p - 1) + i - 1] = new Point2D(x, y);
         }
         
         for (int i = 1; i < m; i++)
         {
             for (int j = 1; j < p; j++)
             {
-                double dx = (coor3[m * (p - 1) + j - 1].X - coor3[j - 1].X) / m;
-                double dy = (coor3[m * (p - 1) + j - 1].Y - coor3[j - 1].Y) / m;
-                double x = coor3[(i - 1) * (p - 1) + j - 1].X + dx;
-                double y = coor3[(i - 1) * (p - 1) + j - 1].Y + dy;
+                double dx = (region3[m * (p - 1) + j - 1].X - region3[j - 1].X) / m;
+                double dy = (region3[m * (p - 1) + j - 1].Y - region3[j - 1].Y) / m;
+                double x = region3[(i - 1) * (p - 1) + j - 1].X + dx;
+                double y = region3[(i - 1) * (p - 1) + j - 1].Y + dy;
         
-                coor3[i * (p - 1) + j - 1] = new Point2D(x, y);
+                region3[i * (p - 1) + j - 1] = new Point2D(x, y);
             }   
         }
         
         // Region 4
-        Point2D[] coor4 = new Point2D[(p - 1) * (m + 1)];
+        Point2D[] region4 = new Point2D[(p - 1) * (m + 1)];
         
         for (int i = 1; i < p; i++)
         {
-            coor4[i - 1] = new Point2D(rightTop.X, leftBottom.Y + i * hy);
+            region4[i - 1] = new Point2D(rightTop.X, leftBottom.Y + i * hy);
         }
         
         for (int i = 1; i < p; i++)
         {
-            double x = r * Math.Cos(7 * Math.PI / 4 + i * Math.PI / 2 / p) + center.X / 2;
-            double y = r * Math.Sin(7 * Math.PI / 4 + i * Math.PI / 2 / p) + center.Y / 2;
+            double x = r * Math.Cos(7 * Math.PI / 4 + i * Math.PI / 2 / p) + center.X;
+            double y = r * Math.Sin(7 * Math.PI / 4 + i * Math.PI / 2 / p) + center.Y;
         
-            coor4[m * (p - 1) + i - 1] = new Point2D(x, y);
+            region4[m * (p - 1) + i - 1] = new Point2D(x, y);
         }
         
         for (int i = 1; i < m; i++)
         {
             for (int j = 1; j < p; j++)
             {
-                double dx = (coor4[m * (p - 1) + j - 1].X - coor4[j - 1].X) / m;
-                double dy = (coor4[m * (p - 1) + j - 1].Y - coor4[j - 1].Y) / m;
-                double x = coor4[(i - 1) * (p - 1) + j - 1].X + dx;
-                double y = coor4[(i - 1) * (p - 1) + j - 1].Y + dy;
+                double dx = (region4[m * (p - 1) + j - 1].X - region4[j - 1].X) / m;
+                double dy = (region4[m * (p - 1) + j - 1].Y - region4[j - 1].Y) / m;
+                double x = region4[(i - 1) * (p - 1) + j - 1].X + dx;
+                double y = region4[(i - 1) * (p - 1) + j - 1].Y + dy;
         
-                coor4[i * (p - 1) + j - 1] = new Point2D(x, y);
+                region4[i * (p - 1) + j - 1] = new Point2D(x, y);
             }   
         }
         
@@ -352,76 +491,26 @@ public class MeshBuilder : IMeshBuilder
         {
             for (int j = (i - 1) * (p + 1); j < i * (p + 1); j++)
             {
-                _wellPoints.Add(coor1[j]);
+                _wellPoints.Add(region1[j]);
             }
             
             for (int j = (i - 1) * (p - 1); j < i * (p - 1); j++)
             {
-                _wellPoints.Add(coor4[j]);
+                _wellPoints.Add(region4[j]);
             }
             
             for (int j = i * (p + 1) - 1; j >= (i - 1) * (p + 1); j--)
             {
-                _wellPoints.Add(coor2[j]);
+                _wellPoints.Add(region2[j]);
             }
             
             for (int j = i * (p - 1) - 1; j >= (i - 1) * (p - 1); j--)
             {
-                _wellPoints.Add(coor3[j]);
+                _wellPoints.Add(region3[j]);
             }
         }
     }
-
-    private void FindIntersections(Point2D leftBottom, Point2D rightTop, out List<int> elements)
-    {
-        elements = new List<int>();
-        int elem1 = -1, elem2 = -1, elem3 = -1, elem4 = -1;
-
-        int intersectCnt = 0;
-        
-        for (int ielem = 0; ielem < _elements.Count; ielem++)
-        {
-            var nodes = _elements[ielem].Nodes;
-            var p1 = _points[nodes[0]];
-            var p2 = _points[nodes[^1]];
-
-            if (leftBottom.X >= p1.X && leftBottom.X <= p2.X && leftBottom.Y >= p1.Y && leftBottom.Y <= p2.Y)
-            {
-                intersectCnt++;
-                elem1 = ielem;
-            }
-            if (rightTop.X >= p1.X && rightTop.X <= p2.X && leftBottom.Y >= p1.Y && leftBottom.Y <= p2.Y)
-            {
-                intersectCnt++;
-                elem2 = ielem;
-            }
-            if (leftBottom.X >= p1.X && leftBottom.X <= p2.X && rightTop.Y >= p1.Y && rightTop.Y <= p2.Y)
-            {
-                intersectCnt++;
-                elem3 = ielem;
-            }
-            if (rightTop.X >= p1.X && rightTop.X <= p2.X && rightTop.Y >= p1.Y && rightTop.Y <= p2.Y)
-            {
-                intersectCnt++;
-                elem4 = ielem;
-            }
-
-            if (intersectCnt == 4) break;
-        }
-
-        if (elem1 == -1 || elem2 == -1 || elem3 == -1 || elem4 == -1) throw new Exception("Can't prepare mesh data!");
-
-        for (int i = 0; i < (elem3 - elem1) / (_xPoints.Count - 1) + 1; i++)
-        {
-            for (int ielem = elem1 + i * (_xPoints.Count - 1); ielem <= elem2; ielem++)
-            {
-                elements.Add(ielem);
-            }
-
-            elem2 += _xPoints.Count - 1;
-        }
-    }
-
+    
     private void CreateWellElements(int p, int m)
     {
         int[] nodes = new int[4];
@@ -432,7 +521,7 @@ public class MeshBuilder : IMeshBuilder
             {
                 if (j == 1)
                 {
-                    nodes[0] = (i - 1) * 4 * p + j - 1;
+                    nodes[0] = (i - 1) * 4 * p;
                     nodes[1] = nodes[0] + 1;
                     nodes[3] = nodes[0] + 4 * p;
                     nodes[2] = nodes[3] + 1;
@@ -458,182 +547,48 @@ public class MeshBuilder : IMeshBuilder
         }
     }
     
-    public IEnumerable<FiniteElement> CreateElements()
+    private void FindIntersections(Point2D leftBottom, Point2D rightTop, out List<int> elements)
     {
-        _elements = new List<FiniteElement>((_xPoints.Count - 1) * (_yPoints.Count - 1));
+        int nx = _elements[0].Nodes[2] - 1;
         
-        int[] nodes = new int[4];
-        int nx = _xPoints.Count - 1;
-        int ny = _yPoints.Count - 1;
-
-        for (int i = 0; i < ny; i++)
+        int elem1 = -1, elem2 = -1;
+        int intersectCnt = 0;
+        
+        elements = new List<int>();
+        
+        for (int ielem = 0; ielem < _elements.Count; ielem++)
         {
-            for (int j = 0; j < nx; j++)
+            var nodes = _elements[ielem].Nodes;
+            var p1 = _points[nodes[0]];
+            var p2 = _points[nodes[^1]];
+
+            if (leftBottom.X >= p1.X && leftBottom.X <= p2.X && leftBottom.Y >= p1.Y && leftBottom.Y <= p2.Y)
             {
-                nodes[0] = j + i * (nx + 1);
-                nodes[1] = j + i * (nx + 1) + 1;
-                nodes[2] = j + i * (nx + 1) + (nx + 1);
-                nodes[3] = j + i * (nx + 1) + (nx + 1) + 1;
-
-                _elements.Add(new FiniteElement(nodes, 0));
+                intersectCnt++;
+                elem1 = ielem;
             }
+            if (rightTop.X >= p1.X && rightTop.X <= p2.X && leftBottom.Y >= p1.Y && leftBottom.Y <= p2.Y)
+            {
+                intersectCnt++;
+                elem2 = ielem;
+            }
+
+            if (intersectCnt == 2) break;
         }
 
-        //int maxNodeNum = _elements[^1].Nodes[^1] + 1;
+        if (elem1 == -1 || elem2 == -1) throw new Exception("Can't prepare mesh data!");
+
+        int rows = elem2 - elem1 + 1;
         
-        _wellPoints = new List<Point2D>();
-        _wellElements = new List<FiniteElement>();
-        
-        foreach (var well in _parameters.Wells)
+        for (int i = 0; i < rows; i++)
         {
-            Point2D leftBottom = new(well.Center.X - well.Radius / 0.2, well.Center.Y - well.Radius / 0.2);
-            Point2D rightTop = new(well.Center.X + well.Radius / 0.2, well.Center.Y + well.Radius / 0.2);
-            
-            //FindIntersections(leftBottom, rightTop, out List<int> intersected);
+            for (int ielem = elem1 + i * nx; ielem <= elem2; ielem++)
+            {
+                elements.Add(ielem);
+            }
 
-            // leftBottom = _points[_elements[intersected[0]].Nodes[0]];
-            // rightTop = _points[_elements[intersected[^1]].Nodes[^1]];
-            // int p = (int)Math.Sqrt(intersected.Count);
-            int p = 3;
-            
-            _wellPoints.Clear();
-            _wellElements.Clear();
-            
-            //CreateWellPoints(leftBottom, rightTop, p, p - 1, well.Radius);
-            CreateWellElements(p, p - 1);
-            _points = _wellPoints;
-
-            // int elem = 0;
-            // //int shift = _wellElements[0].Nodes[2] - _wellElements[0].Nodes[0];
-            //
-            // // Renumber nodes on bottom side
-            // for (int i = 0; i < p; i++)
-            // {
-            //     _wellElements[elem].Nodes[0] = _elements[intersected[i]].Nodes[0];
-            //     _wellElements[elem].Nodes[1] = _elements[intersected[i]].Nodes[1];
-            //     _wellElements[elem].Nodes[2] = maxNodeNum;
-            //     _wellElements[elem].Nodes[3] = maxNodeNum + 1;
-            //     elem++;
-            //     maxNodeNum++;
-            // }
-            //
-            // // Renumber nodes on right side
-            // for (int i = 0, j = p - 1; i < p; i++, j++)
-            // {
-            //     _wellElements[elem].Nodes[1] = _elements[intersected[j]].Nodes[1];
-            //     _wellElements[elem].Nodes[3] = _elements[intersected[j]].Nodes[3];
-            //     _wellElements[elem].Nodes[0] = maxNodeNum;
-            //     _wellElements[elem].Nodes[2] = maxNodeNum + 1;
-            //     elem++;
-            //     maxNodeNum++;
-            // }
-            //
-            // // Renumber nodes on top side
-            // for (int i = 0, j = p * p - 1; i < p; i++, j--)
-            // {
-            //     _wellElements[elem].Nodes[2] = _elements[intersected[j]].Nodes[2];
-            //     _wellElements[elem].Nodes[3] = _elements[intersected[j]].Nodes[3];
-            //     _wellElements[elem].Nodes[0] = maxNodeNum;
-            //     _wellElements[elem].Nodes[1] = maxNodeNum + 1;
-            //     elem++;
-            //     maxNodeNum++;
-            // }
-            //
-            // // Renumber nodes on left side
-            // for (int i = 0, j = p * p - p; i < p; i++, j--)
-            // {
-            //     _wellElements[elem].Nodes[0] = _elements[intersected[j]].Nodes[0];
-            //     _wellElements[elem].Nodes[2] = _elements[intersected[j]].Nodes[2];
-            //     _wellElements[elem].Nodes[1] = maxNodeNum;
-            //     _wellElements[elem].Nodes[3] = maxNodeNum + 1;
-            //     elem++;
-            //     maxNodeNum++;
-            // }
-            //
-            // // Renumber other nodes
-            // for (int i = elem; i < _wellElements.Count;)
-            // {
-            //     for (int j = 0; j < p; j++)
-            //     {
-            //         _wellElements[i].Nodes[2] = maxNodeNum;
-            //         _wellElements[i].Nodes[3] = maxNodeNum + 1;
-            //         i++;
-            //         maxNodeNum++;
-            //     }
-            //     
-            //     for (int j = 0; j < p; j++)
-            //     {
-            //         _wellElements[i].Nodes[0] = maxNodeNum;
-            //         _wellElements[i].Nodes[2] = maxNodeNum + 1;
-            //         i++;
-            //         maxNodeNum++;
-            //     }
-            //     
-            //     for (int j = 0; j < p; j++)
-            //     {
-            //         _wellElements[i].Nodes[0] = maxNodeNum;
-            //         _wellElements[i].Nodes[1] = maxNodeNum + 1;
-            //         i++;
-            //         maxNodeNum++;
-            //     }
-            //     
-            //     for (int j = 0; j < p; j++)
-            //     {
-            //         _wellElements[i].Nodes[1] = maxNodeNum;
-            //         _wellElements[i].Nodes[3] = maxNodeNum + 1;
-            //         i++;
-            //         maxNodeNum++;
-            //     }
-            // }
-            //
-            // // Delete intersected elements
-            // for (int ielem = 0; ielem < intersected.Count; ielem++)
-            // {
-            //     _elements.RemoveAt(intersected[ielem]);
-            //
-            //     for (int i = 0; i < intersected.Count; i++)
-            //     {
-            //         intersected[i]--;
-            //     }
-            // }
-            //
-            // _elements.AddRange(_wellElements);
-            // _points.AddRange(_wellPoints);
+            elem2 += nx;
         }
-
-        // If the element is in a region with a different permeability,
-        // we change its material number
-        // if (_parameters.Area.Length > 1)
-        // {
-        //     var leftBottom = _parameters.Area[1].LeftBottom;
-        //     var rightTop = _parameters.Area[1].RightTop;
-        //
-        //     foreach (var element in _elements)
-        //     {
-        //         var elementNodes = element.Nodes;
-        //         var elementCenterX = (_points[elementNodes[3]].X + _points[elementNodes[0]].X) / 2.0;
-        //         var elementCenterY = (_points[elementNodes[3]].Y + _points[elementNodes[0]].Y) / 2.0;
-        //
-        //         if (elementCenterX >= leftBottom.X && elementCenterX <= rightTop.X &&
-        //             elementCenterY >= leftBottom.Y && elementCenterY <= rightTop.Y)
-        //         {
-        //             element.Area = 1;
-        //         }
-        //     }
-        // }
-
-        // Numerate edges of each element
-        //NumerateEdges();
-
-        // Set edges direction
-        // -1 - if the outside normal doesn't coincide with the fixed
-        // 1 - if the same
-        // foreach (var element in _elements)
-        // {
-        //     element.EdgesDirect = new List<int>() { -1, -1, 1, 1 };
-        // }
-
-        return _wellElements;
     }
 
     public IEnumerable<DirichletCondition> CreateDirichlet()

@@ -7,8 +7,7 @@ public class MeshGenerator
     public MeshGenerator(IMeshBuilder builder) => _builder = builder;
 
     public Mesh CreateMesh() => new(
-        _builder.CreatePoints(),
-        _builder.CreateElements(),
+        _builder.CreatePointsAndElements(),
         _builder.CreateDirichlet(),
         _builder.CreateNeumann(),
         _builder.CreateMaterials()

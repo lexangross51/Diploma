@@ -18,10 +18,11 @@ public partial class MainWindow
     private Projection _graphArea = new();
     private readonly Mesh _mesh;
     private int _timeStart = 0, _timeEnd = 1, _timeMoment;
-    
+
     public MainWindow()
     {
-        MeshGenerator meshGenerator = new(new MeshBuilder(MeshParameters.ReadJson("Input/")));
+        var meshParameters = MeshParameters.ReadJson("Input/");
+        MeshGenerator meshGenerator = new(new MeshBuilder(meshParameters));
         _mesh = meshGenerator.CreateMesh();
         PhaseProperty phaseProperty = new(_mesh, "Input/");
         FEMBuilder femBuilder = new();
@@ -46,15 +47,10 @@ public partial class MainWindow
         _colorsPressure = new Color[_mesh.Elements.Length];
         _colorsSaturartion = new Color[_mesh.Elements.Length];
 
-        // _graphArea.Left = _mesh.Points[0].X;
-        // _graphArea.Bottom = _mesh.Points[0].Y;
-        // _graphArea.Right = _mesh.Points[_mesh.Elements[_mesh.Elements[0].Nodes[2] - 2].Nodes[1]].X; 
-        // _graphArea.Top = _mesh.Points[^1].Y;
-        
-        _graphArea.Left = -1;
-        _graphArea.Bottom = -1;
-        _graphArea.Right = 2; 
-        _graphArea.Top = 2;
+        _graphArea.Left = meshParameters.Area[0].LeftBottom.X;
+        _graphArea.Bottom = meshParameters.Area[0].LeftBottom.Y;
+        _graphArea.Right = meshParameters.Area[0].RightTop.X;
+        _graphArea.Top = meshParameters.Area[0].RightTop.Y;
 
         _viewport.Left = _graphArea.Left - 0.07 * _graphArea.Width;
         _viewport.Right = _graphArea.Right + 0.05 * _graphArea.Width;
