@@ -24,10 +24,9 @@ public partial class MainWindow
         var meshParameters = MeshParameters.ReadJson("Input/");
         MeshGenerator meshGenerator = new(new MeshBuilder(meshParameters));
         _mesh = meshGenerator.CreateMesh();
-        PhaseProperty phaseProperty = new(_mesh, "Input/");
-        FEMBuilder femBuilder = new();
-        
-        DataWriter.WriteElements("Elements.txt", _mesh);
+        // PhaseProperty phaseProperty = new(_mesh, "Input/");
+        // FEMBuilder femBuilder = new();
+        //DataWriter.WriteElements("Elements.txt", _mesh);
 
         _pressure = new double[_mesh.Points.Length];
         _saturation = new double[_mesh.Elements.Length];

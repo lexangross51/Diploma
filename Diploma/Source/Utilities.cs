@@ -41,7 +41,7 @@ public static class DataWriter
         
         for (int ielem = 0; ielem < mesh.Elements.Length; ielem++)
         {
-            sw.WriteLine($"Element № {ielem} -------------------------------");
+            sw.WriteLine($"Element № {ielem} ----------------------------------------");
             sw.WriteLine(mesh.Elements[ielem]);
             sw.WriteLine();
         }

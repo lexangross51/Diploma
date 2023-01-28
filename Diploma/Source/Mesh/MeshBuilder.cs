@@ -37,8 +37,21 @@ public class MeshBuilder : IMeshBuilder
         }
     }
 
-    private static bool IsEdgeExist(int i, int j)
-        => (i == 0 && j == 1 || i == 0 && j == 2 || i == 1 && j == 3 || i == 2 && j == 3);
+    private bool IsEdgeExist(int ielem, int i, int j)
+    {
+        var element = _elements[ielem];
+        var p1 = _points[i];
+        var p2 = _points[j];
+
+        return (from edge in element.Edges
+            let edgeP1 = _points[edge.Node1]
+            let edgeP2 = _points[edge.Node2]
+            where Math.Abs(p1.X - edgeP1.X) < 1E-14 && Math.Abs(p1.Y - edgeP1.Y) < 1E-14 &&
+                  Math.Abs(p2.X - edgeP2.X) < 1E-14 && Math.Abs(p2.Y - edgeP2.Y) < 1E-14 ||
+                  Math.Abs(p1.X - edgeP2.X) < 1E-14 && Math.Abs(p1.Y - edgeP2.Y) < 1E-14 &&
+                  Math.Abs(p2.X - edgeP1.X) < 1E-14 && Math.Abs(p2.Y - edgeP1.Y) < 1E-14
+            select edgeP1).Any();
+    }
     
     private void NumerateEdges()
     {
@@ -49,10 +62,12 @@ public class MeshBuilder : IMeshBuilder
             connectivityList.Add(new SortedSet<int>());
         }
         
-        foreach (var (_, element) in _elements)
+        foreach (var (ielem, element) in _elements)
         {
-            var nodes = element.Nodes;
-        
+            int[] nodes = new int[element.Nodes.Count];
+            element.Nodes.CopyTo(nodes);
+            Array.Sort(nodes);
+
             for (int i = 0; i < 3; i++) 
             {
                 int ind1 = nodes[i];
@@ -61,7 +76,7 @@ public class MeshBuilder : IMeshBuilder
                 {
                     int ind2 = nodes[j];
         
-                    if (IsEdgeExist(i, j)) 
+                    if (IsEdgeExist(ielem, ind1, ind2)) 
                     {
                         connectivityList[ind2].Add(ind1);
                     }
@@ -124,6 +139,25 @@ public class MeshBuilder : IMeshBuilder
         }
     }
 
+    private void CreateEdges()
+    {
+        foreach (var (_, element) in _elements)
+        {
+            element.Edges.Add(new Edge(element.Nodes[0], element.Nodes[1]));
+            element.Edges.Add(new Edge(element.Nodes[0], element.Nodes[2]));
+            element.Edges.Add(new Edge(element.Nodes[1], element.Nodes[3]));
+            element.Edges.Add(new Edge(element.Nodes[2], element.Nodes[3]));
+        }
+    }
+
+    private void FixNormalsDirections()
+    {
+        foreach (var (_, element) in _elements)
+        {
+            element.EdgesDirect = new List<int>() { -1, -1, 1, 1 };
+        }
+    }
+    
     private void CreateUniformMesh()
     {
         // Generate points --------------------------------------------------->
@@ -236,6 +270,7 @@ public class MeshBuilder : IMeshBuilder
             
             int maxNodeNum = _elements[nx * ny - 1].Nodes[^1] + 1;
             int maxElemNum = _elements.Count;
+            int totalDeleted = 0;
 
             foreach (var well in _parameters.Wells)
             {
@@ -354,6 +389,7 @@ public class MeshBuilder : IMeshBuilder
                 foreach (var element in intersected)
                 {
                     _elements.Remove(element);
+                    totalDeleted++;
                 }
                 
                 // Delete points from _wellPoints which already in _points
@@ -367,7 +403,7 @@ public class MeshBuilder : IMeshBuilder
                     // The first near-well element
                     if (ielem == _wellElements.Count - 4 * p)
                     {
-                        int wellElem = ielem;
+                        int wellElem = maxElemNum;
                         
                         for (int i = 0; i < p; i++)
                         {
@@ -390,15 +426,26 @@ public class MeshBuilder : IMeshBuilder
                         }
                     }
 
-                    //_wellElements[ielem].Nodes.Sort();
                     _elements.Add(maxElemNum++, _wellElements[ielem]);
                 }
 
                 _points.AddRange(_wellPoints);
             }
+
+            for (int i = 0; i < _neumannConditions!.Count; i++)
+            {
+                var element = _neumannConditions[i].Element;
+                var edge = _neumannConditions[i].Edge;
+                var power = _neumannConditions[i].Power;
+                
+                _neumannConditions[i] = new NeumannCondition(element - totalDeleted, edge, power);
+            }
         }
 
+        CreateEdges();
+        FixNormalsDirections();
         NumerateEdges();
+        
         return (_points, _elements.Values);
     }
 

@@ -133,6 +133,7 @@ public partial class MainWindow
         gl.End();
 
         ShowDirichletConditions(args);
+        ShowNeumannConditions(args);
         DrawAxes(PressureControl.OpenGL);
         
         gl.Finish();
@@ -212,6 +213,26 @@ public partial class MainWindow
             var point = _mesh.Points[inode];
             
             gl.Vertex(point.X, point.Y);
+        }
+        
+        gl.End();
+    }
+
+    private void ShowNeumannConditions(OpenGLRoutedEventArgs args)
+    {
+        OpenGL gl = args.OpenGL;
+
+        gl.Color(1f, 0f, 0f);
+        gl.Begin(OpenGL.GL_LINES);
+
+        foreach (var (ielem, iedge, _) in _mesh.NeumannConditions)
+        {
+            var edge = _mesh.Elements[ielem].Edges[iedge];
+            var p1 = _mesh.Points[edge.Node1];
+            var p2 = _mesh.Points[edge.Node2];
+            
+            gl.Vertex(p1.X, p1.Y);
+            gl.Vertex(p2.X, p2.Y);
         }
         
         gl.End();
