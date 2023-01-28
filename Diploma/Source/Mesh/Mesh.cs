@@ -4,19 +4,23 @@ public class Mesh
 {
     public ImmutableArray<Point2D> Points { get; }
     public ImmutableArray<FiniteElement> Elements { get; }
-    public ImmutableArray<Material> Materials { get; }
     public ImmutableArray<DirichletCondition> DirichletConditions { get; }
+    public ImmutableArray<int> RemoteEdges { get; }
     public ImmutableArray<NeumannCondition> NeumannConditions { get; }
+    public ImmutableArray<Material> Materials { get; }
 
     public Mesh(
-        (IEnumerable<Point2D> points, IEnumerable<FiniteElement> elements) grid,
+        IEnumerable<Point2D> points, 
+        IEnumerable<FiniteElement> elements,
         IEnumerable<DirichletCondition> dirichletConditions,
+        IEnumerable<int> remoteEdgesList,
         IEnumerable<NeumannCondition>? neumannConditions,
         IEnumerable<Material> materials)
     {
-        Points = grid.points.ToImmutableArray();
-        Elements = grid.elements.ToImmutableArray();
+        Points = points.ToImmutableArray();
+        Elements = elements.ToImmutableArray();
         DirichletConditions = dirichletConditions.ToImmutableArray();
+        RemoteEdges = remoteEdgesList.ToImmutableArray();
         NeumannConditions = (neumannConditions ?? Array.Empty<NeumannCondition>()).ToImmutableArray();
         Materials = materials.ToImmutableArray();
     }
