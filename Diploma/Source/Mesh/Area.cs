@@ -1,9 +1,9 @@
 ﻿namespace Diploma.Source.Mesh;
 
-public readonly struct Material
+public struct Material
 {
-    public double Permeability { get; }
-    public double Porosity { get; }
+    public double Permeability { get; set; }
+    public double Porosity { get; set; }
 
     public Material(double permeability, double porosity)
         => (Permeability, Porosity) = (permeability, porosity);
