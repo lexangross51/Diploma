@@ -22,26 +22,28 @@ public partial class MainWindow
     public MainWindow()
     {
         var meshParameters = MeshParameters.ReadJson("Input/");
-        MeshGenerator meshGenerator = new(new MeshBuilder(meshParameters));
-        _mesh = meshGenerator.CreateMesh();
-        // PhaseProperty phaseProperty = new(_mesh, "Input/");
-        // FEMBuilder femBuilder = new();
+        MeshBuilder meshBuilder = new MeshBuilder(meshParameters);
+        _mesh = meshBuilder.Build();
+        PhaseProperty phaseProperty = new(_mesh, "Input/");
+        FEMBuilder femBuilder = new();
         //DataWriter.WriteElements("Elements.txt", _mesh);
 
         _pressure = new double[_mesh.Points.Length];
         _saturation = new double[_mesh.Elements.Length];
 
-        //double Field(Point2D p) => p.X*p.X - p.Y*p.Y;
-        //double Source(Point2D p) => 0;
+        double Field(Point2D p) => p.X - p.Y;
+        double Source(Point2D p) => 0;
 
-        // var fem = femBuilder
-        //     .SetMesh(_mesh)
-        //     .SetPhaseProperties(phaseProperty)
-        //     .SetBasis(new LinearBasis())
-        //     .SetSolver(new CGM(1000, 1E-20))
-        //     .SetTest(Source)
-        //     .Build();
-        //
+        var fem = femBuilder
+            .SetMesh(_mesh)
+            .SetPhaseProperties(phaseProperty)
+            .SetBasis(new LinearBasis())
+            .SetSolver(new CGM(1000, 1E-20))
+            .SetTest(Source, Field)
+            .Build();
+        
+        // fem.Solve();
+        
         // Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
         // filtration.ModelFiltration(_timeStart, _timeEnd);
 

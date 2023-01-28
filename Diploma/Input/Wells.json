@@ -5,30 +5,6 @@
       "Y": 25
     },
     "Radius": 1,
-    "Power": -40
-  },
-  {
-    "Center": {
-      "X": 9,
-      "Y": 37
-    },
-    "Radius": 1,
-    "Power": -40
-  },
-  {
-    "Center": {
-      "X": 40,
-      "Y": 40
-    },
-    "Radius": 1,
-    "Power": -40
-  },
-  {
-    "Center": {
-      "X": 40,
-      "Y": 10
-    },
-    "Radius": 1,
-    "Power": -40
+    "Power": -1
   }
 ]

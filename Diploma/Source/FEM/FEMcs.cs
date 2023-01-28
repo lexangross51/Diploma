@@ -171,17 +171,13 @@ public class FEMBuilder
 
             for (int i = 0; i < phaseCount; i++)
             {
-                coefficient += _phaseProperty.Phases[ielem][i].Kappa;
-                coefficient /= _phaseProperty.Phases[ielem][i].Viscosity;
+                coefficient += _phaseProperty.Phases[ielem][i].Kappa / _phaseProperty.Phases[ielem][i].Viscosity;
             }
             
-            coefficient *= _mesh.Materials[area].Permeability * 9.86923E-04;
+            coefficient *= _mesh.Materials[area].Permeability;
 
             return coefficient;
         }
-        
-        private bool IsWellElement(int ielem)
-            => Enumerable.Any(_mesh.NeumannConditions, condition => condition.Element == ielem);
 
         private void BuildLocalMatrixVector(int ielem)
         {
@@ -352,8 +348,6 @@ public class FEMBuilder
 
             for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
             {
-                if (IsWellElement(ielem)) continue;
-                
                 var nodes = _mesh.Elements[ielem].Nodes;
                 var coefficient = CalculateCoefficient(ielem);
 
@@ -448,7 +442,7 @@ public class FEMBuilder
         return this;
     }
 
-    public FEM Build() => new FEM(_mesh, _phaseProperty, _basis, _solver, _source, _field);
+    public FEM Build() => new(_mesh, _phaseProperty, _basis, _solver, _source, _field);
 
     #endregion
 }
