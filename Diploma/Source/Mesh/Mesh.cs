@@ -11,13 +11,13 @@ public class Mesh
     public Mesh(
         (IEnumerable<Point2D> points, IEnumerable<FiniteElement> elements) grid,
         IEnumerable<DirichletCondition> dirichletConditions,
-        IEnumerable<NeumannCondition> neumannConditions,
+        IEnumerable<NeumannCondition>? neumannConditions,
         IEnumerable<Material> materials)
     {
         Points = grid.points.ToImmutableArray();
         Elements = grid.elements.ToImmutableArray();
         DirichletConditions = dirichletConditions.ToImmutableArray();
-        NeumannConditions = neumannConditions.ToImmutableArray();
+        NeumannConditions = (neumannConditions ?? Array.Empty<NeumannCondition>()).ToImmutableArray();
         Materials = materials.ToImmutableArray();
     }
 }

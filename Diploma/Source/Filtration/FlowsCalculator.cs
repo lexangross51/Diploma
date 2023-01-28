@@ -16,7 +16,7 @@ public class FlowsCalculator
         _basis = basis;
         _phaseProperty = phaseProperty;
         
-        var edgesCount = mesh.Elements[^1].Edges[^1] + 1;
+        var edgesCount = mesh.Elements[^1].EdgesIndices[^1] + 1;
 
         _averageFlows = new Vector(edgesCount);
         _precalcIntegralGradX = new Vector(_basis.Size);
@@ -99,16 +99,16 @@ public class FlowsCalculator
 
     private void FixWellsFlows()
     {
-        foreach (var (ielem, flow) in _mesh.NeumannConditions)
-        {
-            var edges = _mesh.Elements[ielem].Edges;
-            var edgesDirect = _mesh.Elements[ielem].EdgesDirect;
-
-            for (int localEdge = 0; localEdge < edges.Count; localEdge++)
-            {
-                _averageFlows[edges[localEdge]] = edgesDirect[localEdge] * flow;
-            }
-        }
+        // foreach (var (ielem, flow) in _mesh.NeumannConditions)
+        // {
+        //     var edges = _mesh.Elements[ielem].Edges;
+        //     var edgesDirect = _mesh.Elements[ielem].EdgesDirect;
+        //
+        //     for (int localEdge = 0; localEdge < edges.Count; localEdge++)
+        //     {
+        //         _averageFlows[edges[localEdge]] = edgesDirect[localEdge] * flow;
+        //     }
+        // }
     }
     
     public Vector CalculateAverageFlows(Vector pressure)
@@ -125,7 +125,7 @@ public class FlowsCalculator
             if (IsWellElement(ielem)) continue;
 
             double coefficient = CalculateCoefficient(ielem);
-            var edges = _mesh.Elements[ielem].Edges;
+            var edges = _mesh.Elements[ielem].EdgesIndices;
 
             for (int localEdge = 0; localEdge < edges.Count; localEdge++)
             {

@@ -131,7 +131,8 @@ public partial class MainWindow
         }
         
         gl.End();
-        
+
+        ShowDirichletConditions(args);
         DrawAxes(PressureControl.OpenGL);
         
         gl.Finish();
@@ -196,5 +197,23 @@ public partial class MainWindow
         
         var axisTex = $"{_pressureLegendValues[7]:E7}";
         gl.DrawText((int)(x - gl.RenderContextProvider.Width * 0.01), 30, 0f, 0f, 0f, "Arial", 10, axisTex);
+    }
+
+    private void ShowDirichletConditions(OpenGLRoutedEventArgs args)
+    {
+        OpenGL gl = args.OpenGL;
+        
+        gl.Color(0f, 0f, 0f);
+        gl.PointSize(5);
+        gl.Begin(OpenGL.GL_POINTS);
+        
+        foreach (var (inode, pressure) in _mesh.DirichletConditions)
+        {
+            var point = _mesh.Points[inode];
+            
+            gl.Vertex(point.X, point.Y);
+        }
+        
+        gl.End();
     }
 }

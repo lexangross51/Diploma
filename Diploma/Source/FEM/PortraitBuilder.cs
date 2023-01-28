@@ -54,7 +54,7 @@ public static class PortraitBuilder
     public static void PortraitByEdges(Mesh.Mesh mesh, out int[] ig, out int[] jg)
     {
         var elementsCount = mesh.Elements.Length;
-        var edgesCount = mesh.Elements[^1].Edges[^1] + 1;
+        var edgesCount = mesh.Elements[^1].EdgesIndices[^1] + 1;
 
         var connectivityList = new List<HashSet<int>>();
 
@@ -65,7 +65,7 @@ public static class PortraitBuilder
 
         for (int ielem = 0; ielem < elementsCount; ielem++)
         {
-            var edges = mesh.Elements[ielem].Edges;
+            var edges = mesh.Elements[ielem].EdgesIndices;
 
             for (int i = 0; i < 3; i++) {
                 int iedge = edges[i];

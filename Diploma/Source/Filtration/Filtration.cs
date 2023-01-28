@@ -39,7 +39,7 @@ public class Filtration
         _flowsCalculator = new FlowsCalculator(_mesh, basis, phaseProperty);
         //_flowsBalancer = new FlowsBalancer(_mesh);
 
-        int edgesCount = _mesh.Elements[^1].Edges[^1] + 1;
+        int edgesCount = _mesh.Elements[^1].EdgesIndices[^1] + 1;
         int phasesCount = _phaseProperty.Phases![0].Count;
 
         _flowsOutPhases = new double[edgesCount, phasesCount];
@@ -80,7 +80,7 @@ public class Filtration
     }
 
     private int FlowDirection(int ielem, int localEdge)
-        => Math.Sign(_flows[_mesh.Elements[ielem].Edges[localEdge]]) switch
+        => Math.Sign(_flows[_mesh.Elements[ielem].EdgesIndices[localEdge]]) switch
         {
             0 => 0,
             > 0 => _mesh.Elements[ielem].EdgesDirect[localEdge],
@@ -108,7 +108,7 @@ public class Filtration
         {
             if (IsWellElement(ielem)) continue;
             
-            var edges = _mesh.Elements[ielem].Edges;
+            var edges = _mesh.Elements[ielem].EdgesIndices;
             var phases = _phaseProperty.Phases![ielem];
             double phasesSum = phases.Sum(phase => phase.Kappa / phase.Viscosity);
 
@@ -132,7 +132,7 @@ public class Filtration
         foreach (var condition in _mesh.NeumannConditions)
         {
             var ielem = condition.Element;
-            var edges = _mesh.Elements[ielem].Edges;
+            var edges = _mesh.Elements[ielem].EdgesIndices;
             var phases = _phaseProperty.Phases![ielem];
             var phasesSum = phases.Sum(phase => phase.Kappa / phase.Viscosity);
 
@@ -163,7 +163,7 @@ public class Filtration
         // Left border
         for (int ielem = 0, j = 0; j < ny; j++, ielem += nx)
         {
-            int globalEdge = _mesh.Elements[ielem].Edges[1];
+            int globalEdge = _mesh.Elements[ielem].EdgesIndices[1];
             
             if (FlowDirection(ielem, 1) == -1)
             {
@@ -180,7 +180,7 @@ public class Filtration
         // Right border
         for (int ielem = nx - 1, j = 0; j < ny; j++, ielem += nx)
         {
-            int globalEdge = _mesh.Elements[ielem].Edges[2];
+            int globalEdge = _mesh.Elements[ielem].EdgesIndices[2];
             
             if (FlowDirection(ielem, 2) == -1)
             {
@@ -197,7 +197,7 @@ public class Filtration
         // Lower border
         for (int ielem = 0; ielem < nx; ielem++)
         {
-            int globalEdge = _mesh.Elements[ielem].Edges[0];
+            int globalEdge = _mesh.Elements[ielem].EdgesIndices[0];
             
             if (FlowDirection(ielem, 0) == -1)
             {
@@ -214,7 +214,7 @@ public class Filtration
         // Upper border
         for (int ielem = nx * (ny - 1); ielem < nx * ny; ielem++)
         {
-            int globalEdge = _mesh.Elements[ielem].Edges[3];
+            int globalEdge = _mesh.Elements[ielem].EdgesIndices[3];
             
             if (FlowDirection(ielem, 3) == -1)
             {
@@ -245,7 +245,7 @@ public class Filtration
             
             var porosity = _mesh.Materials[_mesh.Elements[ielem].Area].Porosity;
             var mes = (rightTop.X - leftBottom.X) * (rightTop.Y - leftBottom.Y);
-            var edges = _mesh.Elements[ielem].Edges;
+            var edges = _mesh.Elements[ielem].EdgesIndices;
             var saturations = _phaseProperty.Saturation![ielem];
 
             for (int iphase = 0; iphase < saturations.Count; iphase++)
@@ -327,7 +327,7 @@ public class Filtration
             
             var porosity = _mesh.Materials[_mesh.Elements[ielem].Area].Porosity;
             var mes = (rightTop.X - leftBottom.X) * (rightTop.Y - leftBottom.Y);
-            var edges = _mesh.Elements[ielem].Edges;
+            var edges = _mesh.Elements[ielem].EdgesIndices;
             var saturations = _phaseProperty.Saturation![ielem];
         
             double phaseVolumeOut = edges.Where((_, localEdge) => FlowDirection(ielem, localEdge) == 1)
@@ -395,7 +395,7 @@ public class Filtration
             var rightTop = _mesh.Points[_mesh.Elements[ielem].Nodes[^1]];
             
             var mes = (rightTop.X - leftBottom.X) * (rightTop.Y - leftBottom.Y);
-            var edges = _mesh.Elements[ielem].Edges;
+            var edges = _mesh.Elements[ielem].EdgesIndices;
             var porosity = _mesh.Materials[_mesh.Elements[ielem].Area].Porosity;
             var phases = _phaseProperty.Phases![ielem];
             var saturations = _phaseProperty.Saturation![ielem];
@@ -502,7 +502,7 @@ public class Filtration
         {
             if (IsWellElement(ielem)) continue;
 
-            var edges = _mesh.Elements[ielem].Edges;
+            var edges = _mesh.Elements[ielem].EdgesIndices;
             var saturations = _phaseProperty.Saturation![ielem];
 
             for (int localEdge = 0; localEdge < edges.Count; localEdge++)
@@ -535,7 +535,7 @@ public class Filtration
             double porosity = _mesh.Materials[_mesh.Elements[ielem].Area].Porosity;
             double mes = (rightTop.X - leftBottom.X) * (rightTop.Y - leftBottom.Y);
             
-            var edges = _mesh.Elements[ielem].Edges;
+            var edges = _mesh.Elements[ielem].EdgesIndices;
             var saturations = _phaseProperty.Saturation![ielem];
             //var componentsTable = _phasesComponents[ielem];
 

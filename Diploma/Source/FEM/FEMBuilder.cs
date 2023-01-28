@@ -296,7 +296,7 @@ public class FEMBuilder
 
         private void ApplyNeumann()
         {
-            foreach (var (ielem, theta) in _mesh.NeumannConditions)
+            foreach (var (ielem, iedge, theta) in _mesh.NeumannConditions)
             {
                 var nodes = _mesh.Elements[ielem].Nodes;
                 double hx = _mesh.Points[nodes[^1]].X - _mesh.Points[nodes[0]].X;

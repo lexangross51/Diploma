@@ -34,4 +34,16 @@ public static class DataWriter
             sw.WriteLine(IsWellElement(mesh, ielem) ? 0.0 : saturation[ielem][0]);
         }
     }
+
+    public static void WriteElements(string filename, Mesh.Mesh mesh)
+    {
+        using var sw = new StreamWriter(filename);
+        
+        for (int ielem = 0; ielem < mesh.Elements.Length; ielem++)
+        {
+            sw.WriteLine($"Element № {ielem} -------------------------------");
+            sw.WriteLine(mesh.Elements[ielem]);
+            sw.WriteLine();
+        }
+    }
 }
