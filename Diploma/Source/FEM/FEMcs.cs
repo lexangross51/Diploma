@@ -74,10 +74,11 @@ public class FEMBuilder
 
         private void BuildLocalMatrixVector(int ielem)
         {
-            var leftBottom = _mesh.Points[_mesh.Elements[ielem].Nodes[0]];
-            var rightBottom = _mesh.Points[_mesh.Elements[ielem].Nodes[1]];
-            var leftTop = _mesh.Points[_mesh.Elements[ielem].Nodes[2]];
-            var rightTop = _mesh.Points[_mesh.Elements[ielem].Nodes[3]];
+            var nodes = _mesh.Elements[ielem].Nodes;
+            var leftBottom = _mesh.Points[nodes[0]];
+            var rightBottom = _mesh.Points[nodes[1]];
+            var leftTop = _mesh.Points[nodes[2]];
+            var rightTop = _mesh.Points[nodes[3]];
 
             Rectangle rect = new Rectangle(new Point2D(0, 0), new Point2D(1, 1));
             Vector gradPhiI = new Vector(2);
@@ -89,7 +90,7 @@ public class FEMBuilder
             {
                 for (int j = 0; j <= i; j++)
                 {
-                    double ScalarFunction(double ksi, double eta)
+                    double ScalarFunc(double ksi, double eta)
                     {
                         var point = new Point2D(ksi, eta);
                         MathAddition.JacobiMatrix2D(leftBottom, rightBottom, leftTop, rightTop, point, _jacobiMatrix);
@@ -98,20 +99,49 @@ public class FEMBuilder
 
                         gradPhiI[0] = _basis.DPhi(i, 0, point);
                         gradPhiI[1] = _basis.DPhi(i, 1, point);
-                        gradPhiJ[0] = _basis.DPhi(i, 0, point);
-                        gradPhiJ[1] = _basis.DPhi(i, 1, point);
-                        
+                        gradPhiJ[0] = _basis.DPhi(j, 0, point);
+                        gradPhiJ[1] = _basis.DPhi(j, 1, point);
+                        matrixGradI.Clear();
+                        matrixGradJ.Clear();
+
                         SquareMatrix.Dot(_jacobiMatrix, gradPhiI, matrixGradI);
                         SquareMatrix.Dot(_jacobiMatrix, gradPhiJ, matrixGradJ);
 
                         return (matrixGradI[0] * matrixGradJ[0] + matrixGradI[1] * matrixGradJ[1]) * Math.Abs(jacobian);
                     }
 
-                    _stiffnessMatrix[i, j] = _stiffnessMatrix[j, i] = _gauss.Integrate2D(ScalarFunction, rect);
+                    _stiffnessMatrix[i, j] = _stiffnessMatrix[j, i] = _gauss.Integrate2D(ScalarFunc, rect);
                 }
             }
 
             if (_field is null) return;
+            
+            for (int i = 0; i < _basis.Size; i++)
+            {
+                for (int j = 0; j <= i; j++)
+                {
+                    double ScalarFunc(double ksi, double eta)
+                    {
+                        var point = new Point2D(ksi, eta);
+                        MathAddition.JacobiMatrix2D(leftBottom, rightBottom, leftTop, rightTop, point, _jacobiMatrix);
+                        double jacobian = MathAddition.Jacobian2D(_jacobiMatrix);
+
+                        return _basis.Phi(i, point) * _basis.Phi(j, point) * Math.Abs(jacobian);
+                    }
+
+                    _massMatrix[i, j] = _massMatrix[j, i] = _gauss.Integrate2D(ScalarFunc, rect);
+                }
+            }
+            
+            for (int i = 0; i < _basis.Size; i++)
+            {
+                _localB[i] = 0.0;
+                
+                for (int j = 0; j < _basis.Size; j++)
+                {
+                    _localB[i] += _massMatrix[i, j] * _source(_mesh.Points[nodes[j]]);
+                }
+            }
         }
 
         private void AddToGlobal(int i, int j, double value)
@@ -196,53 +226,7 @@ public class FEMBuilder
 
         private void ApplyNeumann()
         {
-            foreach (var (ielem, iedge, theta) in _mesh.NeumannConditions)
-            {
-                var nodes = _mesh.Elements[ielem].Nodes;
-                double hx = _mesh.Points[nodes[^1]].X - _mesh.Points[nodes[0]].X;
-                double hy = _mesh.Points[nodes[^1]].Y - _mesh.Points[nodes[0]].Y;
-                double length = hx + hy;
             
-                // Left border
-                // _globalVector[nodes[0]] += theta / 2.0;
-                // _globalVector[nodes[2]] += theta / 2.0;
-                
-                // for (int i = 0; i < _basis.Size; i++)
-                // {
-                //     _globalVector[nodes[i]] += length * theta / 2.0;
-                // }
-                
-                for (int i = 0; i < _basis.Size; i++)
-                {
-                    _globalVector[nodes[i]] += theta;
-                }
-            }
-            
-            // Rectangle omega = new(new Point2D(0, 0), new Point2D(1, 1));
-            //
-            // foreach (var (ielem, theta) in _mesh.NeumannConditions)
-            // {
-            //     var nodes = _mesh.Elements[ielem].Nodes;
-            //     var leftBottom = _mesh.Points[nodes[0]];
-            //     var rightTop = _mesh.Points[nodes[^1]];
-            //     var hx = rightTop.X - leftBottom.X;
-            //     var hy = rightTop.Y - leftBottom.Y;
-            //     
-            //     for (int i = 0; i < _basis.Size; i++)
-            //     {
-            //         _localB[i] = 0.0;
-            //         
-            //         double Function(double ksi, double etta)
-            //             => _basis.Phi(i, new Point2D(ksi, etta));
-            //         
-            //         _localB[i] = _gauss.Integrate2D(Function, omega);
-            //     }
-            //     
-            //     for (int inode = 0; inode < _basis.Size; inode++)
-            //     {
-            //         _globalVector[nodes[inode]] += _localB[inode] * hx * hy * theta;
-            //     }
-            // }
         }
 
         private void AssemblySLAE()

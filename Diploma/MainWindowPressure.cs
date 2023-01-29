@@ -1,6 +1,4 @@
-﻿using System.Windows.Input;
-
-namespace Diploma;
+﻿namespace Diploma;
 
 public partial class MainWindow
 {
@@ -87,30 +85,30 @@ public partial class MainWindow
         gl.LoadIdentity();
         gl.Ortho2D(_viewport.Left, _viewport.Right, _viewport.Bottom, _viewport.Top);
 
-        //MakePressureColors(_timeMoment);
+        MakePressureColors(_timeMoment);
 
-        // gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
-        // gl.ShadeModel(OpenGL.GL_SMOOTH);
-        // gl.Begin(OpenGL.GL_QUADS);
-        //
-        // for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
-        // {
-        //     var nodes = _mesh.Elements[ielem].Nodes;
-        //
-        //     var c = _colorsPressure[ielem];
-        //     var p1 = _mesh.Points[nodes[0]];
-        //     var p2 = _mesh.Points[nodes[1]];
-        //     var p3 = _mesh.Points[nodes[2]];
-        //     var p4 = _mesh.Points[nodes[3]];
-        //
-        //     gl.Color(c.R, c.G, c.B);
-        //     gl.Vertex(p1.X, p1.Y);
-        //     gl.Vertex(p2.X, p2.Y);
-        //     gl.Vertex(p4.X, p4.Y);
-        //     gl.Vertex(p3.X, p3.Y);
-        // }
-        //
-        // gl.End();
+         gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
+         gl.ShadeModel(OpenGL.GL_SMOOTH);
+         gl.Begin(OpenGL.GL_QUADS);
+        
+         for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+         {
+             var nodes = _mesh.Elements[ielem].Nodes;
+        
+             var c = _colorsPressure[ielem];
+             var p1 = _mesh.Points[nodes[0]];
+             var p2 = _mesh.Points[nodes[1]];
+             var p3 = _mesh.Points[nodes[2]];
+             var p4 = _mesh.Points[nodes[3]];
+        
+             gl.Color(c.R, c.G, c.B);
+             gl.Vertex(p1.X, p1.Y);
+             gl.Vertex(p2.X, p2.Y);
+             gl.Vertex(p4.X, p4.Y);
+             gl.Vertex(p3.X, p3.Y);
+         }
+        
+         gl.End();
         
         gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
         gl.Color(0, 0, 0, 1);

@@ -31,8 +31,8 @@ public partial class MainWindow
         _pressure = new double[_mesh.Points.Length];
         _saturation = new double[_mesh.Elements.Length];
 
-        double Field(Point2D p) => p.X + p.Y;
-        double Source(Point2D p) => 0;
+        double Field(Point2D p) => p.X*p.X + p.Y*p.Y;
+        double Source(Point2D p) => -4;
 
         var fem = femBuilder
             .SetMesh(_mesh)
@@ -43,6 +43,9 @@ public partial class MainWindow
             .Build();
         
         fem.Solve();
+        
+        DataWriter.WritePressure($"Pressure{_timeMoment}.txt", fem.Solution!);
+        DataWriter.WriteSaturation($"Saturation{_timeMoment}.txt", _mesh, phaseProperty.Saturation!);
         
         // Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
         // filtration.ModelFiltration(_timeStart, _timeEnd);
