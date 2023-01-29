@@ -31,7 +31,7 @@ public partial class MainWindow
         _pressure = new double[_mesh.Points.Length];
         _saturation = new double[_mesh.Elements.Length];
 
-        double Field(Point2D p) => p.X - p.Y;
+        double Field(Point2D p) => p.X + p.Y;
         double Source(Point2D p) => 0;
 
         var fem = femBuilder
@@ -42,7 +42,7 @@ public partial class MainWindow
             .SetTest(Source, Field)
             .Build();
         
-        // fem.Solve();
+        fem.Solve();
         
         // Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
         // filtration.ModelFiltration(_timeStart, _timeEnd);

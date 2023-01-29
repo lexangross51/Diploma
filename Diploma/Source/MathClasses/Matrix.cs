@@ -32,14 +32,14 @@ public class SquareMatrix
         return newMatrix;
     }
 
-    public static IEnumerable<double> operator *(SquareMatrix matrix, Vector vector)
+    public static void Dot(SquareMatrix matrix, Vector vector, Vector? product)
     {
         if (matrix.Size != vector.Length)
         {
             throw new Exception("Numbers of columns not equal to size of vector");
         }
 
-        Vector product = new(vector.Length);
+        product ??= new Vector(vector.Length);
 
         for (int i = 0; i < matrix.Size; i++)
         {
@@ -48,8 +48,6 @@ public class SquareMatrix
                 product[i] += matrix[i, j] * vector[j];
             }
         }
-
-        return product;
     }
 
     public void Clear()
