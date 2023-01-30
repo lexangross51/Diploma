@@ -17,8 +17,7 @@ public static class PortraitBuilder
         foreach (var element in mesh.Elements)
         {
             element.Nodes.CopyTo(nodes);
-            Array.Sort(nodes);
-            
+
             for (int i = 0; i < localSize - 1; i++)
             {
                 int nodeToInsert = nodes[i];

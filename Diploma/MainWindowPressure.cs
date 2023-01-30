@@ -96,10 +96,10 @@ public partial class MainWindow
              var nodes = _mesh.Elements[ielem].Nodes;
         
              var c = _colorsPressure[ielem];
-             var p1 = _mesh.Points[nodes[0]];
-             var p2 = _mesh.Points[nodes[1]];
-             var p3 = _mesh.Points[nodes[2]];
-             var p4 = _mesh.Points[nodes[3]];
+             var p1 = _mesh.Points[nodes[0]].Point;
+             var p2 = _mesh.Points[nodes[1]].Point;
+             var p3 = _mesh.Points[nodes[2]].Point;
+             var p4 = _mesh.Points[nodes[3]].Point;
         
              gl.Color(c.R, c.G, c.B);
              gl.Vertex(p1.X, p1.Y);
@@ -117,10 +117,10 @@ public partial class MainWindow
         foreach (var t in _mesh.Elements)
         {
             var nodes = t.Nodes;
-            var p1 = _mesh.Points[nodes[0]];
-            var p2 = _mesh.Points[nodes[1]];
-            var p3 = _mesh.Points[nodes[2]];
-            var p4 = _mesh.Points[nodes[3]];
+            var p1 = _mesh.Points[nodes[0]].Point;
+            var p2 = _mesh.Points[nodes[1]].Point;
+            var p3 = _mesh.Points[nodes[2]].Point;
+            var p4 = _mesh.Points[nodes[3]].Point;
         
             gl.Vertex(p1.X, p1.Y);
             gl.Vertex(p2.X, p2.Y);
@@ -208,7 +208,7 @@ public partial class MainWindow
         
         foreach (var (inode, pressure) in _mesh.DirichletConditions)
         {
-            var point = _mesh.Points[inode];
+            var point = _mesh.Points[inode].Point;
             
             gl.Vertex(point.X, point.Y);
         }
@@ -226,8 +226,8 @@ public partial class MainWindow
         foreach (var (ielem, iedge, _) in _mesh.NeumannConditions)
         {
             var edge = _mesh.Elements[ielem].Edges[iedge];
-            var p1 = _mesh.Points[edge.Node1];
-            var p2 = _mesh.Points[edge.Node2];
+            var p1 = _mesh.Points[edge.Node1].Point;
+            var p2 = _mesh.Points[edge.Node2].Point;
             
             gl.Vertex(p1.X, p1.Y);
             gl.Vertex(p2.X, p2.Y);

@@ -75,10 +75,10 @@ public class FEMBuilder
         private void BuildLocalMatrixVector(int ielem)
         {
             var nodes = _mesh.Elements[ielem].Nodes;
-            var leftBottom = _mesh.Points[nodes[0]];
-            var rightBottom = _mesh.Points[nodes[1]];
-            var leftTop = _mesh.Points[nodes[2]];
-            var rightTop = _mesh.Points[nodes[3]];
+            var leftBottom = _mesh.Points[nodes[0]].Point;
+            var rightBottom = _mesh.Points[nodes[1]].Point;
+            var leftTop = _mesh.Points[nodes[2]].Point;
+            var rightTop = _mesh.Points[nodes[3]].Point;
 
             Rectangle rect = new Rectangle(new Point2D(0, 0), new Point2D(1, 1));
             Vector gradPhiI = new Vector(2);
@@ -139,7 +139,7 @@ public class FEMBuilder
                 
                 for (int j = 0; j < _basis.Size; j++)
                 {
-                    _localB[i] += _massMatrix[i, j] * _source(_mesh.Points[nodes[j]]);
+                    _localB[i] += _massMatrix[i, j] * _source(_mesh.Points[nodes[j]].Point);
                 }
             }
         }
@@ -195,7 +195,7 @@ public class FEMBuilder
                     var (node, value) = dirichlet[bc1[i]];
                     
                     _globalMatrix.Di[i] = 1.0;
-                    _globalVector[i] = _field?.Invoke(_mesh.Points[node]) ?? value;
+                    _globalVector[i] = _field?.Invoke(_mesh.Points[node].Point) ?? value;
 
                     for (int j = _globalMatrix.Ig[i]; j < _globalMatrix.Ig[i + 1]; j++)
                     {
@@ -222,6 +222,74 @@ public class FEMBuilder
                     }
                 }
             }
+
+            #region For testing in wells borders
+
+            if (_mesh.NeumannConditions.Length != 0 && _field is not null)
+            {
+                HashSet<DirichletCondition> dirichletNodes = new();
+
+                for (int i = 0; i < _mesh.NeumannConditions.Length; i++)
+                {
+                    int ielem = _mesh.NeumannConditions[i].Element;
+                    int iedge = _mesh.NeumannConditions[i].Edge;
+                    var edge = _mesh.Elements[ielem].Edges[iedge];
+
+                    dirichletNodes.Add(new DirichletCondition(edge.Node1, 0.0));
+                    dirichletNodes.Add(new DirichletCondition(edge.Node2, 0.0));
+                }
+
+                
+                bc1 = bc1.Select(_ => -1).ToArray();
+
+                int l = 0;
+                
+                foreach (var (node, _) in dirichletNodes)
+                {
+                    bc1[node] = l++;   
+                }
+
+                var dirichlet1 = dirichletNodes.ToImmutableArray();
+                
+                for (int i = 0; i < _mesh.Points.Length; i++)
+                {
+                    int k;
+                
+                    if (bc1[i] != -1)
+                    {
+                        var (node, value) = dirichlet1[bc1[i]];
+                    
+                        _globalMatrix.Di[i] = 1.0;
+                        _globalVector[i] = _field?.Invoke(_mesh.Points[node].Point) ?? value;
+
+                        for (int j = _globalMatrix.Ig[i]; j < _globalMatrix.Ig[i + 1]; j++)
+                        {
+                            k = _globalMatrix.Jg[j];
+                            if (bc1[k] == -1)
+                            {
+                                _globalVector[k] -= _globalMatrix.GGl[j] * _globalVector[i];   
+                            }
+                            _globalMatrix.GGl[j] = 0.0;
+                            _globalMatrix.GGu[j] = 0.0;
+                        }
+                    }
+                    else
+                    {
+                        for (int j = _globalMatrix.Ig[i]; j < _globalMatrix.Ig[i + 1]; j++)
+                        {
+                            k = _globalMatrix.Jg[j];
+                            if (bc1[k] != -1)
+                            {
+                                _globalVector[i] -= _globalMatrix.GGl[j] * _globalVector[k];
+                                _globalMatrix.GGl[j] = 0.0;
+                                _globalMatrix.GGu[j] = 0.0;
+                            }
+                        }
+                    }
+                }
+            }
+
+            #endregion
         }
 
         private void ApplyNeumann()
@@ -251,6 +319,14 @@ public class FEMBuilder
                     }
                 }
             }
+            
+            for (int i = 0; i < _mesh.Points.Length; i++)
+            {
+                if (_mesh.Points[i].IsFictitious)
+                {
+                    _globalMatrix.Di[i] = 1.0;
+                }
+            }
         }
 
         public double Solve()
@@ -274,7 +350,10 @@ public class FEMBuilder
 
             for (int i = 0; i < _mesh.Points.Length; i++)
             {
-                exact[i] = _field(_mesh.Points[i]);
+                if (!_mesh.Points[i].IsFictitious)
+                {
+                    exact[i] = _field(_mesh.Points[i].Point);
+                }
             }
 
             double exactNorm = exact.Norm();

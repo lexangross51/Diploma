@@ -52,8 +52,8 @@ public class FlowsCalculator
     {
         var nodes = _mesh.Elements[element].Nodes;
 
-        double hx = _mesh.Points[nodes[^1]].X - _mesh.Points[nodes[0]].X;
-        double hy = _mesh.Points[nodes[^1]].Y - _mesh.Points[nodes[0]].Y;
+        double hx = _mesh.Points[nodes[^1]].Point.X - _mesh.Points[nodes[0]].Point.X;
+        double hy = _mesh.Points[nodes[^1]].Point.Y - _mesh.Points[nodes[0]].Point.Y;
         double gradient = 0.0;
         
         // Left or right border

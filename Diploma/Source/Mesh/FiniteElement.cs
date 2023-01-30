@@ -14,6 +14,14 @@ public class FiniteElement
     public List<int> EdgesDirect { get; set; }
     public int Area { get; set; }
 
+    public FiniteElement()
+    {
+        Nodes = new List<int>(4);
+        EdgesIndices = new List<int>(4);
+        Edges = new List<Edge>(4);
+        EdgesDirect = new List<int>(4);
+    }
+
     public FiniteElement(int[] nodes, int area)
     {
         Nodes = nodes.ToList();

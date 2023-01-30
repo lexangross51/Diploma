@@ -55,20 +55,20 @@ public class PhaseProperty
             }
         }
 
-        if (wellPhaseParameters is not null)
-        {
-            foreach (var ielem in mesh.NeumannConditions.Select(condition => condition.Element))
-            {
-                Saturation?[ielem].Clear();
-                Phases?[ielem].Clear();
-        
-                foreach (var wellPhase in wellPhaseParameters)
-                {
-                    Saturation?[ielem].Add(wellPhase.Kappa);
-                    Phases?[ielem].Add(wellPhase);
-                }
-            }
-        }
+        // if (wellPhaseParameters is not null)
+        // {
+        //     foreach (var ielem in mesh.NeumannConditions.Select(condition => condition.Element))
+        //     {
+        //         Saturation?[ielem].Clear();
+        //         Phases?[ielem].Clear();
+        //
+        //         foreach (var wellPhase in wellPhaseParameters)
+        //         {
+        //             Saturation?[ielem].Add(wellPhase.Kappa);
+        //             Phases?[ielem].Add(wellPhase);
+        //         }
+        //     }
+        // }
 
         foreach (var phase in remotePhasesParameters)
         {

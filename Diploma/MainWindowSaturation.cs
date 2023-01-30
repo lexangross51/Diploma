@@ -1,6 +1,4 @@
-﻿using System.Windows.Input;
-
-namespace Diploma;
+﻿namespace Diploma;
 
 public partial class MainWindow
 {
@@ -54,11 +52,6 @@ public partial class MainWindow
 
             _colorsSaturartion[ielem] = new Color(rColor, gColor, bColor);
         }
-
-        foreach (var ielem in _mesh.NeumannConditions.Select(condition => condition.Element))
-        {
-            _colorsSaturartion[ielem] = new Color(255, 255, 255);
-        }
         
         _saturationLegendValues[0] = _saturation.Max();
         _saturationLegendValues[7] = _saturation.Min();
@@ -92,10 +85,10 @@ public partial class MainWindow
             var nodes = _mesh.Elements[ielem].Nodes;
             
             var c = _colorsSaturartion[ielem];
-            var p1 = _mesh.Points[nodes[0]];
-            var p2 = _mesh.Points[nodes[1]];
-            var p3 = _mesh.Points[nodes[2]];
-            var p4 = _mesh.Points[nodes[3]];
+            var p1 = _mesh.Points[nodes[0]].Point;
+            var p2 = _mesh.Points[nodes[1]].Point;
+            var p3 = _mesh.Points[nodes[2]].Point;
+            var p4 = _mesh.Points[nodes[3]].Point;
         
             gl.Color(c.R, c.G, c.B);
             gl.Vertex(p1.X, p1.Y);
@@ -114,10 +107,10 @@ public partial class MainWindow
         {
             var nodes = t.Nodes;
             
-            var p1 = _mesh.Points[nodes[0]];
-            var p2 = _mesh.Points[nodes[1]];
-            var p3 = _mesh.Points[nodes[2]];
-            var p4 = _mesh.Points[nodes[3]];
+            var p1 = _mesh.Points[nodes[0]].Point;
+            var p2 = _mesh.Points[nodes[1]].Point;
+            var p3 = _mesh.Points[nodes[2]].Point;
+            var p4 = _mesh.Points[nodes[3]].Point;
         
             gl.Vertex(p1.X, p1.Y);
             gl.Vertex(p2.X, p2.Y);

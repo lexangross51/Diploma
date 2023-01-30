@@ -2,7 +2,7 @@
 
 public class Mesh
 {
-    public ImmutableArray<Point2D> Points { get; }
+    public ImmutableArray<(Point2D Point, bool IsFictitious)> Points { get; }
     public ImmutableArray<FiniteElement> Elements { get; }
     public ImmutableArray<DirichletCondition> DirichletConditions { get; }
     public ImmutableArray<int> RemoteEdges { get; }
@@ -10,7 +10,7 @@ public class Mesh
     public ImmutableArray<Material> Materials { get; }
 
     public Mesh(
-        IEnumerable<Point2D> points, 
+        IEnumerable<(Point2D, bool)> points, 
         IEnumerable<FiniteElement> elements,
         IEnumerable<DirichletCondition> dirichletConditions,
         IEnumerable<int> remoteEdgesList,

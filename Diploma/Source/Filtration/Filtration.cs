@@ -240,8 +240,8 @@ public class Filtration
         {
             if (IsWellElement(ielem)) continue;
 
-            var leftBottom = _mesh.Points[_mesh.Elements[ielem].Nodes[0]];
-            var rightTop = _mesh.Points[_mesh.Elements[ielem].Nodes[^1]];
+            var leftBottom = _mesh.Points[_mesh.Elements[ielem].Nodes[0]].Point;
+            var rightTop = _mesh.Points[_mesh.Elements[ielem].Nodes[^1]].Point;
             
             var porosity = _mesh.Materials[_mesh.Elements[ielem].Area].Porosity;
             var mes = (rightTop.X - leftBottom.X) * (rightTop.Y - leftBottom.Y);
@@ -322,8 +322,8 @@ public class Filtration
         foreach (var pair in abandonH)
         {
             var (ielem, iphase) = pair;
-            var leftBottom = _mesh.Points[_mesh.Elements[ielem].Nodes[0]];
-            var rightTop = _mesh.Points[_mesh.Elements[ielem].Nodes[^1]];
+            var leftBottom = _mesh.Points[_mesh.Elements[ielem].Nodes[0]].Point;
+            var rightTop = _mesh.Points[_mesh.Elements[ielem].Nodes[^1]].Point;
             
             var porosity = _mesh.Materials[_mesh.Elements[ielem].Area].Porosity;
             var mes = (rightTop.X - leftBottom.X) * (rightTop.Y - leftBottom.Y);
@@ -391,8 +391,8 @@ public class Filtration
             
             if (IsWellElement(ielem)) continue;
             
-            var leftBottom = _mesh.Points[_mesh.Elements[ielem].Nodes[0]];
-            var rightTop = _mesh.Points[_mesh.Elements[ielem].Nodes[^1]];
+            var leftBottom = _mesh.Points[_mesh.Elements[ielem].Nodes[0]].Point;
+            var rightTop = _mesh.Points[_mesh.Elements[ielem].Nodes[^1]].Point;
             
             var mes = (rightTop.X - leftBottom.X) * (rightTop.Y - leftBottom.Y);
             var edges = _mesh.Elements[ielem].EdgesIndices;
@@ -529,8 +529,8 @@ public class Filtration
             
             Array.Fill(phasesVolumes, 0.0, 0, phasesVolumes.Length);
             
-            var leftBottom = _mesh.Points[_mesh.Elements[ielem].Nodes[0]];
-            var rightTop = _mesh.Points[_mesh.Elements[ielem].Nodes[^1]];
+            var leftBottom = _mesh.Points[_mesh.Elements[ielem].Nodes[0]].Point;
+            var rightTop = _mesh.Points[_mesh.Elements[ielem].Nodes[^1]].Point;
             
             double porosity = _mesh.Materials[_mesh.Elements[ielem].Area].Porosity;
             double mes = (rightTop.X - leftBottom.X) * (rightTop.Y - leftBottom.Y);

@@ -26,13 +26,13 @@ public partial class MainWindow
         _mesh = meshBuilder.Build();
         PhaseProperty phaseProperty = new(_mesh, "Input/");
         FEMBuilder femBuilder = new();
-        //DataWriter.WriteElements("Elements.txt", _mesh);
+        DataWriter.WriteElements("Elements.txt", _mesh);
 
         _pressure = new double[_mesh.Points.Length];
         _saturation = new double[_mesh.Elements.Length];
 
-        double Field(Point2D p) => p.X*p.X + p.Y*p.Y;
-        double Source(Point2D p) => -4;
+        double Field(Point2D p) => p.X - p.Y;
+        double Source(Point2D p) => 0.0;
 
         var fem = femBuilder
             .SetMesh(_mesh)
