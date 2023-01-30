@@ -249,7 +249,7 @@ public class MeshBuilder
 
         int elemsByRow = elem2 - elem1 + 1;
         int elemsByCol = (elem3 - elem1) / nx + 1;
-        int elems = 0;
+        int elems;
 
         if (elemsByRow > elemsByCol)
         {
