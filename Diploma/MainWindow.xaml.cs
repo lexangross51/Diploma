@@ -39,7 +39,7 @@ public partial class MainWindow
             .SetPhaseProperties(phaseProperty)
             .SetBasis(new LinearBasis())
             .SetSolver(new CGM(1000, 1E-20))
-            .SetTest(Source, Field)
+            .SetTest(Source)
             .Build();
         
         fem.Solve();

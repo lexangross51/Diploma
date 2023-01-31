@@ -740,7 +740,7 @@ public class MeshBuilder
         for (int i = 0; i < _materials.Length; i++)
         {
             _materials[i] = _parameters.Area[i].Material;
-            _materials[i].Permeability *= 9.86923E-16;
+            _materials[i].Permeability *= 1.01325E-15;
         }
     }
 

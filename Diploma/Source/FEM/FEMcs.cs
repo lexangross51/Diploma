@@ -294,7 +294,16 @@ public class FEMBuilder
 
         private void ApplyNeumann()
         {
-            
+            foreach (var (ielem, iedge, power) in _mesh.NeumannConditions)
+            {
+                var edge = _mesh.Elements[ielem].Edges[iedge];
+                var p1 = _mesh.Points[edge.Node1].Point;
+                var p2 = _mesh.Points[edge.Node2].Point;
+                double length = Math.Sqrt((p2.X - p1.X) * (p2.X - p1.X) + (p2.Y - p1.Y) * (p2.Y - p1.Y));
+                
+                _globalVector[edge.Node1] += length / 2.0 * power;
+                _globalVector[edge.Node2] += length / 2.0 * power;
+            }
         }
 
         private void AssemblySLAE()
