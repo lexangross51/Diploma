@@ -158,26 +158,35 @@ public partial class MainWindow
 
     private void DrawAxes(OpenGL gl)
     {
-        double hx = _graphArea.Width / 10.0;
-        double hy = _graphArea.Height / 10.0;
-
-        gl.Color(0, 0, 0);
+        gl.Color(0f, 0f, 0f);
+        gl.LineWidth(2);
         gl.Begin(OpenGL.GL_LINES);
-
-        for (double x = _graphArea.Left; x <= _graphArea.Right + hx; x += hx)
-        {
-            gl.Vertex(x, _viewport.Bottom);
-            gl.Vertex(x, _viewport.Bottom + _graphArea.Height * 0.01);
-        }
-
-        for (double y = _graphArea.Bottom; y <= _graphArea.Top + hy; y += hy)
-        {
-            gl.Vertex(_viewport.Left, y);
-            gl.Vertex(_viewport.Left + _graphArea.Width * 0.01, y);
-        }
-
+        gl.Vertex(_graphArea.Left, _graphArea.Bottom);
+        gl.Vertex(_graphArea.Right, _graphArea.Bottom);
+        gl.Vertex(_graphArea.Left, _graphArea.Bottom);
+        gl.Vertex(_graphArea.Left, _graphArea.Top);
         gl.End();
 
+        double hx = _graphArea.Width / 10.0;
+        double hy = _graphArea.Height / 10.0;
+        
+        gl.Color(0, 0, 0);
+        gl.Begin(OpenGL.GL_LINES);
+        
+        for (double x = _graphArea.Left; x <= _graphArea.Right; x += hx)
+        {
+            gl.Vertex(x, _graphArea.Bottom);
+            gl.Vertex(x, _graphArea.Bottom - _graphArea.Height * 0.01);
+        }
+        
+        for (double y = _graphArea.Bottom; y <= _graphArea.Top; y += hy)
+        {
+            gl.Vertex(_graphArea.Left, y);
+            gl.Vertex(_graphArea.Left - _graphArea.Width * 0.01, y);
+        }
+        
+        gl.End();
+        
         // Numbers on the axes
         for (double x = _graphArea.Left; x <= _graphArea.Right + hx; x += hx)
         {
@@ -185,18 +194,20 @@ public partial class MainWindow
             var pos = _viewport.ToScreenCoordinates(x, _viewport.Bottom + _graphArea.Height * 0.015,
                 gl.RenderContextProvider);
             var width = gl.RenderContextProvider.Width;
-
+        
             gl.DrawText((int)(pos.X - width * 0.017), (int)-pos.Y, 0f, 0f, 0f, "Arial", 10, axisX);
         }
-
+        
         for (double y = _graphArea.Bottom; y <= _graphArea.Top + hy; y += hy)
         {
             string axisY = $"{y:f2}";
             var pos = _viewport.ToScreenCoordinates(_viewport.Left + _graphArea.Width * 0.015, y,
                 gl.RenderContextProvider);
             var height = gl.RenderContextProvider.Height;
-
+        
             gl.DrawText((int)(pos.X), (int)(-pos.Y - height * 0.002), 0f, 0f, 0f, "Arial", 10, axisY);
         }
+        
+        gl.LineWidth(1);
     }
 }

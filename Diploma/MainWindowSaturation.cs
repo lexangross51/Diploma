@@ -71,33 +71,36 @@ public partial class MainWindow
         gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
         gl.MatrixMode(OpenGL.GL_PROJECTION);
         gl.LoadIdentity();
-        gl.Ortho2D(_viewport.Left, _viewport.Right, _viewport.Bottom, _viewport.Top);
+        gl.Ortho2D(_graphArea.Left, _graphArea.Right, _graphArea.Bottom, _graphArea.Top);
+        gl.Translate(_graphArea.Width * 0.04, _graphArea.Height * 0.04, 0.0);
         
-        MakeSaturationsColors(_timeMoment);
-
-        gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT);
-        gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
-        gl.ShadeModel(OpenGL.GL_SMOOTH);
-        gl.Begin(OpenGL.GL_QUADS);
+        DrawAxes(gl);
         
-        for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
-        {
-            var nodes = _mesh.Elements[ielem].Nodes;
-            
-            var c = _colorsSaturartion[ielem];
-            var p1 = _mesh.Points[nodes[0]].Point;
-            var p2 = _mesh.Points[nodes[1]].Point;
-            var p3 = _mesh.Points[nodes[2]].Point;
-            var p4 = _mesh.Points[nodes[3]].Point;
-        
-            gl.Color(c.R, c.G, c.B);
-            gl.Vertex(p1.X, p1.Y);
-            gl.Vertex(p2.X, p2.Y);
-            gl.Vertex(p4.X, p4.Y);
-            gl.Vertex(p3.X, p3.Y);
-        }
-        
-        gl.End();
+        // MakeSaturationsColors(_timeMoment);
+        //
+        // gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT);
+        // gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
+        // gl.ShadeModel(OpenGL.GL_SMOOTH);
+        // gl.Begin(OpenGL.GL_QUADS);
+        //
+        // for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+        // {
+        //     var nodes = _mesh.Elements[ielem].Nodes;
+        //     
+        //     var c = _colorsSaturartion[ielem];
+        //     var p1 = _mesh.Points[nodes[0]].Point;
+        //     var p2 = _mesh.Points[nodes[1]].Point;
+        //     var p3 = _mesh.Points[nodes[2]].Point;
+        //     var p4 = _mesh.Points[nodes[3]].Point;
+        //
+        //     gl.Color(c.R, c.G, c.B);
+        //     gl.Vertex(p1.X, p1.Y);
+        //     gl.Vertex(p2.X, p2.Y);
+        //     gl.Vertex(p4.X, p4.Y);
+        //     gl.Vertex(p3.X, p3.Y);
+        // }
+        //
+        // gl.End();
         
         gl.Color(0, 0, 0);
         gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
@@ -119,70 +122,67 @@ public partial class MainWindow
         }
         
         gl.End();
-        
-        DrawAxes(SaturationControl.OpenGL);
-        
         gl.Finish();
     }
     
-    private void SaturationLegend_OnOpenGLDraw(object sender, OpenGLRoutedEventArgs args)
-    {
-        OpenGL gl = SaturationLegend.OpenGL;
-        
-        gl.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
-        gl.MatrixMode(OpenGL.GL_PROJECTION);
-        gl.LoadIdentity();
-        gl.Ortho2D(0, gl.RenderContextProvider.Width, 0, gl.RenderContextProvider.Height);
-    
-        double xMin = gl.RenderContextProvider.Width * 0.05;
-        double xMax = gl.RenderContextProvider.Width * 0.95;
-        double yMin = gl.RenderContextProvider.Height * 0.05;
-        double yMax = gl.RenderContextProvider.Height * 0.5;
-        double hx = (xMax - xMin) / 3;
-        double x = xMin;
-    
-        gl.ShadeModel(OpenGL.GL_SMOOTH);
-        gl.Begin(OpenGL.GL_QUADS);
-        
-        for (int i = 0; i < 3; x += hx, i++)
-        {
-            gl.Color(_saturationLegendColors[i, 0], _saturationLegendColors[i, 1], _saturationLegendColors[i, 2]);
-            gl.Vertex(x, yMin);
-            gl.Vertex(x, yMax);
-            gl.Color(_saturationLegendColors[i + 1, 0], _saturationLegendColors[i + 1, 1], _saturationLegendColors[i + 1, 2]);
-            gl.Vertex(x + hx, yMax);
-            gl.Vertex(x + hx, yMin);
-        }
-        
-        gl.End();
-    
-        x = xMin;
-        hx = (xMax - xMin) / 7;
-        
-        gl.Color(0, 0, 0);
-        gl.Begin(OpenGL.GL_LINES);
-        
-        for (int i = 0; i < 7; x += hx, i++)
-        {
-            gl.Vertex(x, yMin);
-            gl.Vertex(x, gl.RenderContextProvider.Height * 0.6);
-        }
-        
-        gl.Vertex(x, yMin);
-        gl.Vertex(x, gl.RenderContextProvider.Height * 0.6);
-        gl.End();
-        gl.Finish();
-    
-        x = gl.RenderContextProvider.Width * 0.01;
-        
-        for (int i = 0; i < 7; x += hx, i++)
-        {
-            var axisText = $"{_saturationLegendValues[i]:E4}";
-            gl.DrawText((int)x, 30, 0f, 0f, 0f, "Arial", 10, axisText);
-        }
-        
-        var axisTex = $"{_saturationLegendValues[7]:E4}";
-        gl.DrawText((int)(x - gl.RenderContextProvider.Width * 0.01), 30, 0f, 0f, 0f, "Arial", 10, axisTex);
-    }
+    // private void SaturationLegend_OnOpenGLDraw(object sender, OpenGLRoutedEventArgs args)
+    // {
+    //     OpenGL gl = SaturationLegend.OpenGL;
+    //     
+    //     gl.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    //     gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
+    //     gl.MatrixMode(OpenGL.GL_PROJECTION);
+    //     gl.LoadIdentity();
+    //     gl.Ortho2D(0, gl.RenderContextProvider.Width, 0, gl.RenderContextProvider.Height);
+    //
+    //     double xMin = gl.RenderContextProvider.Width * 0.05;
+    //     double xMax = gl.RenderContextProvider.Width * 0.95;
+    //     double yMin = gl.RenderContextProvider.Height * 0.05;
+    //     double yMax = gl.RenderContextProvider.Height * 0.5;
+    //     double hx = (xMax - xMin) / 3;
+    //     double x = xMin;
+    //
+    //     gl.ShadeModel(OpenGL.GL_SMOOTH);
+    //     gl.Begin(OpenGL.GL_QUADS);
+    //     
+    //     for (int i = 0; i < 3; x += hx, i++)
+    //     {
+    //         gl.Color(_saturationLegendColors[i, 0], _saturationLegendColors[i, 1], _saturationLegendColors[i, 2]);
+    //         gl.Vertex(x, yMin);
+    //         gl.Vertex(x, yMax);
+    //         gl.Color(_saturationLegendColors[i + 1, 0], _saturationLegendColors[i + 1, 1], _saturationLegendColors[i + 1, 2]);
+    //         gl.Vertex(x + hx, yMax);
+    //         gl.Vertex(x + hx, yMin);
+    //     }
+    //     
+    //     gl.End();
+    //
+    //     x = xMin;
+    //     hx = (xMax - xMin) / 7;
+    //     
+    //     gl.Color(0, 0, 0);
+    //     gl.Begin(OpenGL.GL_LINES);
+    //     
+    //     for (int i = 0; i < 7; x += hx, i++)
+    //     {
+    //         gl.Vertex(x, yMin);
+    //         gl.Vertex(x, gl.RenderContextProvider.Height * 0.6);
+    //     }
+    //     
+    //     gl.Vertex(x, yMin);
+    //     gl.Vertex(x, gl.RenderContextProvider.Height * 0.6);
+    //     gl.End();
+    //     gl.Finish();
+    //
+    //     x = gl.RenderContextProvider.Width * 0.01;
+    //     
+    //     for (int i = 0; i < 7; x += hx, i++)
+    //     {
+    //         var axisText = $"{_saturationLegendValues[i]:E4}";
+    //         gl.DrawText((int)x, 30, 0f, 0f, 0f, "Arial", 10, axisText);
+    //     }
+    //     
+    //     var axisTex = $"{_saturationLegendValues[7]:E4}";
+    //     gl.DrawText((int)(x - gl.RenderContextProvider.Width * 0.01), 30, 0f, 0f, 0f, "Arial", 10, axisTex);
+    // }
 }

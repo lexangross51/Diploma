@@ -26,7 +26,7 @@ public partial class MainWindow
         _mesh = meshBuilder.Build();
         PhaseProperty phaseProperty = new(_mesh, "Input/");
         FEMBuilder femBuilder = new();
-        DataWriter.WriteElements("Elements.txt", _mesh);
+        //DataWriter.WriteElements("Elements.txt", _mesh);
 
         _pressure = new double[_mesh.Points.Length];
         _saturation = new double[_mesh.Elements.Length];
@@ -42,10 +42,10 @@ public partial class MainWindow
             .SetTest(Source)
             .Build();
         
-        fem.Solve();
-        
-        DataWriter.WritePressure($"Pressure{_timeMoment}.txt", fem.Solution!);
-        DataWriter.WriteSaturation($"Saturation{_timeMoment}.txt", _mesh, phaseProperty.Saturation!);
+        //fem.Solve();
+        //
+        // DataWriter.WritePressure($"Pressure{_timeMoment}.txt", fem.Solution!);
+        // DataWriter.WriteSaturation($"Saturation{_timeMoment}.txt", _mesh, phaseProperty.Saturation!);
         
         // Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
         // filtration.ModelFiltration(_timeStart, _timeEnd);
@@ -53,10 +53,20 @@ public partial class MainWindow
         _colorsPressure = new Color[_mesh.Elements.Length];
         _colorsSaturartion = new Color[_mesh.Elements.Length];
 
-        _graphArea.Left = meshParameters.Area[0].LeftBottom.X;
-        _graphArea.Bottom = meshParameters.Area[0].LeftBottom.Y;
-        _graphArea.Right = meshParameters.Area[0].RightTop.X;
-        _graphArea.Top = meshParameters.Area[0].RightTop.Y;
+
+        double leftBottom =
+            Math.Abs(meshParameters.Area[0].LeftBottom.X) > Math.Abs(meshParameters.Area[0].LeftBottom.Y)
+                ? meshParameters.Area[0].LeftBottom.X
+                : meshParameters.Area[0].LeftBottom.Y;
+        double rightTop =
+            Math.Abs(meshParameters.Area[0].RightTop.X) > Math.Abs(meshParameters.Area[0].RightTop.Y)
+                ? meshParameters.Area[0].RightTop.X
+                : meshParameters.Area[0].RightTop.Y;
+        
+        _graphArea.Left = leftBottom;
+        _graphArea.Bottom = leftBottom;
+        _graphArea.Right = rightTop;
+        _graphArea.Top = rightTop;
 
         _viewport.Left = _graphArea.Left - 0.07 * _graphArea.Width;
         _viewport.Right = _graphArea.Right + 0.05 * _graphArea.Width;
