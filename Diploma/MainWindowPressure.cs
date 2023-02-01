@@ -5,6 +5,7 @@ public partial class MainWindow
     private readonly Color[] _colorsPressure;
     private readonly double[] _pressure;
     private readonly double[] _pressureLegendValues = new double[8];
+
     private readonly byte[,] _pressureLegendColors =
     {
         { 255, 0, 0 },
@@ -13,7 +14,7 @@ public partial class MainWindow
         { 0, 0, 255 },
         { 139, 0, 255 }
     };
-    
+
     private void MakePressureColors(int timeMoment)
     {
         using var sr = new StreamReader($"Pressure/Pressure{timeMoment}.txt");
@@ -22,7 +23,7 @@ public partial class MainWindow
         {
             _pressure[i] = Convert.ToDouble(sr.ReadLine());
         }
-        
+
         double pressMin = _pressure.Min();
         double pressMax = _pressure.Max();
         double stepPBig = (pressMax - pressMin) / 4.0;
@@ -32,8 +33,9 @@ public partial class MainWindow
             var t = _mesh.Elements[ielem];
             var nodes = t.Nodes;
 
-            double centerP = (_pressure[nodes[0]] + _pressure[nodes[1]] + _pressure[nodes[2]] + _pressure[nodes[3]]) / 4.0;
-            
+            double centerP = (_pressure[nodes[0]] + _pressure[nodes[1]] + _pressure[nodes[2]] + _pressure[nodes[3]]) /
+                             4.0;
+
             byte rColor, gColor, bColor;
 
             if (centerP > pressMin + stepPBig * 3.0)
@@ -61,7 +63,7 @@ public partial class MainWindow
                 gColor = 0;
                 bColor = 255;
             }
-            
+
             _colorsPressure[ielem] = new Color(rColor, gColor, bColor);
         }
 
@@ -78,7 +80,7 @@ public partial class MainWindow
     private void PressureControl_OnOpenGLDraw(object sender, OpenGLRoutedEventArgs args)
     {
         OpenGL gl = PressureControl.OpenGL;
-        
+
         gl.ClearColor(1, 1, 1, 1.0f);
         gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
         gl.MatrixMode(OpenGL.GL_PROJECTION);
@@ -87,33 +89,33 @@ public partial class MainWindow
 
         MakePressureColors(_timeMoment);
 
-         gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
-         gl.ShadeModel(OpenGL.GL_SMOOTH);
-         gl.Begin(OpenGL.GL_QUADS);
-        
-         for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
-         {
-             var nodes = _mesh.Elements[ielem].Nodes;
-        
-             var c = _colorsPressure[ielem];
-             var p1 = _mesh.Points[nodes[0]].Point;
-             var p2 = _mesh.Points[nodes[1]].Point;
-             var p3 = _mesh.Points[nodes[2]].Point;
-             var p4 = _mesh.Points[nodes[3]].Point;
-        
-             gl.Color(c.R, c.G, c.B);
-             gl.Vertex(p1.X, p1.Y);
-             gl.Vertex(p2.X, p2.Y);
-             gl.Vertex(p4.X, p4.Y);
-             gl.Vertex(p3.X, p3.Y);
-         }
-        
-         gl.End();
-        
+        gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
+        gl.ShadeModel(OpenGL.GL_SMOOTH);
+        gl.Begin(OpenGL.GL_QUADS);
+
+        for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+        {
+            var nodes = _mesh.Elements[ielem].Nodes;
+
+            var c = _colorsPressure[ielem];
+            var p1 = _mesh.Points[nodes[0]].Point;
+            var p2 = _mesh.Points[nodes[1]].Point;
+            var p3 = _mesh.Points[nodes[2]].Point;
+            var p4 = _mesh.Points[nodes[3]].Point;
+
+            gl.Color(c.R, c.G, c.B);
+            gl.Vertex(p1.X, p1.Y);
+            gl.Vertex(p2.X, p2.Y);
+            gl.Vertex(p4.X, p4.Y);
+            gl.Vertex(p3.X, p3.Y);
+        }
+
+        gl.End();
+
         gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
         gl.Color(0, 0, 0, 1);
         gl.Begin(OpenGL.GL_QUADS);
-        
+
         foreach (var t in _mesh.Elements)
         {
             var nodes = t.Nodes;
@@ -121,42 +123,42 @@ public partial class MainWindow
             var p2 = _mesh.Points[nodes[1]].Point;
             var p3 = _mesh.Points[nodes[2]].Point;
             var p4 = _mesh.Points[nodes[3]].Point;
-        
+
             gl.Vertex(p1.X, p1.Y);
             gl.Vertex(p2.X, p2.Y);
             gl.Vertex(p4.X, p4.Y);
             gl.Vertex(p3.X, p3.Y);
         }
-        
+
         gl.End();
 
         ShowDirichletConditions(args);
         ShowNeumannConditions(args);
         DrawAxes(PressureControl.OpenGL);
-        
+
         gl.Finish();
     }
-    
+
     private void PressureLegend_OnOpenGLDraw(object sender, OpenGLRoutedEventArgs args)
     {
         OpenGL gl = PressureLegend.OpenGL;
-        
+
         gl.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
         gl.MatrixMode(OpenGL.GL_PROJECTION);
         gl.LoadIdentity();
         gl.Ortho2D(0, gl.RenderContextProvider.Width, 0, gl.RenderContextProvider.Height);
-    
+
         double xMin = gl.RenderContextProvider.Width * 0.05;
         double xMax = gl.RenderContextProvider.Width * 0.95;
         double yMin = gl.RenderContextProvider.Height * 0.05;
         double yMax = gl.RenderContextProvider.Height * 0.5;
         double hx = (xMax - xMin) / 4;
         double x = xMin;
-    
+
         gl.ShadeModel(OpenGL.GL_SMOOTH);
         gl.Begin(OpenGL.GL_QUADS);
-        
+
         for (int i = 0; i < 4; x += hx, i++)
         {
             gl.Color(_pressureLegendColors[i, 0], _pressureLegendColors[i, 1], _pressureLegendColors[i, 2]);
@@ -166,34 +168,34 @@ public partial class MainWindow
             gl.Vertex(x + hx, yMax);
             gl.Vertex(x + hx, yMin);
         }
-        
+
         gl.End();
-    
+
         x = xMin;
         hx = (xMax - xMin) / 7;
-        
+
         gl.Color(0, 0, 0);
         gl.Begin(OpenGL.GL_LINES);
-        
+
         for (int i = 0; i < 7; x += hx, i++)
         {
             gl.Vertex(x, yMin);
             gl.Vertex(x, gl.RenderContextProvider.Height * 0.6);
         }
-        
+
         gl.Vertex(x, yMin);
         gl.Vertex(x, gl.RenderContextProvider.Height * 0.6);
         gl.End();
         gl.Finish();
-    
+
         x = gl.RenderContextProvider.Width * 0.01;
-        
+
         for (int i = 0; i < 7; x += hx, i++)
         {
             var axisText = $"{_pressureLegendValues[i]:E7}";
             gl.DrawText((int)x, 30, 0f, 0f, 0f, "Arial", 10, axisText);
         }
-        
+
         var axisTex = $"{_pressureLegendValues[7]:E7}";
         gl.DrawText((int)(x - gl.RenderContextProvider.Width * 0.01), 30, 0f, 0f, 0f, "Arial", 10, axisTex);
     }
@@ -201,18 +203,18 @@ public partial class MainWindow
     private void ShowDirichletConditions(OpenGLRoutedEventArgs args)
     {
         OpenGL gl = args.OpenGL;
-        
+
         gl.Color(0f, 0f, 0f);
         gl.PointSize(5);
         gl.Begin(OpenGL.GL_POINTS);
-        
+
         foreach (var (inode, pressure) in _mesh.DirichletConditions)
         {
             var point = _mesh.Points[inode].Point;
-            
+
             gl.Vertex(point.X, point.Y);
         }
-        
+
         gl.End();
     }
 
@@ -228,11 +230,11 @@ public partial class MainWindow
             var edge = _mesh.Elements[ielem].Edges[iedge];
             var p1 = _mesh.Points[edge.Node1].Point;
             var p2 = _mesh.Points[edge.Node2].Point;
-            
+
             gl.Vertex(p1.X, p1.Y);
             gl.Vertex(p2.X, p2.Y);
         }
-        
+
         gl.End();
     }
 }
