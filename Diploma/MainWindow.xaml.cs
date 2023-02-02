@@ -42,10 +42,10 @@ public partial class MainWindow
             .SetTest(Source)
             .Build();
         
-        //fem.Solve();
-        //
-        // DataWriter.WritePressure($"Pressure{_timeMoment}.txt", fem.Solution!);
-        // DataWriter.WriteSaturation($"Saturation{_timeMoment}.txt", _mesh, phaseProperty.Saturation!);
+        fem.Solve();
+        
+         DataWriter.WritePressure($"Pressure{_timeMoment}.txt", fem.Solution!);
+         DataWriter.WriteSaturation($"Saturation{_timeMoment}.txt", _mesh, phaseProperty.Saturation!);
         
         // Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
         // filtration.ModelFiltration(_timeStart, _timeEnd);

@@ -1,4 +1,6 @@
-﻿namespace Diploma;
+﻿using System.Net.Sockets;
+
+namespace Diploma;
 
 public partial class MainWindow
 {
@@ -81,52 +83,43 @@ public partial class MainWindow
     {
         OpenGL gl = PressureControl.OpenGL;
        
-        gl.Viewport(0, 0, gl.RenderContextProvider.Width, gl.RenderContextProvider.Height);
         gl.ClearColor(1f, 1f, 1.0f, 1.0f);
         gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
         gl.MatrixMode(OpenGL.GL_PROJECTION);
         gl.LoadIdentity();
+        
+        gl.Viewport(0, 0, gl.RenderContextProvider.Width, gl.RenderContextProvider.Height);
         gl.Ortho2D(_graphArea.Left, _graphArea.Right, _graphArea.Bottom, _graphArea.Top);
-        gl.PushMatrix();
-        {
-            double percentX = 20 / (double)gl.RenderContextProvider.Width;
-            double percentY = 20 / (double)gl.RenderContextProvider.Height;
-        
-            gl.Translate(_graphArea.Width * percentX, _graphArea.Height * percentY, 0.0);
-        
-            DrawAxes(PressureControl.OpenGL);
-        }
-        gl.PopMatrix();
         
         gl.PushMatrix();
         {
+            MakePressureColors(_timeMoment);
+            
             gl.Viewport(20, 20, gl.RenderContextProvider.Width - 30, gl.RenderContextProvider.Height - 30);
-
-            // MakePressureColors(_timeMoment);
-            //
-            // gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
-            // gl.ShadeModel(OpenGL.GL_SMOOTH);
-            // gl.Begin(OpenGL.GL_QUADS);
-            //
-            // for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
-            // {
-            //     var nodes = _mesh.Elements[ielem].Nodes;
-            //
-            //     var c = _colorsPressure[ielem];
-            //     var p1 = _mesh.Points[nodes[0]].Point;
-            //     var p2 = _mesh.Points[nodes[1]].Point;
-            //     var p3 = _mesh.Points[nodes[2]].Point;
-            //     var p4 = _mesh.Points[nodes[3]].Point;
-            //
-            //     gl.Color(c.R, c.G, c.B);
-            //     gl.Vertex(p1.X, p1.Y);
-            //     gl.Vertex(p2.X, p2.Y);
-            //     gl.Vertex(p4.X, p4.Y);
-            //     gl.Vertex(p3.X, p3.Y);
-            // }
-            //
-            // gl.End();
-
+            
+            gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
+            gl.ShadeModel(OpenGL.GL_SMOOTH);
+            gl.Begin(OpenGL.GL_QUADS);
+            
+            for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+            {
+                var nodes = _mesh.Elements[ielem].Nodes;
+            
+                var c = _colorsPressure[ielem];
+                var p1 = _mesh.Points[nodes[0]].Point;
+                var p2 = _mesh.Points[nodes[1]].Point;
+                var p3 = _mesh.Points[nodes[2]].Point;
+                var p4 = _mesh.Points[nodes[3]].Point;
+            
+                gl.Color(c.R, c.G, c.B);
+                gl.Vertex(p1.X, p1.Y);
+                gl.Vertex(p2.X, p2.Y);
+                gl.Vertex(p4.X, p4.Y);
+                gl.Vertex(p3.X, p3.Y);
+            }
+            
+            gl.End();
+            
             gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
             gl.Color(0, 0, 0, 1);
             gl.Begin(OpenGL.GL_QUADS);
@@ -147,73 +140,92 @@ public partial class MainWindow
 
             gl.End();
 
-            ShowDirichletConditions(args);
+            //ShowDirichletConditions(args);
             ShowNeumannConditions(args);
         }
         gl.PopMatrix();
+        
+        DrawAxes(PressureControl.OpenGL);
+
+        #region Draw legend
+
+        gl.PushMatrix();
+        {
+            gl.MatrixMode(OpenGL.GL_PROJECTION);
+            gl.LoadIdentity();
+            gl.Ortho2D(0, 1920, 0, 1080);
+            gl.Viewport(gl.RenderContextProvider.Width - 90, 0, 90, 150);
+            
+             //gl.Color(0.937f, 0.73f, 0.7f);
+             gl.Color(1f, 1f, 1f);
+             gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
+             gl.Begin(OpenGL.GL_QUADS);
+             gl.Vertex(0, 0);
+             gl.Vertex(1920, 0);
+             gl.Vertex(1920, 1080);
+             gl.Vertex(0, 1080);
+             gl.End();
+            
+             gl.Color(0f, 0f, 0f);
+             gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
+             gl.Begin(OpenGL.GL_QUADS);
+             gl.Vertex(0, 0);
+             gl.Vertex(1920, 0);
+             gl.Vertex(1920, 1080);
+             gl.Vertex(0, 1080);
+             gl.End();
+            
+             gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
+             gl.ShadeModel(OpenGL.GL_SMOOTH);
+             gl.Begin(OpenGL.GL_QUADS);
+            
+             double y = 1040;
+             double hy = 250;
+             for (int i = 0; i < 4; y -= hy, i++)
+             {
+                 gl.Color(_pressureLegendColors[i, 0], _pressureLegendColors[i, 1], _pressureLegendColors[i, 2]);
+                 gl.Vertex(100, y);
+                 gl.Vertex(900, y);
+                 gl.Color(_pressureLegendColors[i + 1, 0], _pressureLegendColors[i + 1, 1], _pressureLegendColors[i + 1, 2]);
+                 gl.Vertex(900, y - hy);
+                 gl.Vertex(100, y - hy);
+             }
+            
+             gl.End();
+            
+             gl.Begin(OpenGL.GL_LINES);
+            
+             y = 1040;
+             hy = 1000.0 / 7.0;
+             for (int i = 0; i < 8; y -= hy, i++)
+             {
+                 gl.Vertex(900, y);
+                 gl.Vertex(1100, y);
+             }
+            
+             gl.End();
+
+             y = 40;
+             // for (int i = 0; i < 7; y += hy, i++)
+             // {
+             //     var axisText = $"{_pressureLegendValues[i] / 10000:f3}";
+             //     int height = (int)y;
+             //     
+             //     gl.DrawText(1400, height, 0f, 0f, 0f, "Arial", 10, axisText, 1920, 1080);
+             // }
+             //var axisTex = $"{_pressureLegendValues[7]:f3}";
+             var axisTex = "X";
+             gl.DrawText(1200, 40, 0f, 0f, 0f, "Arial", 12, axisTex, 1920, 1080);
+             gl.DrawText(500, 200, 0f, 0f, 0f, "Arial", 12, axisTex, 1920, 1080);
+             gl.DrawText(500, 400, 0f, 0f, 0f, "Arial", 12, axisTex, 1920, 1080);
+             gl.DrawText(1200, 1040, 0f, 0f, 0f, "Arial", 12, axisTex, 1920, 1080);
+        }
+        gl.PopMatrix();
+
+        #endregion
+
         gl.Finish();
     }
-
-    // private void PressureLegend_OnOpenGLDraw(object sender, OpenGLRoutedEventArgs args)
-    // {
-    //     OpenGL gl = PressureLegend.OpenGL;
-    //
-    //     gl.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    //     gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
-    //     gl.MatrixMode(OpenGL.GL_PROJECTION);
-    //     gl.LoadIdentity();
-    //     gl.Ortho2D(0, gl.RenderContextProvider.Width, 0, gl.RenderContextProvider.Height);
-    //
-    //     double xMin = gl.RenderContextProvider.Width * 0.05;
-    //     double xMax = gl.RenderContextProvider.Width * 0.95;
-    //     double yMin = gl.RenderContextProvider.Height * 0.05;
-    //     double yMax = gl.RenderContextProvider.Height * 0.5;
-    //     double hx = (xMax - xMin) / 4;
-    //     double x = xMin;
-    //
-    //     gl.ShadeModel(OpenGL.GL_SMOOTH);
-    //     gl.Begin(OpenGL.GL_QUADS);
-    //
-    //     for (int i = 0; i < 4; x += hx, i++)
-    //     {
-    //         gl.Color(_pressureLegendColors[i, 0], _pressureLegendColors[i, 1], _pressureLegendColors[i, 2]);
-    //         gl.Vertex(x, yMin);
-    //         gl.Vertex(x, yMax);
-    //         gl.Color(_pressureLegendColors[i + 1, 0], _pressureLegendColors[i + 1, 1], _pressureLegendColors[i + 1, 2]);
-    //         gl.Vertex(x + hx, yMax);
-    //         gl.Vertex(x + hx, yMin);
-    //     }
-    //
-    //     gl.End();
-    //
-    //     x = xMin;
-    //     hx = (xMax - xMin) / 7;
-    //
-    //     gl.Color(0, 0, 0);
-    //     gl.Begin(OpenGL.GL_LINES);
-    //
-    //     for (int i = 0; i < 7; x += hx, i++)
-    //     {
-    //         gl.Vertex(x, yMin);
-    //         gl.Vertex(x, gl.RenderContextProvider.Height * 0.6);
-    //     }
-    //
-    //     gl.Vertex(x, yMin);
-    //     gl.Vertex(x, gl.RenderContextProvider.Height * 0.6);
-    //     gl.End();
-    //     gl.Finish();
-    //
-    //     x = gl.RenderContextProvider.Width * 0.01;
-    //
-    //     for (int i = 0; i < 7; x += hx, i++)
-    //     {
-    //         var axisText = $"{_pressureLegendValues[i]:E7}";
-    //         gl.DrawText((int)x, 30, 0f, 0f, 0f, "Arial", 10, axisText);
-    //     }
-    //
-    //     var axisTex = $"{_pressureLegendValues[7]:E7}";
-    //     gl.DrawText((int)(x - gl.RenderContextProvider.Width * 0.01), 30, 0f, 0f, 0f, "Arial", 10, axisTex);
-    // }
 
     private void ShowDirichletConditions(OpenGLRoutedEventArgs args)
     {
