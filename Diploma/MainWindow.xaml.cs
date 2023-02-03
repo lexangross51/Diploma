@@ -19,7 +19,6 @@ public sealed partial class MainWindow : INotifyPropertyChanged
     private Projection _graphArea = new();
     private readonly Mesh? _mesh;
     private int _timeStart = 0, _timeEnd = 1, _timeMoment;
-    private readonly Point2D[,] _normals;
     private int _currentElem;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -43,7 +42,6 @@ public sealed partial class MainWindow : INotifyPropertyChanged
         _mesh = meshBuilder.Build();
         PhaseProperty phaseProperty = new(_mesh, "Input/");
         FEMBuilder femBuilder = new();
-        //DataWriter.WriteElements("Elements.txt", _mesh);
         
         _pressure = new double[_mesh.Points.Length];
         _saturation = new double[_mesh.Elements.Length];
@@ -63,6 +61,9 @@ public sealed partial class MainWindow : INotifyPropertyChanged
         
         DataWriter.WritePressure($"Pressure{_timeMoment}.txt", fem.Solution!);
         DataWriter.WriteSaturation($"Saturation{_timeMoment}.txt", _mesh, phaseProperty.Saturation!);
+
+        FlowsCalculator flowsCalculator = new(_mesh, new LinearBasis(), phaseProperty);
+        var averageFlows = flowsCalculator.CalculateAverageFlows(fem.Solution!);
         
         // Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
         // filtration.ModelFiltration(_timeStart, _timeEnd);
@@ -87,29 +88,8 @@ public sealed partial class MainWindow : INotifyPropertyChanged
         InitializeComponent();
 
         TimeMoment = 0;
-        
-        
-        // Calculate normals
-        _normals = new Point2D[_mesh.Elements.Length, 4];
-        
-        for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
-        {
-            for (int iedge = 0; iedge < 4; iedge++)
-            {
-                var edge = _mesh.Elements[ielem].Edges[iedge];
-                var p1 = _mesh.Points[edge.Node1].Point;
-                var p2 = _mesh.Points[edge.Node2].Point;
-                double n1 = -(p2.Y - p1.Y);
-                double n2 = (p2.X - p1.X);
-                double norm = Math.Sqrt(n1 * n1 + n2 * n2);
-
-                _normals[ielem, iedge] = new Point2D(n1 / norm, n2 / norm);
-            }
-        }
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }

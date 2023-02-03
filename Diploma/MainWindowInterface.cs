@@ -1,4 +1,6 @@
-﻿using System.Windows.Input;
+﻿using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace Diploma;
 
@@ -237,5 +239,106 @@ public sealed partial class MainWindow
         }
         gl.PopMatrix();
         gl.LineWidth(1);
+    }
+
+    private void DrawLegend(OpenGL gl, double[] legendValues, byte[,] legendColors)
+    {
+        gl.PushMatrix();
+        {
+            gl.MatrixMode(OpenGL.GL_PROJECTION);
+            gl.LoadIdentity();
+            gl.MatrixMode(OpenGL.GL_MODELVIEW);
+            gl.LoadIdentity();
+            gl.Ortho2D(0, 1920, 0, 1080);
+            gl.Viewport(gl.RenderContextProvider.Width - 90, 0, 90, 150);
+
+            gl.Color(1f, 1f, 1f);
+            gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
+            gl.Begin(OpenGL.GL_QUADS);
+            gl.Vertex(0, 0);
+            gl.Vertex(1920, 0);
+            gl.Vertex(1920, 1080);
+            gl.Vertex(0, 1080);
+            gl.End();
+
+            gl.Color(0f, 0f, 0f);
+            gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
+            gl.Begin(OpenGL.GL_QUADS);
+            gl.Vertex(0, 0);
+            gl.Vertex(1920, 0);
+            gl.Vertex(1920, 1080);
+            gl.Vertex(0, 1080);
+            gl.End();
+
+            gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
+            gl.ShadeModel(OpenGL.GL_SMOOTH);
+            gl.Begin(OpenGL.GL_QUADS);
+
+            double y = 1020;
+            double hy = 960.0 / (legendColors.GetLength(0) - 1);
+            for (int i = 0; i < legendColors.GetLength(0) - 1; y -= hy, i++)
+            {
+                gl.Color(legendColors[i, 0], legendColors[i, 1], legendColors[i, 2]);
+                gl.Vertex(100, y);
+                gl.Vertex(800, y);
+                gl.Color(legendColors[i + 1, 0], legendColors[i + 1, 1], legendColors[i + 1, 2]);
+                gl.Vertex(800, y - hy);
+                gl.Vertex(100, y - hy);
+            }
+
+            gl.End();
+
+            gl.Color(0f, 0f, 0f);
+            gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
+            gl.Begin(OpenGL.GL_QUADS);
+            gl.Vertex(100, 60);
+            gl.Vertex(800, 60);
+            gl.Vertex(800, 1020);
+            gl.Vertex(100, 1020);
+            gl.End();
+
+            gl.Begin(OpenGL.GL_LINES);
+
+            y = 1020;
+            hy = 960.0 / 7.0;
+            for (int i = 0; i < 8; y -= hy, i++)
+            {
+                gl.Vertex(800, y);
+                gl.Vertex(900, y);
+            }
+
+            gl.End();
+
+            y = 1020;
+            for (int i = 0; i < 8; y -= hy, i++)
+            {
+                var axisText = $"{legendValues[i]:f3}";
+                int height = (int)y;
+
+                gl.DrawText(1000, height - 20, 0f, 0f, 0f, "Arial", 10, axisText, 1920, 1080);
+            }
+        }
+        gl.PopMatrix();
+    }
+    
+    private void Button_OnClick(object sender, RoutedEventArgs e)
+    {
+        var button = (sender as Button)!;
+
+        switch (button.Name)
+        {
+            case "NextButton":
+            {
+                if (_currentElem < _mesh!.Elements.Length)
+                    _currentElem++;
+                break;
+            }
+            case "PrevButton":
+            {
+                if (_currentElem > 0)
+                    _currentElem--;
+                break;
+            }
+        }
     }
 }

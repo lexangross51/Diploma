@@ -8,13 +8,42 @@ public class FlowsCalculator
     private readonly Vector _averageFlows;
     private readonly Vector _precalcIntegralGradX;
     private readonly Vector _precalcIntegralGradY;
-    private readonly int[] _normals = { 1, 1, 1, 1 };
+    private readonly Point2D[] _normals;
 
     public FlowsCalculator(Mesh.Mesh mesh, IBasis basis, PhaseProperty phaseProperty)
     {
         _mesh = mesh;
         _basis = basis;
         _phaseProperty = phaseProperty;
+        
+        // Calculate normals and fix directions for general normals
+        _normals = new Point2D[_mesh.Elements[^1].EdgesIndices[^1] + 1];
+        bool[] isUsed = new bool[_mesh.Elements[^1].EdgesIndices[^1] + 1];
+
+        foreach (var element in _mesh.Elements)
+        {
+            for (int iedge = 0; iedge < 4; iedge++)
+            {
+                int globalIdx = element.EdgesIndices[iedge];
+                var edge = element.Edges[iedge];
+                var p1 = _mesh.Points[edge.Node1].Point;
+                var p2 = _mesh.Points[edge.Node2].Point;
+                double n1 = -(p2.Y - p1.Y);
+                double n2 = p2.X - p1.X;
+                double norm = Math.Sqrt(n1 * n1 + n2 * n2);
+
+                if (isUsed[globalIdx])
+                {
+                    element.EdgesDirect[iedge] = -1;                    
+                }
+                else
+                {
+                    isUsed[globalIdx] = true;
+                    _normals[globalIdx] = new Point2D(n1 / norm, n2 / norm);
+                    element.EdgesDirect[iedge] = 1;
+                }
+            }
+        }
         
         var edgesCount = mesh.Elements[^1].EdgesIndices[^1] + 1;
 
@@ -85,17 +114,13 @@ public class FlowsCalculator
 
         for (int i = 0; i < phaseCount; i++)
         {
-            coefficient += _phaseProperty.Phases[ielem][i].Kappa;
-            coefficient /= _phaseProperty.Phases[ielem][i].Viscosity;
+            coefficient += _phaseProperty.Phases[ielem][i].Kappa / _phaseProperty.Phases[ielem][i].Viscosity;
         }
             
-        coefficient *= _mesh.Materials[area].Permeability * 9.86923E-04;
+        coefficient *= _mesh.Materials[area].Permeability;
 
         return coefficient;
     }
-    
-    private bool IsWellElement(int ielem)
-        => Enumerable.Any(_mesh.NeumannConditions, condition => condition.Element == ielem);
 
     private void FixWellsFlows()
     {
@@ -113,44 +138,44 @@ public class FlowsCalculator
     
     public Vector CalculateAverageFlows(Vector pressure)
     {
-        List<bool> isUsedEdge = new(_averageFlows.Length);
-
-        for (int i = 0; i < _averageFlows.Length; i++)
-        {
-            isUsedEdge.Add(false);
-        }
-
-        for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
-        {
-            if (IsWellElement(ielem)) continue;
-
-            double coefficient = CalculateCoefficient(ielem);
-            var edges = _mesh.Elements[ielem].EdgesIndices;
-
-            for (int localEdge = 0; localEdge < edges.Count; localEdge++)
-            {
-                var globalEdge = edges[localEdge];
-
-                double flow = -CalculateGradient(pressure, ielem, localEdge) * _normals[localEdge];
-
-                if (FlowDirection(flow, ielem, localEdge) == 1)
-                {
-                    flow *= coefficient;
-                }
-
-                if (isUsedEdge[globalEdge])
-                {
-                    _averageFlows[globalEdge] = (_averageFlows[globalEdge] + flow) / 2.0;
-                }
-                else
-                {
-                    _averageFlows[globalEdge] = flow;
-                    isUsedEdge[globalEdge] = true;
-                }
-            }
-        }
-        
-        FixWellsFlows();
+        // List<bool> isUsedEdge = new(_averageFlows.Length);
+        //
+        // for (int i = 0; i < _averageFlows.Length; i++)
+        // {
+        //     isUsedEdge.Add(false);
+        // }
+        //
+        // for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+        // {
+        //     if (IsWellElement(ielem)) continue;
+        //
+        //     double coefficient = CalculateCoefficient(ielem);
+        //     var edges = _mesh.Elements[ielem].EdgesIndices;
+        //
+        //     for (int localEdge = 0; localEdge < edges.Count; localEdge++)
+        //     {
+        //         var globalEdge = edges[localEdge];
+        //
+        //         double flow = -CalculateGradient(pressure, ielem, localEdge) * _normals[localEdge];
+        //
+        //         if (FlowDirection(flow, ielem, localEdge) == 1)
+        //         {
+        //             flow *= coefficient;
+        //         }
+        //
+        //         if (isUsedEdge[globalEdge])
+        //         {
+        //             _averageFlows[globalEdge] = (_averageFlows[globalEdge] + flow) / 2.0;
+        //         }
+        //         else
+        //         {
+        //             _averageFlows[globalEdge] = flow;
+        //             isUsedEdge[globalEdge] = true;
+        //         }
+        //     }
+        // }
+        //
+        // FixWellsFlows();
         
         return _averageFlows;
     }
