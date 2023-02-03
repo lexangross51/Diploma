@@ -76,17 +76,13 @@ public class MeshBuilder
         
         foreach (var (ielem, element) in _elements)
         {
-            int[] nodes = new int[element.Nodes.Count];
-            element.Nodes.CopyTo(nodes);
-            Array.Sort(nodes);
-
             for (int i = 0; i < 3; i++) 
             {
-                int ind1 = nodes[i];
+                int ind1 = element.Nodes[i];
         
                 for (int j = i + 1; j < 4; j++) 
                 {
-                    int ind2 = nodes[j];
+                    int ind2 = element.Nodes[j];
         
                     if (IsEdgeExist(ielem, ind1, ind2)) 
                     {
