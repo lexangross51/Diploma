@@ -1,4 +1,7 @@
-﻿namespace Diploma;
+﻿using System.Windows;
+using System.Windows.Controls;
+
+namespace Diploma;
 
 public sealed partial class MainWindow
 {
@@ -102,28 +105,58 @@ public sealed partial class MainWindow
                 gl.LoadIdentity();
                 gl.Ortho2D(_graphArea.Left, _graphArea.Right, _graphArea.Bottom, _graphArea.Top);
                 gl.Viewport(20, 20, gl.RenderContextProvider.Width - 30, gl.RenderContextProvider.Height - 30);
-                gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
-                gl.ShadeModel(OpenGL.GL_SMOOTH);
-                gl.Begin(OpenGL.GL_QUADS);
-
-                for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+                // gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
+                // gl.ShadeModel(OpenGL.GL_SMOOTH);
+                // gl.Begin(OpenGL.GL_QUADS);
+                //
+                // for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+                // {
+                //     var nodes = _mesh.Elements[ielem].Nodes;
+                //
+                //     var c = _colorsPressure[ielem];
+                //     var p1 = _mesh.Points[nodes[0]].Point;
+                //     var p2 = _mesh.Points[nodes[1]].Point;
+                //     var p3 = _mesh.Points[nodes[2]].Point;
+                //     var p4 = _mesh.Points[nodes[3]].Point;
+                //
+                //     gl.Color(c.R, c.G, c.B);
+                //     gl.Vertex(p1.X, p1.Y);
+                //     gl.Vertex(p2.X, p2.Y);
+                //     gl.Vertex(p4.X, p4.Y);
+                //     gl.Vertex(p3.X, p3.Y);
+                // }
+                //
+                // gl.End();
+                
+                // Show normals
+                
+                for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
                 {
-                    var nodes = _mesh.Elements[ielem].Nodes;
+                    if (ielem == _currentElem)
+                    {
+                        gl.Color(0f, 0f, 0f);
+                        gl.Begin(OpenGL.GL_LINES);
 
-                    var c = _colorsPressure[ielem];
-                    var p1 = _mesh.Points[nodes[0]].Point;
-                    var p2 = _mesh.Points[nodes[1]].Point;
-                    var p3 = _mesh.Points[nodes[2]].Point;
-                    var p4 = _mesh.Points[nodes[3]].Point;
+                        for (int iedge = 0; iedge < 4; iedge++)
+                        {
+                            var edge = _mesh.Elements[ielem].Edges[iedge];
+                            var p1 = _mesh.Points[edge.Node1].Point;
+                            var p2 = _mesh.Points[edge.Node2].Point;
 
-                    gl.Color(c.R, c.G, c.B);
-                    gl.Vertex(p1.X, p1.Y);
-                    gl.Vertex(p2.X, p2.Y);
-                    gl.Vertex(p4.X, p4.Y);
-                    gl.Vertex(p3.X, p3.Y);
+                            double midX = (p2.X + p1.X) / 2.0;
+                            double midY = (p2.Y + p1.Y) / 2.0;
+
+                            var normal = _normals[ielem, iedge];
+
+                            gl.Vertex(midX, midY);
+                            gl.Vertex(midX + normal.X, midY + normal.Y);
+                        }
+
+                        gl.End();
+                        break;
+                    }
                 }
-
-                gl.End();
+                
 
                 gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
                 gl.Color(0, 0, 0, 1);
@@ -271,5 +304,26 @@ public sealed partial class MainWindow
         }
 
         gl.End();
+    }
+
+    private void Button_OnClick(object sender, RoutedEventArgs e)
+    {
+        var button = (sender as Button)!;
+
+        switch (button.Name)
+        {
+            case "NextButton":
+            {
+                if (_currentElem < _mesh!.Elements.Length)
+                    _currentElem++;
+                break;
+            }
+            case "PrevButton":
+            {
+                if (_currentElem > 0)
+                    _currentElem--;
+                break;
+            }
+        }
     }
 }

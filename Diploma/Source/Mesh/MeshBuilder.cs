@@ -151,14 +151,21 @@ public class MeshBuilder
         }
     }
 
-    private void CreateEdges()
+    private static void CreateEdges(FiniteElement element, bool isClockwise)
     {
-        foreach (var (_, element) in _elements)
+        if (isClockwise)
+        {
+            element.Edges.Add(new Edge(element.Nodes[1], element.Nodes[0]));
+            element.Edges.Add(new Edge(element.Nodes[0], element.Nodes[2]));
+            element.Edges.Add(new Edge(element.Nodes[3], element.Nodes[1]));
+            element.Edges.Add(new Edge(element.Nodes[2], element.Nodes[3]));
+        }
+        else
         {
             element.Edges.Add(new Edge(element.Nodes[0], element.Nodes[1]));
-            element.Edges.Add(new Edge(element.Nodes[0], element.Nodes[2]));
+            element.Edges.Add(new Edge(element.Nodes[2], element.Nodes[0]));
             element.Edges.Add(new Edge(element.Nodes[1], element.Nodes[3]));
-            element.Edges.Add(new Edge(element.Nodes[2], element.Nodes[3]));
+            element.Edges.Add(new Edge(element.Nodes[3], element.Nodes[2]));
         }
     }
 
@@ -213,7 +220,11 @@ public class MeshBuilder
                 nodes[2] = j + i * (nx + 1) + nx + 1;
                 nodes[3] = j + i * (nx + 1) + nx + 1 + 1;
 
-                _elements.Add(ielem++, new FiniteElement(nodes, 0));
+                _elements.Add(ielem, new FiniteElement(nodes, 0));
+                
+                // Forming edges
+                CreateEdges(_elements[ielem], true);
+                ielem++;
             }
         }
     }
@@ -337,6 +348,10 @@ public class MeshBuilder
                     _wellElements[elem].Nodes[1] = _elements[_intersectedElements![i]].Nodes[1];
                     _wellElements[elem].Nodes[2] = maxNodeNum;
                     _wellElements[elem].Nodes[3] = maxNodeNum + 1;
+                    
+                    // Forming edges
+                    CreateEdges(_wellElements[elem], true);
+                    
                     elem++;
                     maxNodeNum++;
                 }
@@ -348,6 +363,10 @@ public class MeshBuilder
                     _wellElements[elem].Nodes[1] = _elements[_intersectedElements![j]].Nodes[3];
                     _wellElements[elem].Nodes[2] = maxNodeNum;
                     _wellElements[elem].Nodes[3] = i == p - 1 ? maxNodeNum + p + p: maxNodeNum + 1;
+                    
+                    // Forming edges
+                    CreateEdges(_wellElements[elem], true);
+                    
                     elem++;
                     maxNodeNum++;
                 }
@@ -359,6 +378,10 @@ public class MeshBuilder
                     _wellElements[elem].Nodes[1] = _elements[_intersectedElements![j]].Nodes[2];
                     _wellElements[elem].Nodes[2] = i == 0 ? maxNodeNum - p - p : maxNodeNum - 1;
                     _wellElements[elem].Nodes[3] = maxNodeNum;
+                    
+                    // Forming edges
+                    CreateEdges(_wellElements[elem], false);
+                    
                     elem++;
                     maxNodeNum++;
                 }
@@ -370,6 +393,10 @@ public class MeshBuilder
                     _wellElements[elem].Nodes[1] = _elements[_intersectedElements![j]].Nodes[3];
                     _wellElements[elem].Nodes[2] = maxNodeNum - 1;
                     _wellElements[elem].Nodes[3] = maxNodeNum;
+                    
+                    // Forming edges
+                    CreateEdges(_wellElements[elem], false);
+                    
                     elem++;
                     maxNodeNum++;
                 }
@@ -384,6 +411,10 @@ public class MeshBuilder
                         _wellElements[i].Nodes[1] = maxNodeNum + 1 - shift;
                         _wellElements[i].Nodes[2] = maxNodeNum;
                         _wellElements[i].Nodes[3] = maxNodeNum + 1;
+                        
+                        // Forming edges
+                        CreateEdges(_wellElements[i], true);
+                        
                         i++;
                         maxNodeNum++;
                     }
@@ -395,6 +426,10 @@ public class MeshBuilder
                         _wellElements[i].Nodes[3] = j == p - 1 ? maxNodeNum + p + p : maxNodeNum + 1;
                         _wellElements[i].Nodes[0] = _wellElements[i].Nodes[2] - shift;
                         _wellElements[i].Nodes[1] = _wellElements[i].Nodes[3] - shift;
+                        
+                        // Forming edges
+                        CreateEdges(_wellElements[i], true);
+                        
                         i++;
                         maxNodeNum++;
                     }
@@ -406,6 +441,10 @@ public class MeshBuilder
                         _wellElements[i].Nodes[3] = maxNodeNum;
                         _wellElements[i].Nodes[0] = _wellElements[i].Nodes[2] - shift;
                         _wellElements[i].Nodes[1] = _wellElements[i].Nodes[3] - shift;
+                        
+                        // Forming edges
+                        CreateEdges(_wellElements[i], false);
+                        
                         i++;
                         maxNodeNum++;
                     }
@@ -417,6 +456,10 @@ public class MeshBuilder
                         _wellElements[i].Nodes[3] = maxNodeNum;
                         _wellElements[i].Nodes[0] = _wellElements[i].Nodes[2] - shift;
                         _wellElements[i].Nodes[1] = _wellElements[i].Nodes[3] - shift;
+                        
+                        // Forming edges
+                        CreateEdges(_wellElements[i], false);
+                        
                         i++;
                         maxNodeNum++;
                     }
@@ -466,8 +509,7 @@ public class MeshBuilder
                 _neumannConditions[i] = new NeumannCondition(element - totalDeleted, edge, power);
             }
         }
-
-        CreateEdges();
+        
         FixNormalsDirections();
         NumerateEdges();
         

@@ -46,6 +46,10 @@
                 </Grid>
             </GroupBox>
 
+            <StackPanel Grid.Column="2">
+                <Button x:Name="NextButton" Margin="0, 10, 3, 0" Height="20" Content="Next" Click="Button_OnClick"/>
+                <Button x:Name="PrevButton" Margin="0, 10, 3, 0" Height="20" Content="Prev" Click="Button_OnClick"/>
+            </StackPanel>
         </Grid>
     </DockPanel>
 </Window>
