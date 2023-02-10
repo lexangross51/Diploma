@@ -23,7 +23,18 @@ public sealed partial class MainWindow
         {
             _saturation[i] = Convert.ToDouble(sr.ReadLine());
         }
+        
+        // Legend
+        _saturationLegendValues[0] = _saturation.Max();
+        _saturationLegendValues[7] = _saturation.Min();
+        double step = (_saturationLegendValues[0] - _saturationLegendValues[7]) / 7;
 
+        for (int i = 1; i < 7; i++)
+        {
+            _saturationLegendValues[i] = _saturationLegendValues[0] - i * step;
+        }
+
+        // Field
         double maxS = _saturation.Max(), minS = _saturation.Min();
         double stepSBig = (maxS - minS) / 3.0;
         
@@ -53,15 +64,6 @@ public sealed partial class MainWindow
             }
 
             _colorsSaturartion[ielem] = new Color(rColor, gColor, bColor);
-        }
-        
-        _saturationLegendValues[0] = _saturation.Max();
-        _saturationLegendValues[7] = _saturation.Min();
-        double step = (_saturationLegendValues[0] - _saturationLegendValues[7]) / 7;
-
-        for (int i = 1; i < 7; i++)
-        {
-            _saturationLegendValues[i] = _saturationLegendValues[0] - i * step;
         }
     }
 

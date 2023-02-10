@@ -14,17 +14,8 @@ public class Vector : IEnumerable<double>
     public Vector(int length)
         => (Length, _storage) = (length, new double[length]);
 
-    public static double operator *(Vector a, Vector b)
-    {
-        double result = 0.0;
-
-        for (int i = 0; i < a.Length; i++)
-        {
-            result += a[i] * b[i];
-        }
-
-        return result;
-    }
+    public static double Dot(Vector a, Vector b)
+        => a.Select((t, i) => t * b[i]).Sum();
 
     public static void Copy(Vector source, Vector destination)
     {
@@ -34,13 +25,8 @@ public class Vector : IEnumerable<double>
         }
     }
 
-    public void Fill(double value)
-    {
-        for (int i = 0; i < Length; i++)
-        {
-            _storage[i] = value;
-        }
-    }
+    public void Fill(double value = 0.0)
+        => Array.Fill(_storage, value);
 
     public double Norm()
     {
@@ -54,13 +40,8 @@ public class Vector : IEnumerable<double>
         return Math.Sqrt(Convert.ToDouble(result));
     }
 
-    public ImmutableArray<double> ToImmutableArray()
-        => ImmutableArray.Create(_storage);
-
     public IEnumerator<double> GetEnumerator()
         => ((IEnumerable<double>)_storage).GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-    
-    public void Clear() => Array.Fill(_storage, 0.0);
 }

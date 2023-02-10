@@ -2,19 +2,18 @@
 
 public static class MathAddition
 {
-    public static void JacobiMatrix2D(Point2D leftBottom, Point2D rightBottom, Point2D leftTop, Point2D rightTop,
-        Point2D point, SquareMatrix jacobiMatrix)
+    public static void JacobiMatrix2D(Point2D[] points, Point2D point, Matrix jacobiMatrix)
     {
-        jacobiMatrix[0, 0] = point.Y * (leftBottom.X - rightBottom.X - leftTop.X + rightTop.X) + rightBottom.X - leftBottom.X;
-        jacobiMatrix[0, 1] = point.Y * (leftBottom.Y - rightBottom.Y - leftTop.Y + rightTop.Y) + rightBottom.Y - leftBottom.Y;
-        jacobiMatrix[1, 0] = point.X * (leftBottom.X - rightBottom.X - leftTop.X + rightTop.X) + leftTop.X - leftBottom.X;
-        jacobiMatrix[1, 1] = point.X * (leftBottom.Y - rightBottom.Y - leftTop.Y + rightTop.Y) + leftTop.Y - leftBottom.Y;
+        jacobiMatrix[0, 0] = point.Y * (points[0].X - points[1].X - points[2].X + points[3].X) + points[1].X - points[0].X;
+        jacobiMatrix[0, 1] = point.Y * (points[0].Y - points[1].Y - points[2].Y + points[3].Y) + points[1].Y - points[0].Y;
+        jacobiMatrix[1, 0] = point.X * (points[0].X - points[1].X - points[2].X + points[3].X) + points[2].X - points[0].X;
+        jacobiMatrix[1, 1] = point.X * (points[0].Y - points[1].Y - points[2].Y + points[3].Y) + points[2].Y - points[0].Y;
     }
 
-    public static double Jacobian2D(SquareMatrix jacobiMatrix)
+    public static double Jacobian2D(Matrix jacobiMatrix)
         => jacobiMatrix[0, 0] * jacobiMatrix[1, 1] - jacobiMatrix[0, 1] * jacobiMatrix[1, 0];
     
-    public static void InvertJacobiMatrix2D(SquareMatrix jacobiMatrix)
+    public static void InvertJacobiMatrix2D(Matrix jacobiMatrix)
     {
         double jacobian = Jacobian2D(jacobiMatrix);
         

@@ -1,6 +1,4 @@
-﻿using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
+﻿using System.Windows.Input;
 
 namespace Diploma;
 
@@ -17,12 +15,12 @@ public sealed partial class MainWindow
         {
             case Key.Up:
             {
-                if (_timeMoment < _timeEnd - 1) _timeMoment++;
+                if (_timeMoment < _timeEnd - 1) TimeMoment++;
                 break;
             }
             case Key.Down:
             {
-                if (_timeMoment > _timeStart) _timeMoment--;
+                if (_timeMoment > _timeStart) TimeMoment--;
                 break;
             }
         }
@@ -157,7 +155,6 @@ public sealed partial class MainWindow
             gl.LoadIdentity();
             gl.Viewport(20, 20, gl.RenderContextProvider.Width - 30, gl.RenderContextProvider.Height - 30);
             gl.Color(0f, 0f, 0f);
-            gl.LineWidth(2);
             gl.Begin(OpenGL.GL_LINES);
             gl.Vertex(-1, -1);
             gl.Vertex(1, -1);
@@ -238,7 +235,6 @@ public sealed partial class MainWindow
             }
         }
         gl.PopMatrix();
-        gl.LineWidth(1);
     }
 
     private void DrawLegend(OpenGL gl, double[] legendValues, byte[,] legendColors)
@@ -319,26 +315,5 @@ public sealed partial class MainWindow
             }
         }
         gl.PopMatrix();
-    }
-    
-    private void Button_OnClick(object sender, RoutedEventArgs e)
-    {
-        var button = (sender as Button)!;
-
-        switch (button.Name)
-        {
-            case "NextButton":
-            {
-                if (_currentElem < _mesh!.Elements.Length)
-                    _currentElem++;
-                break;
-            }
-            case "PrevButton":
-            {
-                if (_currentElem > 0)
-                    _currentElem--;
-                break;
-            }
-        }
     }
 }

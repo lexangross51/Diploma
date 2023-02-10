@@ -8,7 +8,7 @@ public class MeshBuilder
     private SortedDictionary<int, FiniteElement> _elements = default!;
     private List<FiniteElement>? _wellElements;
     private HashSet<DirichletCondition> _dirichletConditions = default!;
-    private List<int> _remoteEdges = default!;
+    private List<(int Element, int LocalEdge)> _remoteEdges = default!;
     private List<NeumannCondition>? _neumannConditions;
     private Material[] _materials = default!;
     private List<int>? _intersectedElements;
@@ -114,6 +114,8 @@ public class MeshBuilder
         
         foreach (var (_, element) in _elements)
         {
+            int idx = 0;
+            
             for (int i = 0; i < 3; i++) 
             {
                 int ind1 = element.Nodes[i];
@@ -126,9 +128,9 @@ public class MeshBuilder
                     {
                         for (int ind = ig[ind2]; ind < ig[ind2 + 1]; ind++) 
                         {
-                            if (jg[ind] == ind1) 
+                            if (jg[ind] == ind1)
                             {
-                                element.EdgesIndices.Add(ind);
+                                element.EdgesIndices[idx++] = ind;
                             }
                         }
                     }
@@ -138,7 +140,7 @@ public class MeshBuilder
                         {
                             if (jg[ind] == ind2) 
                             {
-                                element.EdgesIndices.Add(ind);
+                                element.EdgesIndices[idx++] = ind;
                             }
                         }
                     }
@@ -151,25 +153,17 @@ public class MeshBuilder
     {
         if (isClockwise)
         {
-            element.Edges.Add(new Edge(element.Nodes[1], element.Nodes[0]));
-            element.Edges.Add(new Edge(element.Nodes[0], element.Nodes[2]));
-            element.Edges.Add(new Edge(element.Nodes[3], element.Nodes[1]));
-            element.Edges.Add(new Edge(element.Nodes[2], element.Nodes[3]));
+            element.Edges[0] = new Edge(element.Nodes[1], element.Nodes[0]);
+            element.Edges[1] = new Edge(element.Nodes[0], element.Nodes[2]);
+            element.Edges[2] = new Edge(element.Nodes[3], element.Nodes[1]);
+            element.Edges[3] = new Edge(element.Nodes[2], element.Nodes[3]);
         }
         else
         {
-            element.Edges.Add(new Edge(element.Nodes[0], element.Nodes[1]));
-            element.Edges.Add(new Edge(element.Nodes[2], element.Nodes[0]));
-            element.Edges.Add(new Edge(element.Nodes[1], element.Nodes[3]));
-            element.Edges.Add(new Edge(element.Nodes[3], element.Nodes[2]));
-        }
-    }
-
-    private void FixNormalsDirections()
-    {
-        foreach (var (_, element) in _elements)
-        {
-            element.EdgesDirect = new List<int>() { -1, -1, 1, 1 };
+            element.Edges[0] = new Edge(element.Nodes[0], element.Nodes[1]);
+            element.Edges[1] = new Edge(element.Nodes[2], element.Nodes[0]);
+            element.Edges[2] = new Edge(element.Nodes[1], element.Nodes[3]);
+            element.Edges[3] = new Edge(element.Nodes[3], element.Nodes[2]);
         }
     }
     
@@ -204,17 +198,19 @@ public class MeshBuilder
         }
 
         // Generate elements ------------------------------------------------->
-        int[] nodes = new int[4];
         int ielem = 0;
 
         for (int i = 0; i < ny; i++)
         {
             for (int j = 0; j < nx; j++)
             {
-                nodes[0] = j + i * (nx + 1);
-                nodes[1] = j + i * (nx + 1) + 1;
-                nodes[2] = j + i * (nx + 1) + nx + 1;
-                nodes[3] = j + i * (nx + 1) + nx + 1 + 1;
+                int[] nodes =
+                {
+                    j + i * (nx + 1),
+                    j + i * (nx + 1) + 1,
+                    j + i * (nx + 1) + nx + 1,
+                    j + i * (nx + 1) + nx + 1 + 1
+                };
 
                 _elements.Add(ielem, new FiniteElement(nodes, 0));
                 
@@ -292,7 +288,7 @@ public class MeshBuilder
         }
     }
     
-    private void CreatePointsAndElements()  
+    private void CreatePointsAndElements()
     {
         int nx = _parameters.SplitParameters.MeshNx;
         int ny = _parameters.SplitParameters.MeshNy;
@@ -310,14 +306,14 @@ public class MeshBuilder
             _wellElements = new List<FiniteElement>();
             _neumannConditions = new List<NeumannCondition>();
             _intersectedElements = new List<int>();
-
-            double daysToSeconds = 24 * 60 * 60;
+            
             int maxNodeNum = _elements[nx * ny - 1].Nodes[^1] + 1;
             int maxElemNum = _elements.Count;
             int totalDeleted = 0;
 
-            foreach (var well in _parameters.Wells)
+            for (var iwell = 0; iwell < _parameters.Wells.Length; iwell++)
             {
+                var well = _parameters.Wells[iwell];
                 _wellPoints.Clear();
                 _wellElements.Clear();
                 _intersectedElements.Clear();
@@ -336,7 +332,7 @@ public class MeshBuilder
 
                 int elem = 0;
                 int shift = 4 * p;
-                
+
                 // Renumber nodes on bottom side
                 for (int i = 0; i < p; i++)
                 {
@@ -344,10 +340,10 @@ public class MeshBuilder
                     _wellElements[elem].Nodes[1] = _elements[_intersectedElements![i]].Nodes[1];
                     _wellElements[elem].Nodes[2] = maxNodeNum;
                     _wellElements[elem].Nodes[3] = maxNodeNum + 1;
-                    
+
                     // Forming edges
                     CreateEdges(_wellElements[elem], true);
-                    
+
                     elem++;
                     maxNodeNum++;
                 }
@@ -358,11 +354,11 @@ public class MeshBuilder
                     _wellElements[elem].Nodes[0] = _elements[_intersectedElements![j]].Nodes[1];
                     _wellElements[elem].Nodes[1] = _elements[_intersectedElements![j]].Nodes[3];
                     _wellElements[elem].Nodes[2] = maxNodeNum;
-                    _wellElements[elem].Nodes[3] = i == p - 1 ? maxNodeNum + p + p: maxNodeNum + 1;
-                    
+                    _wellElements[elem].Nodes[3] = i == p - 1 ? maxNodeNum + p + p : maxNodeNum + 1;
+
                     // Forming edges
                     CreateEdges(_wellElements[elem], true);
-                    
+
                     elem++;
                     maxNodeNum++;
                 }
@@ -374,14 +370,14 @@ public class MeshBuilder
                     _wellElements[elem].Nodes[1] = _elements[_intersectedElements![j]].Nodes[2];
                     _wellElements[elem].Nodes[2] = i == 0 ? maxNodeNum - p - p : maxNodeNum - 1;
                     _wellElements[elem].Nodes[3] = maxNodeNum;
-                    
+
                     // Forming edges
                     CreateEdges(_wellElements[elem], false);
-                    
+
                     elem++;
                     maxNodeNum++;
                 }
-                
+
                 // Renumber nodes on top side
                 for (int i = 0, j = p * p - p; i < p; i++, j++)
                 {
@@ -389,10 +385,10 @@ public class MeshBuilder
                     _wellElements[elem].Nodes[1] = _elements[_intersectedElements![j]].Nodes[3];
                     _wellElements[elem].Nodes[2] = maxNodeNum - 1;
                     _wellElements[elem].Nodes[3] = maxNodeNum;
-                    
+
                     // Forming edges
                     CreateEdges(_wellElements[elem], false);
-                    
+
                     elem++;
                     maxNodeNum++;
                 }
@@ -407,10 +403,10 @@ public class MeshBuilder
                         _wellElements[i].Nodes[1] = maxNodeNum + 1 - shift;
                         _wellElements[i].Nodes[2] = maxNodeNum;
                         _wellElements[i].Nodes[3] = maxNodeNum + 1;
-                        
+
                         // Forming edges
                         CreateEdges(_wellElements[i], true);
-                        
+
                         i++;
                         maxNodeNum++;
                     }
@@ -422,10 +418,10 @@ public class MeshBuilder
                         _wellElements[i].Nodes[3] = j == p - 1 ? maxNodeNum + p + p : maxNodeNum + 1;
                         _wellElements[i].Nodes[0] = _wellElements[i].Nodes[2] - shift;
                         _wellElements[i].Nodes[1] = _wellElements[i].Nodes[3] - shift;
-                        
+
                         // Forming edges
                         CreateEdges(_wellElements[i], true);
-                        
+
                         i++;
                         maxNodeNum++;
                     }
@@ -437,14 +433,14 @@ public class MeshBuilder
                         _wellElements[i].Nodes[3] = maxNodeNum;
                         _wellElements[i].Nodes[0] = _wellElements[i].Nodes[2] - shift;
                         _wellElements[i].Nodes[1] = _wellElements[i].Nodes[3] - shift;
-                        
+
                         // Forming edges
                         CreateEdges(_wellElements[i], false);
-                        
+
                         i++;
                         maxNodeNum++;
                     }
-                    
+
                     // Top side
                     for (int j = 0; j < p; j++)
                     {
@@ -452,10 +448,10 @@ public class MeshBuilder
                         _wellElements[i].Nodes[3] = maxNodeNum;
                         _wellElements[i].Nodes[0] = _wellElements[i].Nodes[2] - shift;
                         _wellElements[i].Nodes[1] = _wellElements[i].Nodes[3] - shift;
-                        
+
                         // Forming edges
                         CreateEdges(_wellElements[i], false);
-                        
+
                         i++;
                         maxNodeNum++;
                     }
@@ -467,7 +463,7 @@ public class MeshBuilder
                     _elements.Remove(element);
                     totalDeleted++;
                 }
-                
+
                 // Delete points from _wellPoints which already in _points
                 for (int i = 0; i < 4 * p; i++)
                 {
@@ -484,11 +480,24 @@ public class MeshBuilder
                     // The first near-well element
                     if (ielem == _wellElements.Count - 4 * p)
                     {
+                        double totalBordersLength = 0;
+                        
+                        for (int i = ielem; i < _wellElements.Count; i++)
+                        {
+                            var edge = _wellElements[i].Edges[3];
+                            var p1 = _points[edge.Node1].Point;
+                            var p2 = _points[edge.Node2].Point;
+                        
+                            totalBordersLength += Math.Sqrt((p2.X - p1.X) * (p2.X - p1.X) + (p2.Y - p1.Y) * (p2.Y - p1.Y));
+                        }
+                        
                         int wellElem = maxElemNum;
 
                         for (int i = 0; i < 4 * p; i++)
                         {
-                            _neumannConditions.Add(new(wellElem++, 3, well.Power / daysToSeconds));
+                            _neumannConditions.Add(new NeumannCondition(
+                                wellElem++, 3, well.Power / totalBordersLength)
+                            );
                         }
                     }
 
@@ -498,15 +507,14 @@ public class MeshBuilder
 
             for (int i = 0; i < _neumannConditions!.Count; i++)
             {
-                var element = _neumannConditions[i].Element;
+                var element = _neumannConditions[i].Element - totalDeleted;
                 var edge = _neumannConditions[i].Edge;
-                var power = _neumannConditions[i].Power;
+                var power = DataConverter.FlowToCubicMetersPerSecond(_neumannConditions[i].Power);
                 
-                _neumannConditions[i] = new NeumannCondition(element - totalDeleted, edge, power);
+                _neumannConditions[i] = new NeumannCondition(element, edge, power);
             }
         }
         
-        FixNormalsDirections();
         NumerateEdges();
         
         // If the element is in a region with a different permeability,
@@ -667,12 +675,12 @@ public class MeshBuilder
     
     private void CreateWellElements(int p, int m)
     {
-        int[] nodes = new int[4];
-        
         for (int i = 1; i < m + 1; i++)
         {
             for (int j = 1; j < 4 * p + 1; j++)
             {
+                int[] nodes = new int[4];
+                
                 if (j == 1)
                 {
                     nodes[0] = (i - 1) * 4 * p;
@@ -707,30 +715,30 @@ public class MeshBuilder
         
         MeshNesting(ref nx, ref ny);
         
-        _remoteEdges = new List<int>(nx * ny);
+        _remoteEdges = new List<(int, int)>(nx * ny);
         
         // Bottom side
         for (int ielem = 0; ielem < nx; ielem++)
         {
-            _remoteEdges.Add(_elements[ielem].EdgesIndices[0]);
+            _remoteEdges.Add((ielem, 0));
         }
         
         // Upper side
         for (int ielem = nx * (ny - 1); ielem < nx * ny; ielem++)
         {
-            _remoteEdges.Add(_elements[ielem].EdgesIndices[3]);
+            _remoteEdges.Add((ielem, 3));
         }
         
         // Left side
         for (int ielem = 0; ielem <= nx * (ny - 1); ielem += nx)
         {
-            _remoteEdges.Add(_elements[ielem].EdgesIndices[1]);
+            _remoteEdges.Add((ielem, 1));
         }
         
         // Right side
         for (int ielem = nx - 1; ielem <= nx * ny; ielem += nx)
         {
-            _remoteEdges.Add(_elements[ielem].EdgesIndices[2]);
+            _remoteEdges.Add((ielem, 2));
         }
     }
 
@@ -738,7 +746,7 @@ public class MeshBuilder
     {
         int nx = _parameters.SplitParameters.MeshNx;
         int ny = _parameters.SplitParameters.MeshNy;
-        double pressure = _parameters.Area[0].PlastPressure;
+        double pressure = DataConverter.PressureToPascal(_parameters.Area[0].PlastPressure);
         
         MeshNesting(ref nx, ref ny);
         
@@ -757,14 +765,14 @@ public class MeshBuilder
         }
         
         // left border
-        //pressure = 10;
+        //pressure = DataConverter.PressureToPascal(10);
         for (int i = 0, inode = 0; i < ny + 1; i++, inode += nx + 1)
         {
             _dirichletConditions.Add(new DirichletCondition(inode, pressure));
         }
         
         // right border
-        //pressure = 0;
+        //pressure = DataConverter.PressureToPascal(0);
         for (int i = 0, inode = nx; i < ny + 1; i++, inode += nx + 1)
         {
             _dirichletConditions.Add(new DirichletCondition(inode, pressure));
@@ -778,7 +786,7 @@ public class MeshBuilder
         for (int i = 0; i < _materials.Length; i++)
         {
             _materials[i] = _parameters.Area[i].Material;
-            _materials[i].Permeability *= 1.01325E-15;
+            _materials[i].Permeability = DataConverter.PermeabilityToSquareMeter(_materials[i].Permeability);
         }
     }
 

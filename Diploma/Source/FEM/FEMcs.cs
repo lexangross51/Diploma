@@ -13,9 +13,10 @@ public class FEMBuilder
         private readonly Func<Point2D, double> _source;
         private readonly Func<Point2D, double>? _field;
         private readonly Integration _gauss;
-        private readonly SquareMatrix _stiffnessMatrix;
-        private readonly SquareMatrix _massMatrix;
-        private readonly SquareMatrix _jacobiMatrix;
+        private readonly Matrix _stiffnessMatrix;
+        private readonly Matrix _massMatrix;
+        private readonly Matrix _jacobiMatrix;
+        private readonly Rectangle _masterElement;
         private readonly Vector _localB;
         private readonly SparseMatrix _globalMatrix;
         private readonly Vector _globalVector;
@@ -38,10 +39,11 @@ public class FEMBuilder
             _field = field;
             _gauss = new Integration(Quadratures.GaussOrder3());
 
-            _stiffnessMatrix = new SquareMatrix(_basis.Size);
-            _massMatrix = new SquareMatrix(_basis.Size);
+            _stiffnessMatrix = new Matrix(_basis.Size, _basis.Size);
+            _massMatrix = new Matrix(_basis.Size, _basis.Size);
             _localB = new Vector(_basis.Size);
-            _jacobiMatrix = new SquareMatrix(2);
+            _jacobiMatrix = new Matrix(2, 2);
+            _masterElement = new Rectangle(new Point2D(0, 0), new Point2D(1, 1));
 
             PortraitBuilder.PortraitByNodes(_mesh, out int[] ig, out int[] jg);
             _globalMatrix = new SparseMatrix(ig.Length - 1, jg.Length)
@@ -75,16 +77,19 @@ public class FEMBuilder
         private void BuildLocalMatrixVector(int ielem)
         {
             var nodes = _mesh.Elements[ielem].Nodes;
-            var leftBottom = _mesh.Points[nodes[0]].Point;
-            var rightBottom = _mesh.Points[nodes[1]].Point;
-            var leftTop = _mesh.Points[nodes[2]].Point;
-            var rightTop = _mesh.Points[nodes[3]].Point;
 
-            Rectangle rect = new Rectangle(new Point2D(0, 0), new Point2D(1, 1));
-            Vector gradPhiI = new Vector(2);
-            Vector gradPhiJ = new Vector(2);
-            Vector matrixGradI = new Vector(2);
-            Vector matrixGradJ = new Vector(2);
+            Point2D[] elementPoints =
+            {
+                _mesh.Points[nodes[0]].Point,
+                _mesh.Points[nodes[1]].Point,
+                _mesh.Points[nodes[2]].Point,
+                _mesh.Points[nodes[3]].Point
+            };
+            
+            Vector gradPhiI = new(2);
+            Vector gradPhiJ = new(2);
+            Vector matrixGradI = new(2);
+            Vector matrixGradJ = new(2);
             
             for (int i = 0; i < _basis.Size; i++)
             {
@@ -93,7 +98,7 @@ public class FEMBuilder
                     double ScalarFunc(double ksi, double eta)
                     {
                         var point = new Point2D(ksi, eta);
-                        MathAddition.JacobiMatrix2D(leftBottom, rightBottom, leftTop, rightTop, point, _jacobiMatrix);
+                        MathAddition.JacobiMatrix2D(elementPoints, point, _jacobiMatrix);
                         double jacobian = MathAddition.Jacobian2D(_jacobiMatrix);
                         MathAddition.InvertJacobiMatrix2D(_jacobiMatrix);
 
@@ -101,16 +106,16 @@ public class FEMBuilder
                         gradPhiI[1] = _basis.DPhi(i, 1, point);
                         gradPhiJ[0] = _basis.DPhi(j, 0, point);
                         gradPhiJ[1] = _basis.DPhi(j, 1, point);
-                        matrixGradI.Clear();
-                        matrixGradJ.Clear();
+                        matrixGradI.Fill();
+                        matrixGradJ.Fill();
 
-                        SquareMatrix.Dot(_jacobiMatrix, gradPhiI, matrixGradI);
-                        SquareMatrix.Dot(_jacobiMatrix, gradPhiJ, matrixGradJ);
+                        Matrix.Dot(_jacobiMatrix, gradPhiI, matrixGradI);
+                        Matrix.Dot(_jacobiMatrix, gradPhiJ, matrixGradJ);
 
                         return (matrixGradI[0] * matrixGradJ[0] + matrixGradI[1] * matrixGradJ[1]) * Math.Abs(jacobian);
                     }
 
-                    _stiffnessMatrix[i, j] = _stiffnessMatrix[j, i] = _gauss.Integrate2D(ScalarFunc, rect);
+                    _stiffnessMatrix[i, j] = _stiffnessMatrix[j, i] = _gauss.Integrate2D(ScalarFunc, _masterElement);
                 }
             }
 
@@ -123,13 +128,13 @@ public class FEMBuilder
                     double ScalarFunc(double ksi, double eta)
                     {
                         var point = new Point2D(ksi, eta);
-                        MathAddition.JacobiMatrix2D(leftBottom, rightBottom, leftTop, rightTop, point, _jacobiMatrix);
+                        MathAddition.JacobiMatrix2D(elementPoints, point, _jacobiMatrix);
                         double jacobian = MathAddition.Jacobian2D(_jacobiMatrix);
 
                         return _basis.Phi(i, point) * _basis.Phi(j, point) * Math.Abs(jacobian);
                     }
 
-                    _massMatrix[i, j] = _massMatrix[j, i] = _gauss.Integrate2D(ScalarFunc, rect);
+                    _massMatrix[i, j] = _massMatrix[j, i] = _gauss.Integrate2D(ScalarFunc, _masterElement);
                 }
             }
             
@@ -309,7 +314,7 @@ public class FEMBuilder
         private void AssemblySLAE()
         {
             _globalMatrix.Clear();
-            _globalVector.Fill(0.0);
+            _globalVector.Fill();
 
             for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
             {

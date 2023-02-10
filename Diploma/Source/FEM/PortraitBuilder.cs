@@ -11,20 +11,17 @@ public static class PortraitBuilder
             connectivityList.Add(new HashSet<int>());
         }
 
-        int localSize = mesh.Elements[0].Nodes.Count;
-        int[] nodes = new int[localSize];
+        int localSize = mesh.Elements[0].Nodes.Length;
         
         foreach (var element in mesh.Elements)
         {
-            element.Nodes.CopyTo(nodes);
-
             for (int i = 0; i < localSize - 1; i++)
             {
-                int nodeToInsert = nodes[i];
+                int nodeToInsert = element.Nodes[i];
 
                 for (int j = i + 1; j < localSize; j++)
                 {
-                    int posToInsert = nodes[j];
+                    int posToInsert = element.Nodes[j];
 
                     connectivityList[posToInsert].Add(nodeToInsert);
                 }

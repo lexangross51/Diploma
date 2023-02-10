@@ -6,12 +6,15 @@ public struct Phase
     [JsonProperty("Density")] public double Density;
     [JsonProperty("Viscosity")] public double Viscosity;
     [JsonProperty("Saturation")] public double Kappa;
+    
+    public static double KappaDependence(double saturation) => saturation;
 }
 
 public class PhaseProperty
 {
     public List<List<Phase>>? Phases { get; }
     public List<List<double>>? Saturation { get; }
+    public List<Phase>? InjectedPhases { get; }
     public List<Phase>? RemoteBordersPhases { get; }
 
     public PhaseProperty(Mesh.Mesh mesh, string folderName)
@@ -37,12 +40,13 @@ public class PhaseProperty
                                      throw new NullReferenceException("Fill the file correctly");
         }
 
+        int elementsCount = mesh.Elements.Length;
         int phasesCount = phaseParameters.Length;
 
-        Saturation = new List<List<double>>();
-        Phases = new List<List<Phase>>();
-        RemoteBordersPhases = new List<Phase>();
-        
+        Phases = new List<List<Phase>>(elementsCount * phasesCount);
+        Saturation = new List<List<double>>(elementsCount * phasesCount);
+        RemoteBordersPhases = new List<Phase>(remotePhasesParameters.Length);
+
         for (int ielem = 0; ielem < mesh.Elements.Length; ielem++)
         {
             Saturation?.Add(new List<double>());
@@ -51,24 +55,20 @@ public class PhaseProperty
             for (int iphase = 0; iphase < phasesCount; iphase++)
             {
                 Saturation?[ielem].Add(phaseParameters[iphase].Kappa);
+                phaseParameters[iphase].Kappa = Phase.KappaDependence(phaseParameters[iphase].Kappa);
                 Phases?[ielem].Add(phaseParameters[iphase]);
             }
         }
 
-        // if (wellPhaseParameters is not null)
-        // {
-        //     foreach (var ielem in mesh.NeumannConditions.Select(condition => condition.Element))
-        //     {
-        //         Saturation?[ielem].Clear();
-        //         Phases?[ielem].Clear();
-        //
-        //         foreach (var wellPhase in wellPhaseParameters)
-        //         {
-        //             Saturation?[ielem].Add(wellPhase.Kappa);
-        //             Phases?[ielem].Add(wellPhase);
-        //         }
-        //     }
-        // }
+        if (wellPhaseParameters is not null)
+        {
+            InjectedPhases = new List<Phase>(wellPhaseParameters.Length);
+            
+            foreach (var phase in wellPhaseParameters)
+            {
+                InjectedPhases!.Add(phase);
+            }
+        }
 
         foreach (var phase in remotePhasesParameters)
         {
@@ -94,12 +94,13 @@ public class PhaseComponentsConverter : JsonConverter
         List<string> phasesNames = new(phasesCount);
         List<string> componentsNames = new(componentsCount);
         double[,] components = new double[phasesCount, componentsCount];
-        int i = 0, j;
-        
+        int i = 0;
+
         foreach (var row in table)
         {
+            int j = 0;
+            
             phasesNames.Add(row.Key);
-            j = 0;
             
             foreach (var column in row.Value!)
             {
@@ -192,7 +193,7 @@ public class PhaseComponentsTable : ICloneable
         {
             sw.Write($"{_phasesNames[i], -17}|");
 
-            for (int j = 0; j < _componentsNames.Length; j++) sw.Write($"{_table[i, j].ToString("0.000000"),-10}|");
+            for (int j = 0; j < _componentsNames.Length; j++) sw.Write($"{_table[i, j],-10:0.000000}|");
             
             sw.WriteLine();
             

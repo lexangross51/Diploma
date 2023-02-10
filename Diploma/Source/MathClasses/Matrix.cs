@@ -1,49 +1,51 @@
 namespace Diploma.Source.MathClasses;
 
-public class SquareMatrix
+public class Matrix
 {
-    private double[][] _storage;
-    public int Size { get; }
+    private readonly double[,] _storage;
+    public int RowsCount { get; }
+    public int ColumnsCount { get; }
 
     public double this[int i, int j]
     {
-        get => _storage[i][j];
-        set => _storage[i][j] = value;
+        get => _storage[i, j];
+        set => _storage[i, j] = value;
     }
 
-    public SquareMatrix(int size)
+    public Matrix(int nRows, int nColumns)
     {
-        Size = size;
-        _storage = new double[size].Select(_ => new double[size]).ToArray();
+        RowsCount = nRows;
+        ColumnsCount = nColumns;
+        _storage = new double[nRows, nColumns];
     }
 
-    public static SquareMatrix Copy(SquareMatrix otherMatrix)
+    public static Matrix Copy(Matrix matrixToCopy)
     {
-        SquareMatrix newMatrix = new(otherMatrix.Size);
+        Matrix newMatrix = new(matrixToCopy.RowsCount, matrixToCopy.ColumnsCount);
 
-        for (int i = 0; i < otherMatrix.Size; i++)
+        for (int i = 0; i < matrixToCopy.RowsCount; i++)
         {
-            for (int j = 0; j < otherMatrix.Size; j++)
+            for (int j = 0; j < matrixToCopy.ColumnsCount; j++)
             {
-                newMatrix[i, j] = otherMatrix[i, j];
+                newMatrix[i, j] = matrixToCopy[i, j];
             }
         }
 
         return newMatrix;
     }
 
-    public static void Dot(SquareMatrix matrix, Vector vector, Vector? product)
+    public static void Dot(Matrix matrix, Vector vector, Vector? product)
     {
-        if (matrix.Size != vector.Length)
+        if (matrix.ColumnsCount != vector.Length)
         {
             throw new Exception("Numbers of columns not equal to size of vector");
         }
 
         product ??= new Vector(vector.Length);
 
-        for (int i = 0; i < matrix.Size; i++)
+        for (int i = 0; i < matrix.RowsCount; i++)
         {
-            for (int j = 0; j < matrix.Size; j++)
+            for (int j = 0; j < matrix.ColumnsCount; j++)
             {
                 product[i] += matrix[i, j] * vector[j];
             }
@@ -51,7 +53,15 @@ public class SquareMatrix
     }
 
     public void Clear()
-        => _storage = _storage.Select(row => row.Select(_ => 0.0).ToArray()).ToArray();
+    {
+        for (int i = 0; i < RowsCount; i++)
+        {
+            for (int j = 0; j < ColumnsCount; j++)
+            {
+                _storage[i, j] = 0.0;
+            }
+        }
+    }
 }
 
 public class SparseMatrix
@@ -73,8 +83,15 @@ public class SparseMatrix
         Di = new double[size];
     }
 
-    public static void Dot(SparseMatrix matrix, Vector vector, Vector product)
+    public static void Dot(SparseMatrix matrix, Vector vector, Vector? product)
     {
+        if (matrix.Size != vector.Length)
+        {
+            throw new Exception("Size of matrix not equal to size of vector");
+        }
+
+        product ??= new Vector(vector.Length);
+
         for (int i = 0; i < vector.Length; i++)
         {
             product[i] = matrix.Di[i] * vector[i];
@@ -105,11 +122,12 @@ public class SparseMatrix
         using var sw = new StreamWriter(path);
         for (int i = 0; i < Size; i++)
         {
-            for (int j = 0; j < Size; j++)
+            for (int j = 0; j <= i; j++)
             {
-                sw.Write(a[i, j].ToString("0.0000") + "\t\t");
+                sw.Write($"{a[i, j]:E3}\t\t");
             }
 
+            sw.WriteLine();
             sw.WriteLine();
         }
     }
@@ -120,135 +138,68 @@ public class SparseMatrix
         Array.Fill(GGl, 0.0);
         Array.Fill(GGu, 0.0);
     }
-    
+
     public ProfileMatrix ToProfileMatrix()
     {
-        int[] ignew = Ig.ToArray();
+        double[] newDi = new double[Di.Length];
+        Array.Copy(Di, newDi, Di.Length);
+
+        int[] newIg = new int[Size + 1];
+        newIg[0] = 0;
 
         for (int i = 0; i < Size; i++)
         {
             int i0 = Ig[i];
             int i1 = Ig[i + 1];
 
-            int profile = i1 - i0;
+            int prof = i1 - i0;
 
-            if (profile > 0)
+            if (prof > 0)
             {
-                int count = i - Jg[i0];
-                ignew[i + 1] = ignew[i] + count;
+                var count = i - Jg[i0];
+
+                newIg[i + 1] = newIg[i] + count;
             }
             else
             {
-                ignew[i + 1] = ignew[i];
+                newIg[i + 1] = newIg[i];
             }
         }
 
-        double[] gglnew = new double[ignew[^1]];
-        double[] ggunew = new double[ignew[^1]];
+        double[] newGgl = new double[newIg[^1]];
+        double[] newGgu = new double[newIg[^1]];
 
         for (int i = 0; i < Size; i++)
         {
-            int i0 = ignew[i];
-            int i1 = ignew[i + 1];
+            int i0P = newIg[i];
+            int i1P = newIg[i + 1];
 
-            int j = i - (i1 - i0);
+            int j0P = i - (i1P - i0P);
+            int i0S = Ig[i];
 
-            int i0Old = Ig[i];
-
-            for (int ik = i0; ik < i1; ik++, j++)
+            for (int rowInd = i0P; rowInd < i1P; rowInd++, j0P++)
             {
-                if (j == Jg[i0Old])
+                if (j0P == Jg[i0S])
                 {
-                    gglnew[ik] = GGl[i0Old];
-                    ggunew[ik] = GGu[i0Old];
-                    i0Old++;
+                    newGgl[rowInd] = GGl[i0S];
+                    newGgu[rowInd] = GGu[i0S];
+                    i0S++;
                 }
                 else
                 {
-                    gglnew[ik] = 0.0;
-                    ggunew[ik] = 0.0;
+                    newGgl[rowInd] = 0.0;
+                    newGgu[rowInd] = 0.0;
                 }
             }
         }
 
-        ProfileMatrix profileMatrix = new(Di.Length, gglnew.Length)
+        return new ProfileMatrix(Di.Length, newGgl.Length)
         {
-            Ig = ignew,
-            Di = Di,
-            GGl = gglnew,
-            GGu = ggunew
+            Di = newDi,
+            Ig = newIg,
+            GGl = newGgl,
+            GGu = newGgu,
         };
-
-        return profileMatrix;
-    }
-}
-
-public class SymmetricSparseMatrix
-{
-    public int[] Ig { get; init; }
-    public int[] Jg { get; init; }
-    public double[] Di { get; }
-    public double[] GG { get; }
-    public int Size { get; }
-
-    public SymmetricSparseMatrix(int size, int sizeOffDiag)
-    {
-        Size = size;
-        Ig = new int[size + 1];
-        Jg = new int[sizeOffDiag];
-        GG = new double[sizeOffDiag];
-        Di = new double[size];
-    }
-
-    public static Vector operator *(SymmetricSparseMatrix matrix, Vector vector)
-    {
-        Vector product = new (vector.Length);
-
-        for (int i = 0; i < vector.Length; i++)
-        {
-            product[i] = matrix.Di[i] * vector[i];
-
-            for (int j = matrix.Ig[i]; j < matrix.Ig[i + 1]; j++)
-            {
-                product[i] += matrix.GG[j] * vector[matrix.Jg[j]];
-                product[matrix.Jg[j]] += matrix.GG[j] * vector[i];
-            }
-        }
-
-        return product;
-    }
-
-    public void PrintDense(string path)
-    {
-        double[,] a = new double[Size, Size];
-
-        for (int i = 0; i < Size; i++)
-        {
-            a[i, i] = Di[i];
-
-            for (int j = Ig[i]; j < Ig[i + 1]; j++)
-            {
-                a[i, Jg[j]] = GG[j];
-                a[Jg[j], i] = GG[j];
-            }
-        }
-
-        using var sw = new StreamWriter(path);
-        for (int i = 0; i < Size; i++)
-        {
-            for (int j = 0; j < Size; j++)
-            {
-                sw.Write(a[i, j].ToString("0.0000") + "\t\t");
-            }
-
-            sw.WriteLine();
-        }
-    }
-
-    public void Clear()
-    {
-        Array.Fill(Di, 0.0);
-        Array.Fill(GG, 0.0);
     }
 }
 
@@ -259,7 +210,7 @@ public class ProfileMatrix
     public double[] GGl { get; init; }
     public double[] GGu { get; init; }
     public int Size { get; }
-    
+
     public ProfileMatrix(int size, int sizeOffDiag)
     {
         Size = size;
@@ -268,33 +219,37 @@ public class ProfileMatrix
         GGu = new double[sizeOffDiag];
         Di = new double[size];
     }
-    
-    public static Vector operator *(ProfileMatrix matrix, Vector vector)
-    {
-        Vector product = new (vector.Length);
 
-        for (int i = 0; i < product.Length; i++) {
+    public static void Dot(ProfileMatrix matrix, Vector vector, Vector? product)
+    {
+        if (matrix.Size != vector.Length)
+        {
+            throw new Exception("Size of matrix not equal to size of vector");
+        }
+
+        product ??= new Vector(vector.Length);
+
+        for (int i = 0; i < product.Length; i++)
+        {
             product[i] = matrix.Di[i] * vector[i];
 
             int l = matrix.Ig[i + 1] - matrix.Ig[i];
             int k = i - 1;
 
-            for (int j = 0; j < l; j++) {
+            for (int j = 0; j < l; j++)
+            {
                 int index = matrix.Ig[i] + j - 1;
 
                 product[i] += matrix.GGl[index] * vector[k];
                 product[k] += matrix.GGu[index] * vector[i];
             }
         }
-
-        return product;
     }
-    
+
     public void Clear()
     {
         Array.Fill(Di, 0.0);
         Array.Fill(GGl, 0.0);
         Array.Fill(GGu, 0.0);
     }
-    
 };

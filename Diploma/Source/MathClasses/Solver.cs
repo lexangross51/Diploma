@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace Diploma.Source.MathClasses;
 
 public abstract class IterativeSolver
@@ -5,9 +7,9 @@ public abstract class IterativeSolver
     protected TimeSpan RunningTime;
     protected SparseMatrix Matrix = default!;
     protected Vector RightPart = default!;
+    protected readonly int MaxIters;
+    protected readonly double Eps;
     public Vector? Solution { get; protected set; }
-    public int MaxIters { get; }
-    public double Eps { get; }
 
     protected IterativeSolver(int maxIters, double eps)
         => (MaxIters, Eps) = (maxIters, eps);
@@ -52,9 +54,9 @@ public class CGM : IterativeSolver
             
             for (int iter = 0; iter < MaxIters && residualNorm / rightPartNorm >= Eps; iter++)
             {
-                product.Clear();
+                product.Fill();
                 SparseMatrix.Dot(Matrix, z, product);
-                var alpha = r * r / (product * z);
+                var alpha = Vector.Dot(r, r) / Vector.Dot(product,z);
 
                 for (int i = 0; i < RightPart.Length; i++)
                 {
@@ -66,7 +68,7 @@ public class CGM : IterativeSolver
                     r[i] -= alpha * product[i];
                 }
                 
-                var beta = r * r / (residualNorm * residualNorm);
+                var beta = Vector.Dot(r, r) / (residualNorm * residualNorm);
                 residualNorm = r.Norm();
                 
                 for (int i = 0; i < RightPart.Length; i++)
@@ -85,6 +87,83 @@ public class CGM : IterativeSolver
         }
     }
 }
+
+public class LOS : IterativeSolver
+{
+    public LOS(int maxIters, double eps) : base(maxIters, eps)
+    {
+    }
+
+    public override void Compute()
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(Matrix, $"{nameof(Matrix)} cannot be null, set the matrix");
+            ArgumentNullException.ThrowIfNull(RightPart, $"{nameof(RightPart)} cannot be null, set the vector");
+
+            Solution = new(RightPart.Length);
+
+            Vector z = new(RightPart.Length);
+            Vector r = new(RightPart.Length);
+            Vector p = new(RightPart.Length);
+            Vector product = new(RightPart.Length);
+            SparseMatrix.Dot(Matrix, Solution, product);
+
+            for (int i = 0; i < product.Length; i++)
+            {
+                r[i] = RightPart[i] - product[i];
+            }
+            
+            Vector.Copy(r, z);
+
+            SparseMatrix.Dot(Matrix, z, p);
+
+            var squareNorm = Vector.Dot(r, r);
+
+            Stopwatch sw = Stopwatch.StartNew();
+            for (int index = 0; index < MaxIters && squareNorm > Eps; index++)
+            {
+                var alpha = Vector.Dot(p, r) / Vector.Dot(p, p);
+                
+                for (int i = 0; i < Solution.Length; i++)
+                {
+                    Solution[i] += alpha * z[i];
+                }
+                
+                squareNorm = Vector.Dot(r, r) - (alpha * alpha * Vector.Dot(p,p));
+                
+                for (int i = 0; i < Solution.Length; i++)
+                {
+                    r[i] -= alpha * p[i];
+                }
+
+                SparseMatrix.Dot(Matrix, r, product);
+
+                var beta = -Vector.Dot(p, product) / Vector.Dot(p, p);
+                
+                for (int i = 0; i < Solution.Length; i++)
+                {
+                    z[i] = r[i] + beta * z[i];
+                    p[i] = product[i] + beta * p[i];
+                }
+            }
+
+            sw.Stop();
+
+            RunningTime = sw.Elapsed;
+        }
+        catch (ArgumentNullException ex)
+        {
+            Console.WriteLine($"We had problem: {ex.Message}");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"We had problem: {ex.Message}");
+        }
+    }
+}
+
 
 public abstract class DirectSolver
 {

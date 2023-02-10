@@ -10,9 +10,9 @@
     },
     "Material": {
       "Permeability": 490.0,
-      "Porosity": 0.7
+      "Porosity": 1.0
     },
-    "PlastPressure": 120
+    "PlastPressure": 130
   }
 //  {
 //    "LeftBottom": {

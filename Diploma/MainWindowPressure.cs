@@ -1,4 +1,6 @@
-﻿namespace Diploma;
+﻿using Diploma.Source;
+
+namespace Diploma;
 
 public sealed partial class MainWindow
 {
@@ -25,8 +27,29 @@ public sealed partial class MainWindow
             _pressure[i] = Convert.ToDouble(sr.ReadLine());
         }
 
-        double pressMin = _pressure.Min();
-        double pressMax = _pressure.Max();
+        // Legend
+        _pressureLegendValues[0] = _pressure.Max();
+        _pressureLegendValues[7] = _pressureLegendValues[0];
+
+        for (int i = 0; i < _mesh!.Points.Length; i++)
+        {
+            if (_pressure[i] < _pressureLegendValues[7] && !_mesh.Points[i].IsFictitious)
+            {
+                _pressureLegendValues[7] = _pressure[i];
+            }
+        }
+        
+        double step = (_pressureLegendValues[0] - _pressureLegendValues[7]) / 7;
+
+        for (int i = 1; i < 7; i++)
+        {
+            _pressureLegendValues[i] = _pressureLegendValues[0] - i * step;
+        }
+
+        // Field
+        double pressMax = _pressureLegendValues[0];
+        double pressMin = _pressureLegendValues[7];
+        
         double stepPBig = (pressMax - pressMin) / 4.0;
 
         for (var ielem = 0; ielem < _mesh?.Elements.Length; ielem++)
@@ -65,15 +88,6 @@ public sealed partial class MainWindow
             }
 
             _colorsPressure[ielem] = new Color(rColor, gColor, bColor);
-        }
-
-        _pressureLegendValues[0] = _pressure.Max();
-        _pressureLegendValues[7] = _pressure.Min();
-        double step = (_pressureLegendValues[0] - _pressureLegendValues[7]) / 7;
-
-        for (int i = 1; i < 7; i++)
-        {
-            _pressureLegendValues[i] = _pressureLegendValues[0] - i * step;
         }
     }
 
@@ -149,7 +163,8 @@ public sealed partial class MainWindow
             }
             gl.PopMatrix();
 
-            DrawLegend(PressureControl.OpenGL, _pressureLegendValues, _pressureLegendColors);
+            DrawLegend(PressureControl.OpenGL, _pressureLegendValues.Select(DataConverter.PressureToAtm).ToArray(),
+                _pressureLegendColors);
         }
 
         gl.Finish();
