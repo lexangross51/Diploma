@@ -56,8 +56,9 @@ public class FlowsCalculator
         return coefficient;
     }
 
-    private void FixWellsFlows()
+    private void FixKnownFlows()
     {
+        // Flow from wells
         foreach (var (ielem, iedge, flow) in _mesh.NeumannConditions)
         {
             int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
@@ -67,7 +68,16 @@ public class FlowsCalculator
 
             double edgeLen = Math.Sqrt((p2.X - p1.X) * (p2.X - p1.X) + (p2.Y - p1.Y) * (p2.Y - p1.Y));
             
-            _averageFlows[globalEdge] = -flow * edgeLen;
+            _averageFlows[globalEdge] = -flow * edgeLen * CalculateCoefficient(ielem);
+        }
+        
+        // Almost zero flows
+        for (int i = 0; i < _averageFlows.Length; i++)
+        {
+            if (Math.Abs(_averageFlows[i]) < 1E-10)
+            {
+                _averageFlows[i] = 0.0;
+            }
         }
     }
     
@@ -75,9 +85,11 @@ public class FlowsCalculator
     {
         bool[] isUsed = new bool[_averageFlows.Length];
 
-        foreach (var element in _mesh.Elements)
+        for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
-            var nodes = element.Nodes;
+            var nodes = _mesh.Elements[ielem].Nodes;
+            var edges = _mesh.Elements[ielem].Edges;
+            var edgesIndices = _mesh.Elements[ielem].EdgesIndices;
 
             Point2D[] elementPoints =
             {
@@ -89,12 +101,12 @@ public class FlowsCalculator
 
             for (int localEdge = 0; localEdge < 4; localEdge++)
             {
-                double fixedVar = localEdge is 0 or 3 ? 0 : 1;
+                double fixedVar = localEdge is 0 or 3 ? 1 : 0; // ???????
                 double opposite = localEdge is 0 or 1 ? 0 : 1;
 
-                var globalEdge = element.EdgesIndices[localEdge];
+                var globalEdge = edgesIndices[localEdge];
+                var edge = edges[localEdge];
                 var normal = _normals[globalEdge];
-                var edge = element.Edges[localEdge];
                 var p1 = _mesh.Points[edge.Node1].Point;
                 var p2 = _mesh.Points[edge.Node2].Point;
                 double lenght = Math.Sqrt((p2.X - p1.X) * (p2.X - p1.X) + (p2.Y - p1.Y) * (p2.Y - p1.Y));
@@ -132,23 +144,44 @@ public class FlowsCalculator
                 }
             }
         }
-
+        
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
             double coefficient = CalculateCoefficient(ielem);
-
+        
             for (int localEdge = 0; localEdge < 4; localEdge++)
             {
                 double flow = _averageFlows[_mesh.Elements[ielem].EdgesIndices[localEdge]];
-
+        
                 if (FlowDirection(flow, ielem, localEdge) == 1)
                 {
                     _averageFlows[_mesh.Elements[ielem].EdgesIndices[localEdge]] *= coefficient;
                 }
             }
         }
+
+        foreach (var (ielem, iedge) in _mesh.RemoteEdges)
+        {
+            int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
+
+            if (FlowDirection(_averageFlows[globalEdge], ielem, iedge) == -1)
+            {
+                _averageFlows[globalEdge] *= CalculateCoefficient(ielem);
+            }
+        }
         
-        FixWellsFlows();
+        foreach (var (ielem, iedge, _) in _mesh.NeumannConditions)
+        {
+            double coefficient = CalculateCoefficient(ielem);
+            int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
+
+            if (FlowDirection(_averageFlows[globalEdge], ielem, iedge) == -1)
+            {
+                _averageFlows[globalEdge] *= coefficient;
+            }
+        }
+
+        FixKnownFlows();
         
         //_flowsBalancer.BalanceFlows(_averageFlows);
         

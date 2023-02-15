@@ -158,22 +158,21 @@ public sealed partial class MainWindow
 
                 gl.End();
 
-                //ShowDirichletConditions(args);
-                ShowNeumannConditions(args);
+                //ShowDirichletConditions(gl);
+                ShowNeumannConditions(gl);
             }
             gl.PopMatrix();
 
-            DrawLegend(PressureControl.OpenGL, _pressureLegendValues.Select(DataConverter.PressureToAtm).ToArray(),
-                _pressureLegendColors);
+            // DrawLegend(PressureControl.OpenGL, _pressureLegendValues.Select(DataConverter.PressureToAtm).ToArray(),
+            //     _pressureLegendColors);
+            DrawLegend(PressureControl.OpenGL, _pressureLegendValues, _pressureLegendColors);
         }
 
         gl.Finish();
     }
 
-    private void ShowDirichletConditions(OpenGLRoutedEventArgs args)
+    private void ShowDirichletConditions(OpenGL gl)
     {
-        OpenGL gl = args.OpenGL;
-
         gl.Color(0f, 0f, 0f);
         gl.PointSize(5);
         gl.Begin(OpenGL.GL_POINTS);
@@ -188,10 +187,8 @@ public sealed partial class MainWindow
         gl.End();
     }
 
-    private void ShowNeumannConditions(OpenGLRoutedEventArgs args)
+    private void ShowNeumannConditions(OpenGL gl)
     {
-        OpenGL gl = args.OpenGL;
-
         gl.Color(1f, 0f, 0f);
         gl.Begin(OpenGL.GL_LINES);
 

@@ -18,14 +18,15 @@ public sealed partial class MainWindow : INotifyPropertyChanged
 
     private Projection _graphArea = new();
     private readonly Mesh? _mesh;
-    private int _timeStart = 0, _timeEnd = 100, _timeMoment;
+    private readonly int _timeStart = 0, _timeEnd = 1;
+    private int _timeMoment;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public int TimeMoment
     {
         get => _timeMoment;
-        set
+        private set
         {
             _timeMoment = value;
             OnPropertyChanged();
@@ -37,17 +38,27 @@ public sealed partial class MainWindow : INotifyPropertyChanged
     public MainWindow()
     {
         var meshParameters = MeshParameters.ReadJson("Input/");
-        MeshBuilder meshBuilder = new MeshBuilder(meshParameters);
-        _mesh = meshBuilder.Build();
-        //DataWriter.WriteElements("Elements.txt", _mesh);
+        MeshBuilder meshBuilder = new(meshParameters);
+        //_mesh = meshBuilder.Build();
+
+        FiniteElement[] elements = new FiniteElement[1];
+        (Point2D, bool)[] points = new (Point2D, bool)[4];
+        points[0].Item1 = new Point2D(1, 1);
+        points[1].Item1 = new Point2D(5, 3);
+        points[2].Item1 = new Point2D(2, 5);
+        points[3].Item1 = new Point2D(4, 5);
+        elements[0] = new FiniteElement(new[] { 0, 1, 2, 3 }, 0);
+        _mesh = new Mesh(points, elements, new[] { new DirichletCondition(0, 1) }, new List<(int, int)>(),
+            new[] { new NeumannCondition(0, 0, 0) }, new[] { new Material(1, 1) });
         
+
         PhaseProperty phaseProperty = new(_mesh, "Input/");
         FEMBuilder femBuilder = new();
         
         _pressure = new double[_mesh.Points.Length];
         _saturation = new double[_mesh.Elements.Length];
-        
-        double Field(Point2D p) => p.X*p.X + p.Y * p.Y ;
+
+        double Field(Point2D p) => p.X + p.Y;
         double Source(Point2D p) => 0.0;
         
         var fem = femBuilder
@@ -55,43 +66,16 @@ public sealed partial class MainWindow : INotifyPropertyChanged
             .SetPhaseProperties(phaseProperty)
             .SetBasis(new LinearBasis())
             .SetSolver(new CGM(1000, 1E-20))
-            .SetTest(Source)
+            .SetTest(Source, Field)
             .Build();
         
-        //fem.Solve();
+        fem.Solve();
+            
+        DataWriter.WritePressure($"Pressure{0}.txt", fem.Solution!);
+        DataWriter.WriteSaturation($"Saturation{0}.txt", _mesh, phaseProperty.Saturation!);
         
-        // DataWriter.WritePressure($"Pressure{_timeMoment}.txt", fem.Solution!);
-        // DataWriter.WriteSaturation($"Saturation{_timeMoment}.txt", _mesh, phaseProperty.Saturation!);
-
-        // FlowsCalculator flowsCalculator = new(_mesh, new LinearBasis(), phaseProperty);
-        // var averageFlows = flowsCalculator.CalculateAverageFlows(fem.Solution!);
-
-        // double length = 0;
-        //
-        // foreach (var (ielem, iedge, _) in _mesh.NeumannConditions)
-        // {
-        //     var edge = _mesh.Elements[ielem].Edges[iedge];
-        //     var p1 = _mesh.Points[edge.Node1].Point;
-        //     var p2 = _mesh.Points[edge.Node2].Point;
-        //
-        //     length += Math.Sqrt((p2.X - p1.X) * (p2.X - p1.X) + (p2.Y - p1.Y) * (p2.Y - p1.Y));
-        // }
-        
-        // foreach (var (ielem, iedge, power) in _mesh.NeumannConditions)
-        // {
-        //     int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
-        //     var edge = _mesh.Elements[ielem].Edges[iedge];
-        //     var p1 = _mesh.Points[edge.Node1].Point;
-        //     var p2 = _mesh.Points[edge.Node2].Point;
-        //
-        //     double edgeLen = Math.Sqrt((p2.X - p1.X) * (p2.X - p1.X) + (p2.Y - p1.Y) * (p2.Y - p1.Y));
-        //
-        //     string pair = averageFlows[globalEdge].ToString(CultureInfo.CurrentCulture) + "\t" + power * edgeLen;
-        //     Debug.Print(pair);
-        // }
-        
-        Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
-        filtration.ModelFiltration(_timeStart, _timeEnd);
+        // Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
+        // filtration.ModelFiltration(_timeStart, _timeEnd);
         
         _colorsPressure = new Color[_mesh.Elements.Length];
         _colorsSaturartion = new Color[_mesh.Elements.Length];

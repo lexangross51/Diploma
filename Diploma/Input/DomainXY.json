@@ -9,24 +9,24 @@
       "Y": 50.0
     },
     "Material": {
-      "Permeability": 490.0,
+      "Permeability": 1.0,
       "Porosity": 1.0
     },
     "PlastPressure": 130
   }
 //  {
 //    "LeftBottom": {
-//      "X": 20.0,
-//      "Y": 20.0
+//      "X": 4.0,
+//      "Y": 3.0
 //    },
 //    "RightTop": {
-//      "X": 30.0,
-//      "Y": 30.0
+//      "X": 6.0,
+//      "Y": 7.0
 //    },
 //    "Material": {
-//      "Permeability": 10.0,
-//      "Porosity": 0.2
+//      "Permeability": 0.7,
+//      "Porosity": 1
 //    },
-//    "PlastPressure": 120.0
+//    "PlastPressure": 130.0
 //  }
 ]

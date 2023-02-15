@@ -101,7 +101,7 @@ public class Filtration
         for (int timeMoment = _timeStart; timeMoment < _timeEnd; timeMoment++)
         {
             _abandon.Clear();
-    
+
             for (int i = 0; i < _flowsOutPhases.GetLength(0); i++)
             {
                 for (int j = 0; j < _flowsOutPhases.GetLength(1); j++)
@@ -470,6 +470,32 @@ public class Filtration
             }
         }
         
+        foreach (var (ielem, iedge) in _mesh.RemoteEdges)
+        {
+            int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
+        
+            if (FlowDirection(_flows[globalEdge], ielem, iedge) == -1)
+            {
+                foreach (var phaseIndex in _phaseProperty.RemoteBordersPhases!.Select(phase => AreaPhaseIndex(phase.Name)))
+                {
+                    _volumeOutPhases[globalEdge, phaseIndex] = Math.Abs(_flowsOutPhases[globalEdge, phaseIndex]) * _deltaT;
+                }
+            }
+        }
+
+        foreach (var (ielem, iedge, _) in _mesh.NeumannConditions)
+        {
+            int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
+
+            if (FlowDirection(_flows[globalEdge], ielem, iedge) == -1)
+            {
+                foreach (var phaseIndex in _phaseProperty.InjectedPhases!.Select(phase => AreaPhaseIndex(phase.Name)))
+                {
+                    _volumeOutPhases[globalEdge, phaseIndex] = Math.Abs(_flowsOutPhases[globalEdge, phaseIndex]) * _deltaT;
+                }
+            }
+        }
+        
         // using var sw = new StreamWriter("Output/CheckVolumeSign.txt");
         //
         // for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
@@ -535,6 +561,11 @@ public class Filtration
             for (int iphase = 0; iphase < saturations.Count; iphase++)
             {
                 saturations[iphase] = phasesVolumes[iphase] / phasesSum;
+
+                if (Math.Abs(saturations[iphase]) < 1E-13)
+                {
+                    saturations[iphase] = 0.0;
+                }
             }
         }
         

@@ -49,21 +49,24 @@ public class MeshBuilder
         }
     }
 
-    private bool IsEdgeExist(int ielem, int i, int j)
-    {
-        var element = _elements[ielem];
-        var p1 = _points[i].Point;
-        var p2 = _points[j].Point;
+    // private bool IsEdgeExist(int ielem, int i, int j)
+    // {
+    //     var element = _elements[ielem];
+    //     var p1 = _points[i].Point;
+    //     var p2 = _points[j].Point;
+    //
+    //     return (from edge in element.Edges
+    //         let edgeP1 = _points[edge.Node1].Point
+    //         let edgeP2 = _points[edge.Node2].Point
+    //         where Math.Abs(p1.X - edgeP1.X) < 1E-14 && Math.Abs(p1.Y - edgeP1.Y) < 1E-14 &&
+    //               Math.Abs(p2.X - edgeP2.X) < 1E-14 && Math.Abs(p2.Y - edgeP2.Y) < 1E-14 ||
+    //               Math.Abs(p1.X - edgeP2.X) < 1E-14 && Math.Abs(p1.Y - edgeP2.Y) < 1E-14 &&
+    //               Math.Abs(p2.X - edgeP1.X) < 1E-14 && Math.Abs(p2.Y - edgeP1.Y) < 1E-14
+    //         select edgeP1).Any();
+    // }
 
-        return (from edge in element.Edges
-            let edgeP1 = _points[edge.Node1].Point
-            let edgeP2 = _points[edge.Node2].Point
-            where Math.Abs(p1.X - edgeP1.X) < 1E-14 && Math.Abs(p1.Y - edgeP1.Y) < 1E-14 &&
-                  Math.Abs(p2.X - edgeP2.X) < 1E-14 && Math.Abs(p2.Y - edgeP2.Y) < 1E-14 ||
-                  Math.Abs(p1.X - edgeP2.X) < 1E-14 && Math.Abs(p1.Y - edgeP2.Y) < 1E-14 &&
-                  Math.Abs(p2.X - edgeP1.X) < 1E-14 && Math.Abs(p2.Y - edgeP1.Y) < 1E-14
-            select edgeP1).Any();
-    }
+    private bool IsEdgeExist(int i, int j)
+        => i == 0 && j == 1 || i == 0 && j == 2 || i == 1 && j == 3 || i == 2 && j == 3;
     
     private void NumerateEdges()
     {
@@ -84,7 +87,7 @@ public class MeshBuilder
                 {
                     int ind2 = element.Nodes[j];
         
-                    if (IsEdgeExist(ielem, ind1, ind2)) 
+                    if (IsEdgeExist(i, j)) 
                     {
                         connectivityList[ind2].Add(ind1);
                     }
@@ -750,7 +753,7 @@ public class MeshBuilder
         
         MeshNesting(ref nx, ref ny);
         
-        _dirichletConditions = new();
+        _dirichletConditions = new HashSet<DirichletCondition>();
 
         // lower border
         for (int inode = 0; inode < nx + 1; inode++)

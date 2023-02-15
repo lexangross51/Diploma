@@ -1,6 +1,4 @@
-﻿using System.DirectoryServices.ActiveDirectory;
-
-namespace Diploma.Source.Mesh;
+﻿namespace Diploma.Source.Mesh;
 
 // public class DomainXYJsonConverter : JsonConverter
 // {
