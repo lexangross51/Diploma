@@ -13,7 +13,7 @@ public static class DataWriter
 
         foreach (var value in pressure)
         {
-            sw.WriteLine(value);
+            sw.WriteLine(value.ToString(CultureInfo.InvariantCulture));
         }
     }
 
@@ -28,19 +28,30 @@ public static class DataWriter
 
         for (var ielem = 0; ielem < saturation!.Count; ielem++)
         {
-            sw.WriteLine(saturation[ielem][0]);
+            sw.WriteLine(saturation[ielem][0].ToString(CultureInfo.InvariantCulture));
         }
     }
 
-    public static void WriteElements(string filename, Mesh.Mesh mesh)
+    public static void WriteMesh(Mesh.Mesh mesh, string directory = "Mesh")
     {
-        using var sw = new StreamWriter(filename);
-        
-        for (int ielem = 0; ielem < mesh.Elements.Length; ielem++)
+        if (!Directory.Exists(directory))
         {
-            sw.WriteLine($"Element № {ielem} ----------------------------------------");
-            sw.WriteLine(mesh.Elements[ielem]);
-            sw.WriteLine();
+            Directory.CreateDirectory("Mesh");
+        }
+
+        using var swElements = new StreamWriter($"{directory}/elements");
+        
+        foreach (var element in mesh.Elements)
+        {
+            swElements.WriteLine($"{element}");
+        }
+        
+        using var swPoints = new StreamWriter($"{directory}/points");
+        
+        foreach (var (point, isFictitious) in mesh.Points)
+        {
+            byte flag = (byte)(isFictitious ? 1 : 0);
+            swPoints.WriteLine($"{point} {flag}");
         }
     }
 }

@@ -29,14 +29,5 @@ public class FiniteElement
     }
 
     public override string ToString()
-    {
-        string element = $"Area: {Area}\nNodes: ";
-        element = Nodes.Aggregate(element, (current, node) => current + $" {node}  ");
-        element += "\nEdges indices: ";
-        element = EdgesIndices.Aggregate(element, (current, edge) => current + $" {edge}  ");
-        element += "\nEdges: ";
-        element = Edges.Aggregate(element, (current, edge) => current + $"{edge}  ");
-        
-        return element;
-    }
+        => Nodes.Aggregate("", (current, node) => current + $"{node} ");
 }
