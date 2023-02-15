@@ -20,31 +20,22 @@
                 <ColumnDefinition Width="8*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
+            
+            <sharpGl:OpenGLControl Grid.Column="0" x:Name="PressureControl" Margin="10"
+                                   RenderContextType="DIBSection"
+                                   OpenGLDraw="PressureControl_OnOpenGLDraw"
+                                   MouseMove="PressureControl_OnMouseMove"
+                                   MouseWheel="PressureControl_OnMouseWheel"
+                                   MouseLeftButtonDown="PressureControl_OnMouseLeftButtonDown"
+                                   MouseLeftButtonUp="PressureControl_OnMouseLeftButtonUp" />
 
-            <GroupBox Grid.Column="0" Header="Pressure" x:Name="PressureGroup" Margin="2, -1, 0, 1">
-                <Grid>
-                    <sharpGl:OpenGLControl x:Name="PressureControl" Margin="3"
-                                           RenderContextType="DIBSection"
-                                           OpenGLDraw="PressureControl_OnOpenGLDraw"
-                                           MouseMove="PressureControl_OnMouseMove"
-                                           MouseWheel="PressureControl_OnMouseWheel"
-                                           MouseRightButtonDown="PressureControl_OnMouseRightButtonDown"
-                                           MouseRightButtonUp="PressureControl_OnMouseRightButtonUp" />
-
-                </Grid>
-            </GroupBox>
-
-            <GroupBox Grid.Column="1" Header="Oil saturation" x:Name="SaturationGroup" Margin="0, -1, 2, 1">
-                <Grid>
-                    <sharpGl:OpenGLControl x:Name="SaturationControl" Margin="3" 
-                                           RenderContextType="DIBSection"
-                                           OpenGLDraw="OpenGLControlSaturation_OnOpenGLDraw"
-                                           MouseMove="SaturationControl_OnMouseMove"
-                                           MouseWheel="SaturationControl_OnMouseWheel"
-                                           MouseRightButtonDown="SaturationControl_OnMouseRightButtonDown"
-                                           MouseRightButtonUp="SaturationControl_OnMouseRightButtonUp"/>
-                </Grid>
-            </GroupBox>
+            <sharpGl:OpenGLControl Grid.Column="1" x:Name="SaturationControl" Margin="10" 
+                                   RenderContextType="DIBSection"
+                                   OpenGLDraw="OpenGLControlSaturation_OnOpenGLDraw"
+                                   MouseMove="SaturationControl_OnMouseMove"
+                                   MouseWheel="SaturationControl_OnMouseWheel"
+                                   MouseLeftButtonDown="SaturationControl_OnMouseLeftButtonDown"
+                                   MouseLeftButtonUp="SaturationControl_OnMouseLeftButtonUp"/>
         </Grid>
     </DockPanel>
 </Window>

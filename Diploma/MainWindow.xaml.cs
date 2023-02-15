@@ -39,19 +39,7 @@ public sealed partial class MainWindow : INotifyPropertyChanged
     {
         var meshParameters = MeshParameters.ReadJson("Input/");
         MeshBuilder meshBuilder = new(meshParameters);
-        //_mesh = meshBuilder.Build();
-
-        FiniteElement[] elements = new FiniteElement[1];
-        (Point2D, bool)[] points = new (Point2D, bool)[4];
-        points[0].Item1 = new Point2D(1, 1);
-        points[1].Item1 = new Point2D(5, 3);
-        points[2].Item1 = new Point2D(2, 5);
-        points[3].Item1 = new Point2D(4, 5);
-        elements[0] = new FiniteElement(new[] { 0, 1, 2, 3 }, 0);
-        _mesh = new Mesh(points, elements, new[] { new DirichletCondition(0, 1) }, new List<(int, int)>(),
-            new[] { new NeumannCondition(0, 0, 0) }, new[] { new Material(1, 1) });
-        
-
+        _mesh = meshBuilder.Build();
         PhaseProperty phaseProperty = new(_mesh, "Input/");
         FEMBuilder femBuilder = new();
         
@@ -66,7 +54,7 @@ public sealed partial class MainWindow : INotifyPropertyChanged
             .SetPhaseProperties(phaseProperty)
             .SetBasis(new LinearBasis())
             .SetSolver(new CGM(1000, 1E-20))
-            .SetTest(Source, Field)
+            .SetTest(Source)
             .Build();
         
         fem.Solve();

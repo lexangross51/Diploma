@@ -64,7 +64,7 @@ public sealed partial class MainWindow
         }
     }
     
-    private void PressureControl_OnMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    private void PressureControl_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         OpenGL gl = PressureControl.OpenGL;
         
@@ -75,7 +75,7 @@ public sealed partial class MainWindow
         _fulcrum = _graphArea.ToProjectionCoordinate(xPos, yPos, gl.RenderContextProvider);
     }
 
-    private void PressureControl_OnMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    private void PressureControl_OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         => _canNavigate = false;
     
     // Saturation control
@@ -117,7 +117,7 @@ public sealed partial class MainWindow
         }
     }
 
-    private void SaturationControl_OnMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    private void SaturationControl_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         OpenGL gl = SaturationControl.OpenGL;
         
@@ -128,7 +128,7 @@ public sealed partial class MainWindow
         _fulcrum = _graphArea.ToProjectionCoordinate(xPos, yPos, gl.RenderContextProvider);
     }
 
-    private void SaturationControl_OnMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    private void SaturationControl_OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         => _canNavigate = false;
 
     // Common
@@ -156,10 +156,17 @@ public sealed partial class MainWindow
             gl.Viewport(20, 20, gl.RenderContextProvider.Width - 30, gl.RenderContextProvider.Height - 30);
             gl.Color(0f, 0f, 0f);
             gl.Begin(OpenGL.GL_LINES);
+            // X & Y axes
             gl.Vertex(-1, -1);
             gl.Vertex(1, -1);
             gl.Vertex(-1, -1);
             gl.Vertex(-1, 1);
+            
+            // For borders
+            gl.Vertex(1, -1);
+            gl.Vertex(1, 1);
+            gl.Vertex(-1, 1);
+            gl.Vertex(1, 1);
             gl.End();
         }
         gl.PopMatrix();
