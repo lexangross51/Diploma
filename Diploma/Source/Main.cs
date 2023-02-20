@@ -1,5 +1,3 @@
-using Diploma.Source;
-
 var meshParameters = MeshParameters.ReadJson("Input/");
 MeshBuilder meshBuilder = new(meshParameters);
 Mesh mesh = meshBuilder.Build();
@@ -9,7 +7,7 @@ PhaseProperty phaseProperty = new(mesh, "Input/");
 FEMBuilder femBuilder = new();
 
 double Field(Point2D p) => 10 - p.X;
-double Source(Point2D p) => 0.0;
+double Source(Point2D p) => -4.0;
 
 var fem = femBuilder
     .SetMesh(mesh)
