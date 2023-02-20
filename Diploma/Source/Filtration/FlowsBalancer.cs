@@ -10,7 +10,6 @@ public class FlowsBalancer
     private readonly double[] _beta;
     private readonly double[] _alpha;
     private readonly DirectSolver _solver;
-    private readonly IterativeSolver _solve = new LOS(100, 1E-20);
     private readonly double _maxImbalance;
     private readonly int _maxBalanceIters;
     private readonly int[,] _edgesDirect;
@@ -91,12 +90,9 @@ public class FlowsBalancer
             AssemblyGlobalMatrix();
             AssemblyGlobalVector(flows);
             FixWellsFlows();
-            //_globalMatrix.PrintDense("GlobalMatrix.txt");
-            // _solver.SetSystem(_globalMatrix, _globalVector);
-            // _solver.Compute();
-            _solve.SetSystem(_globalMatrix, _globalVector);
-            _solve.Compute();
-            Vector.Copy(_solve.Solution!, _deltaQ);
+            _solver.SetSystem(_globalMatrix, _globalVector);
+            _solver.Compute();
+            Vector.Copy(_solver.Solution!, _deltaQ);
 
             bool isNullImbalance = true;
 
@@ -390,26 +386,33 @@ public class FlowsBalancer
         for (int i = 0; i < _mesh.Elements.Length; i++)
         {
             var edges = _mesh.Elements[i].EdgesIndices;
-            
             string dirs = string.Empty;
-            
-            for (int j = 0; j < 4; j++)
-            {
-                dirs += FlowDirection(flows[edges[j]], i, j) + "   ";
-            }
 
-            if (IsWellElement(i)) dirs += $"NB - {i}(Near-well)\n";
-            else dirs += $"NB - {i}\n";
-            
-            for (int j = 0; j < 4; j++)
+            for (int k = 0; k < 4; k++)
             {
-                dirs += FlowDirection(tmpFlows[edges[j]], i, j) + "   ";
-            }
+                if (FlowDirection(flows[edges[k]], i, k) != FlowDirection(tmpFlows[edges[k]], i, k))
+                {
+                    for (int j = 0; j < 4; j++)
+                    {
+                        dirs += FlowDirection(flows[edges[j]], i, j) + "   ";
+                    }
 
-            dirs += "B\n";
-            dirs += "------------------------------";
-            
-            sw.WriteLine(dirs);
+                    if (IsWellElement(i)) dirs += $"NB - {i}(Near-well)\n";
+                    else dirs += $"NB - {i}\n";
+
+                    for (int j = 0; j < 4; j++)
+                    {
+                        dirs += FlowDirection(tmpFlows[edges[j]], i, j) + "   ";
+                    }
+
+                    dirs += "B\n";
+                    dirs += "------------------------------";
+
+                    sw.WriteLine(dirs);
+                    
+                    break;
+                }
+            }
         }
     }
 }

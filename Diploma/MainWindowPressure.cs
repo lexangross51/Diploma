@@ -1,6 +1,4 @@
-﻿using Diploma.Source;
-
-namespace Diploma;
+﻿namespace Diploma;
 
 public sealed partial class MainWindow
 {

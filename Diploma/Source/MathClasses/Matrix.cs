@@ -124,7 +124,7 @@ public class SparseMatrix
         {
             for (int j = 0; j <= i; j++)
             {
-                sw.Write($"{a[i, j]:E3}\t\t");
+                sw.Write($"{a[i, j]:G}\t\t");
             }
 
             sw.WriteLine();
@@ -179,17 +179,17 @@ public class SparseMatrix
 
             for (int rowInd = i0P; rowInd < i1P; rowInd++, j0P++)
             {
-                if (j0P == Jg[i0S])
+                if (i0S < Jg.Length && j0P == Jg[i0S])
                 {
                     newGgl[rowInd] = GGl[i0S];
                     newGgu[rowInd] = GGu[i0S];
                     i0S++;
                 }
-                else
-                {
-                    newGgl[rowInd] = 0.0;
-                    newGgu[rowInd] = 0.0;
-                }
+                // else
+                // {
+                //     newGgl[rowInd] = 0.0;
+                //     newGgu[rowInd] = 0.0;
+                // }
             }
         }
 
