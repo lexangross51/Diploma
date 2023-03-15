@@ -47,11 +47,11 @@ public static class DataWriter
 
 public static class DataConverter
 {
-    //public static double PressureToPascal(double atmPressure) => atmPressure * 101325;
-    public static double PressureToPascal(double atmPressure) => atmPressure;
+    public static double PressureToPascal(double atmPressure) => atmPressure * 101325;
+    //public static double PressureToPascal(double atmPressure) => atmPressure;
     public static double PressureToAtm(double pascalPressure) => pascalPressure / 101325;
-    //public static double FlowToCubicMetersPerSecond(double flow) => flow / (24 * 60 * 60);
-    public static double FlowToCubicMetersPerSecond(double flow) => flow;
-    //public static double PermeabilityToSquareMeter(double permeability) => permeability * 1.01325E-15;
-    public static double PermeabilityToSquareMeter(double permeability) => permeability;
+    public static double FlowToCubicMetersPerSecond(double flow) => flow / (24 * 60 * 60);
+    //public static double FlowToCubicMetersPerSecond(double flow) => flow;
+    public static double PermeabilityToSquareMeter(double permeability) => permeability * 1.01325E-15;
+    //public static double PermeabilityToSquareMeter(double permeability) => permeability;
 }

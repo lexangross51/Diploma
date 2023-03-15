@@ -1,56 +1,5 @@
 ﻿namespace Diploma.Source.Mesh;
 
-// public class DomainXYJsonConverter : JsonConverter
-// {
-//     public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
-//         => throw new Exception("Can't write data to json file");
-//
-//     public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
-//     {
-//         if (reader.TokenType is JsonToken.Null) return null;
-//
-//         var token = JObject.Load(reader);
-//
-//         List<DomainXY> domains = new();
-//
-//         // Main area
-//         var area = token["Main area"]?["Area borders"];
-//
-//         if (area is null) throw new Exception("Main area can't be empty");
-//         
-//         var leftBottom = new Point2D(Convert.ToDouble(area["Left border"]), Convert.ToDouble(area["Bottom border"]));
-//         var rightTop = new Point2D(Convert.ToDouble(area["Right border"]), Convert.ToDouble(area["Top border"]));
-//
-//         var material = JsonConvert.DeserializeObject<Material?>(token["Main area"]?["Material"]?.ToString() ?? string.Empty);
-//
-//         if (material is null) throw new Exception("Main area must have a set material");
-//
-//         double.TryParse(token["Main area"]?["Plast pressure"]?.ToString(), out double plastPressure);
-//
-//         domains.Add(new (leftBottom, rightTop, material.Value, plastPressure)); 
-//         
-//         // Subarea with another permeability 
-//         area = token["Subarea"]?["Area borders"];
-//
-//         if (area is null) return domains.ToArray();
-//         
-//         leftBottom = new Point2D(Convert.ToDouble(area["Left border"]), Convert.ToDouble(area["Bottom border"]));
-//         rightTop = new Point2D(Convert.ToDouble(area["Right border"]), Convert.ToDouble(area["Top border"]));
-//
-//         material = JsonConvert.DeserializeObject<Material?>(token["Subarea"]?["Material"]?.ToString() ?? string.Empty);
-//
-//         if (material is null) throw new Exception("Subarea must have a set material");
-//         
-//         domains.Add(new (leftBottom, rightTop, material.Value, plastPressure));
-//
-//         return domains.ToArray();
-//     }
-//
-//     public override bool CanConvert(Type objectType)
-//         => objectType == typeof(DomainXY);
-// }
-
-//[JsonConverter(typeof(DomainXYJsonConverter))]
 public class DomainXY
 {
     public Point2D LeftBottom { get; }
@@ -86,10 +35,11 @@ public class Well
 {
     public Point2D Center { get; }
     public double Radius { get; }
+    public double OuterRadius { get; }  // is used to build mesh
     public double Power { get; }
 
-    public Well(Point2D center, double radius, double power)
-        => (Center, Radius, Power) = (center, radius, power);
+    public Well(Point2D center, double radius, double outerRadius, double power)
+        => (Center, Radius, OuterRadius, Power) = (center, radius, outerRadius, power);
 
     public static Well[]? ReadJson(string jsonPath)
     {
@@ -111,7 +61,7 @@ public class Well
     }
 }
 
-public readonly record struct SplitParameters(int MeshNx, int MeshNy, int Nesting)
+public readonly record struct SplitParameters(int MeshNx, int MeshNy, double WellsCoefficient, int Nesting)
 {
     public static SplitParameters ReadJson(string path)
     {
