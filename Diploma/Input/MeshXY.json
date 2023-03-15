@@ -1,5 +1,6 @@
 {
-  "MeshNx": 4,
-  "MeshNy": 4,
-  "Nesting": 4
+  "MeshNx": 50,
+  "MeshNy": 50,
+  "WellsCoefficient": 0.5,
+  "Nesting": 1
 }

@@ -1,10 +1,11 @@
 ﻿[
   {
     "Center": {
-      "X": 25,
-      "Y": 25
+      "X": 184,
+      "Y": 85
     },
-    "Radius": 0.5,
-    "Power": -5
+    "Radius": 1.0,
+    "OuterRadius": 100.0,
+    "Power": 8
   }
 ]
