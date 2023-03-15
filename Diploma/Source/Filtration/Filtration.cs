@@ -1,3 +1,5 @@
+using Diploma.Source.Phases;
+
 namespace Diploma.Source.Filtration;
 
 public class Filtration
@@ -17,7 +19,8 @@ public class Filtration
     private readonly List<(int Element, int PhaseIndex)> _abandon;
     private readonly double[] _saturationMaxCrit = { 0.05, 0.05 };
     private readonly double[] _saturationMinCrit = { 0.01, 0.01 };
-    private int _timeStart, _timeEnd;
+    private int _timeStart, _timeEnd, _timeMoment;
+    private double _time = 0.0;
     
     public Filtration(Mesh.Mesh mesh, PhaseProperty phaseProperty, FEMBuilder.FEM fem, IBasis basis)
     {
@@ -98,7 +101,7 @@ public class Filtration
         _timeStart = timeStart;
         _timeEnd = timeEnd;
     
-        for (int timeMoment = _timeStart; timeMoment < _timeEnd; timeMoment++)
+        for (_timeMoment = _timeStart; _timeMoment < _timeEnd; _timeMoment++)
         {
             _abandon.Clear();
 
@@ -113,8 +116,8 @@ public class Filtration
     
             _fem.Solve();
             
-            DataWriter.WritePressure($"Pressure{timeMoment}.txt", _fem.Solution!);
-            DataWriter.WriteSaturation($"Saturation{timeMoment}.txt", _mesh, _phaseProperty.Saturation!);
+            DataWriter.WritePressure($"Pressure{_timeMoment}.txt", _fem.Solution!);
+            DataWriter.WriteSaturation($"Saturation{_timeMoment}.txt", _mesh, _phaseProperty.Saturation!);
     
             _flows = _flowsCalculator.CalculateAverageFlows(_fem.Solution!);
             CalculateFlowOutPhases();
@@ -326,6 +329,10 @@ public class Filtration
                 sww.WriteLine($"{ielem}: {iphase}, {phaseVolumeOut}, {mes * porosity * saturations[iphase]}");
             }
         }
+
+        _time += _deltaT;
+        string timeStr = $"{_timeMoment}: {_time}";
+        Debug.Print(timeStr);
     }
     
     private void CalculateVolumesOutPhases()

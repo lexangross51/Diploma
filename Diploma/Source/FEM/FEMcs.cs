@@ -1,4 +1,6 @@
-﻿namespace Diploma.Source.FEM;
+﻿using Diploma.Source.Phases;
+
+namespace Diploma.Source.FEM;
 
 public class FEMBuilder
 {
@@ -43,7 +45,7 @@ public class FEMBuilder
             _massMatrix = new Matrix(_basis.Size, _basis.Size);
             _localB = new Vector(_basis.Size);
             _jacobiMatrix = new Matrix(2, 2);
-            _masterElement = new Rectangle(new Point2D(0, 0), new Point2D(1, 1));
+            _masterElement = new Rectangle(new Point2D(), new Point2D(1, 1));
 
             PortraitBuilder.PortraitByNodes(_mesh, out int[] ig, out int[] jg);
             _globalMatrix = new SparseMatrix(ig.Length - 1, jg.Length)
@@ -51,7 +53,7 @@ public class FEMBuilder
                 Ig = ig,
                 Jg = jg
             };
-
+            
             _globalVector = new Vector(ig.Length - 1);
         }
 
@@ -234,10 +236,10 @@ public class FEMBuilder
             {
                 HashSet<DirichletCondition> dirichletNodes = new();
 
-                for (int i = 0; i < _mesh.NeumannConditions.Length; i++)
+                foreach (var condition in _mesh.NeumannConditions)
                 {
-                    int ielem = _mesh.NeumannConditions[i].Element;
-                    int iedge = _mesh.NeumannConditions[i].Edge;
+                    int ielem = condition.Element;
+                    int iedge = condition.Edge;
                     var edge = _mesh.Elements[ielem].Edges[iedge];
 
                     dirichletNodes.Add(new DirichletCondition(edge.Node1, 0.0));

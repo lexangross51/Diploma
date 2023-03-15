@@ -1,4 +1,6 @@
-﻿namespace Diploma;
+﻿using Diploma.Source;
+
+namespace Diploma;
 
 public sealed partial class MainWindow
 {
@@ -161,9 +163,9 @@ public sealed partial class MainWindow
             }
             gl.PopMatrix();
 
-            // DrawLegend(PressureControl.OpenGL, _pressureLegendValues.Select(DataConverter.PressureToAtm).ToArray(),
-            //     _pressureLegendColors);
-            DrawLegend(PressureControl.OpenGL, _pressureLegendValues, _pressureLegendColors);
+            DrawLegend(PressureControl.OpenGL, _pressureLegendValues.Select(DataConverter.PressureToAtm).ToArray(),
+                _pressureLegendColors);
+            //DrawLegend(PressureControl.OpenGL, _pressureLegendValues, _pressureLegendColors);
         }
 
         gl.Finish();
