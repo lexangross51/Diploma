@@ -53,9 +53,6 @@ public class MeshBuilder
         }
     }
 
-    private bool IsEdgeExist(int i, int j)
-        => i == 0 && j == 1 || i == 0 && j == 2 || i == 1 && j == 3 || i == 2 && j == 3;
-
     private void NumerateEdges()
     {
         var connectivityList = new List<SortedSet<int>>();
@@ -65,27 +62,18 @@ public class MeshBuilder
             connectivityList.Add(new SortedSet<int>());
         }
 
-        foreach (var (_, element) in _elements)
+        foreach (var edge in _elements.Values.Select(element => element.Edges).SelectMany(edges => edges))
         {
-            for (int i = 0; i < 4; i++)
+            if (edge.Node1 < edge.Node2)
             {
-                int ind1 = element.Nodes[i];
-
-                for (int j = 0; j < 4; j++)
-                {
-                    int ind2 = element.Nodes[j];
-
-                    if (ind1 < ind2)
-                    {
-                        if (IsEdgeExist(i, j) || IsEdgeExist(j, i))
-                        {
-                            connectivityList[ind2].Add(ind1);
-                        }
-                    }
-                }
+                connectivityList[edge.Node2].Add(edge.Node1);
+            }
+            else
+            {
+                connectivityList[edge.Node1].Add(edge.Node2);
             }
         }
-
+        
         var ig = new int[_points.Count + 1];
 
         ig[0] = 0;

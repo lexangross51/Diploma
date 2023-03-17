@@ -1,4 +1,6 @@
-﻿namespace Diploma.Source.Mesh;
+﻿using System.Drawing;
+
+namespace Diploma.Source.Mesh;
 
 public class Mesh
 {
@@ -8,6 +10,11 @@ public class Mesh
     public (int Element, int LocalEdge)[] RemoteEdges { get; }
     public NeumannCondition[] NeumannConditions { get; }
     public Material[] Materials { get; }
+    public int NodesCount => Points.Length;
+    public int ElementsCount => Elements.Length;
+    public int EdgesCount => Elements[^1].EdgesIndices[^1] > Elements[^2].EdgesIndices[^1]
+        ? Elements[^1].EdgesIndices[^1] + 1
+        : Elements[^2].EdgesIndices[^1] + 1;
 
     public Mesh(
         IEnumerable<(Point2D, bool)> points,
