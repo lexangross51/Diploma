@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Diploma.Source;
-using Diploma.Source.Phases;
 
 namespace Diploma;
 
@@ -19,7 +18,7 @@ public sealed partial class MainWindow : INotifyPropertyChanged
 
     private Projection _graphArea = new();
     private readonly Mesh? _mesh;
-    private readonly int _timeStart = 0, _timeEnd = 1;
+    private readonly int _timeStart = 0, _timeEnd = 1000;
     private int _timeMoment;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -41,7 +40,7 @@ public sealed partial class MainWindow : INotifyPropertyChanged
         var meshParameters = MeshParameters.ReadJson("Input/");
         MeshBuilder meshBuilder = new(meshParameters);
         _mesh = meshBuilder.Build();
-        //DataWriter.WriteElements("elements", _mesh);
+        DataWriter.WriteElements("elements", _mesh);
         PhaseProperty phaseProperty = new(_mesh, "Input/");
         FEMBuilder femBuilder = new();
         
@@ -59,13 +58,8 @@ public sealed partial class MainWindow : INotifyPropertyChanged
             .SetTest(Source)
             .Build();
         
-        fem.Solve();
-            
-        DataWriter.WritePressure($"Pressure{0}.txt", fem.Solution!);
-        DataWriter.WriteSaturation($"Saturation{0}.txt", _mesh, phaseProperty.Saturation!);
-
-        // Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
-        // filtration.ModelFiltration(_timeStart, _timeEnd);
+        Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
+        filtration.ModelFiltration(_timeStart, _timeEnd);
         
         _colorsPressure = new Color[_mesh.Elements.Length];
         _colorsSaturartion = new Color[_mesh.Elements.Length];

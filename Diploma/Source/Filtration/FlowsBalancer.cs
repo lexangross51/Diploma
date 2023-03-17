@@ -34,7 +34,7 @@ public class FlowsBalancer
         _flowsNulls = new bool[ig.Length - 1];
 
         _beta = new double[_mesh.Elements.Length];
-        _alpha = new double[_mesh.Elements[^1].EdgesIndices[^1] + 1];
+        _alpha = new double[_mesh.EdgesCount];
 
         _solver = new LUSolver();
     }

@@ -1,5 +1,3 @@
-using Diploma.Source.Phases;
-
 namespace Diploma.Source.Filtration;
 
 public class Filtration
@@ -8,8 +6,6 @@ public class Filtration
     private readonly double[] _elementsSquares;
     private readonly PhaseProperty _phaseProperty;
     private readonly FEMBuilder.FEM _fem;
-    //private readonly PhaseComponentsTable[] _phasesComponents;
-    //private readonly PhaseComponentsTable _remotePhasesComponents;
     private readonly FlowsCalculator _flowsCalculator;
     private Vector _flows = default!;
     private readonly int[,] _edgesDirect;
@@ -27,20 +23,8 @@ public class Filtration
         _mesh = mesh;
         _phaseProperty = phaseProperty;
         _fem = fem;
-        // var componentsTable = PhaseComponentsTable.ReadJson("Input/AreaPhasesComponents.json");
-        // var componentsPerWell = PhaseComponentsTable.ReadJson("Input/InjectedPhaseComponents.json");
-        //_remotePhasesComponents = PhaseComponentsTable.ReadJson("Input/RemotePhasesComponents.json");
-        
-        // _phasesComponents = new PhaseComponentsTable[_mesh.Elements.Length]
-        //                         .Select(_ => componentsTable.Clone() as PhaseComponentsTable)
-        //                         .ToArray()!;
-    
-        // foreach (var condition in _mesh.NeumannConditions)
-        // {
-        //     _phasesComponents[condition.Element] = (componentsPerWell.Clone() as PhaseComponentsTable)!;
-        // }
 
-        int edgesCount = _mesh.Elements[^1].EdgesIndices[^1] + 1;
+        int edgesCount = _mesh.EdgesCount;
         int phasesCount = _phaseProperty.Phases![0].Count;
     
         _flowsOutPhases = new double[edgesCount, phasesCount];
@@ -535,7 +519,6 @@ public class Filtration
             double porosity = _mesh.Materials[_mesh.Elements[ielem].Area].Porosity;
             double mes = _elementsSquares[ielem];
             var saturations = _phaseProperty.Saturation![ielem];
-            //var componentsTable = _phasesComponents[ielem];
 
             for (int iphase = 0; iphase < saturations.Count; iphase++)
             {

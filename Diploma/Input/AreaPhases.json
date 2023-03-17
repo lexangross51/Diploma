@@ -2,13 +2,13 @@
   {
     "Name": "oil",
     "Density": 1,
-    "Viscosity": 0.08,
-    "Saturation": 0.6
+    "Viscosity": 0.008,
+    "Saturation": 0.8
   },
   {
     "Name": "water",
     "Density": 1,
     "Viscosity":  0.0013325,
-    "Saturation": 0.4
+    "Saturation": 0.2
   }
 ]

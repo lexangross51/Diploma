@@ -1,5 +1,3 @@
-using Diploma.Source.Phases;
-
 namespace Diploma.Source.Filtration;
 
 public class FlowsCalculator
@@ -26,10 +24,7 @@ public class FlowsCalculator
         _jacobiMatrix = new Matrix(2, 2);
         _gauss = new Integration(Quadratures.GaussOrder3());
         _masterInterval = new Interval(0, 1);
-        
-        var edgesCount = mesh.Elements[^1].EdgesIndices[^1] + 1;
-
-        _averageFlows = new Vector(edgesCount);
+        _averageFlows = new Vector(_mesh.EdgesCount);
         _flowsBalancer = new FlowsBalancer(mesh, edgesDirect);
     }
 
