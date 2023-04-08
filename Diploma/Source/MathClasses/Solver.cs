@@ -1,10 +1,8 @@
-using System.Numerics;
-
 namespace Diploma.Source.MathClasses;
 
 public abstract class IterativeSolver
 {
-    protected TimeSpan RunningTime;
+    public TimeSpan RunningTime;
     protected SparseMatrix Matrix = default!;
     protected Vector RightPart = default!;
     protected readonly int MaxIters;
@@ -167,7 +165,7 @@ public class LOS : IterativeSolver
 
 public abstract class DirectSolver
 {
-    protected TimeSpan RunningTime;
+    public TimeSpan RunningTime;
     protected ProfileMatrix Matrix = default!;
     protected Vector RightPart = default!;
     public Vector? Solution { get; protected set; }

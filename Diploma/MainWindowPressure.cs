@@ -4,8 +4,8 @@ namespace Diploma;
 
 public sealed partial class MainWindow
 {
-    private readonly Color[] _colorsPressure;
-    private readonly double[] _pressure;
+    private Color[]? _colorsPressure;
+    private double[] _pressure;
     private readonly double[] _pressureLegendValues = new double[8];
     private readonly byte[,] _pressureLegendColors =
     {
@@ -20,7 +20,7 @@ public sealed partial class MainWindow
     {
         if (_mesh is null) return;
         
-        using var sr = new StreamReader($"Pressure/Pressure{timeMoment}.txt");
+        using var sr = new StreamReader($"{_path}/Output2D/Pressure{timeMoment}.txt");
 
         for (int i = 0; i < _mesh?.Points.Length; i++)
         {
@@ -87,7 +87,7 @@ public sealed partial class MainWindow
                 bColor = 255;
             }
 
-            _colorsPressure[ielem] = new Color(rColor, gColor, bColor);
+            _colorsPressure![ielem] = new Color(rColor, gColor, bColor);
         }
     }
 
@@ -118,26 +118,30 @@ public sealed partial class MainWindow
                 gl.Viewport(20, 20, gl.RenderContextProvider.Width - 30, gl.RenderContextProvider.Height - 30);
                 gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
                 gl.ShadeModel(OpenGL.GL_SMOOTH);
-                gl.Begin(OpenGL.GL_QUADS);
                 
-                for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+                if (_colorsPressure is not null)
                 {
-                    var nodes = _mesh.Elements[ielem].Nodes;
+                    gl.Begin(OpenGL.GL_QUADS);
                 
-                    var c = _colorsPressure[ielem];
-                    var p1 = _mesh.Points[nodes[0]].Point;
-                    var p2 = _mesh.Points[nodes[1]].Point;
-                    var p3 = _mesh.Points[nodes[2]].Point;
-                    var p4 = _mesh.Points[nodes[3]].Point;
-                
-                    gl.Color(c.R, c.G, c.B);
-                    gl.Vertex(p1.X, p1.Y);
-                    gl.Vertex(p2.X, p2.Y);
-                    gl.Vertex(p4.X, p4.Y);
-                    gl.Vertex(p3.X, p3.Y);
+                    for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+                    {
+                        var nodes = _mesh.Elements[ielem].Nodes;
+
+                        var c = _colorsPressure[ielem];
+                        var p1 = _mesh.Points[nodes[0]].Point;
+                        var p2 = _mesh.Points[nodes[1]].Point;
+                        var p3 = _mesh.Points[nodes[2]].Point;
+                        var p4 = _mesh.Points[nodes[3]].Point;
+
+                        gl.Color(c.R, c.G, c.B);
+                        gl.Vertex(p1.X, p1.Y);
+                        gl.Vertex(p2.X, p2.Y);
+                        gl.Vertex(p4.X, p4.Y);
+                        gl.Vertex(p3.X, p3.Y);
+                    }
+
+                    gl.End();
                 }
-                
-                gl.End();
 
                 gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
                 gl.Color(0, 0, 0, 1);
@@ -158,14 +162,44 @@ public sealed partial class MainWindow
 
                 gl.End();
 
+                
+                // gl.Begin(OpenGL.GL_LINES);
+                //
+                // for (int i = 0; i < _mesh.ElementsCount; i++)
+                // {
+                //     if (i == SelectedElement)
+                //     {
+                //         var edges = _mesh.Elements[i].Edges;
+                //
+                //         for (int j = 0; j < 4; j++)
+                //         {
+                //             int globalEdge = _mesh.Elements[i].EdgesIndices[j];
+                //             var edge = edges[j];
+                //             var p1 = _mesh.Points[edge.Node1].Point;
+                //             var p2 = _mesh.Points[edge.Node2].Point;
+                //             var n = _normals[globalEdge];
+                //             double xc = (p1.X + p2.X) / 2.0;
+                //             double yc = (p1.Y + p2.Y) / 2.0;
+                //             
+                //             gl.Vertex(xc, yc);
+                //             gl.Vertex(xc + n.X, yc + n.Y);
+                //         }
+                //     }
+                // }
+                //
+                // gl.End();
+
                 //ShowDirichletConditions(gl);
                 ShowNeumannConditions(gl);
             }
             gl.PopMatrix();
 
-            DrawLegend(PressureControl.OpenGL, _pressureLegendValues.Select(DataConverter.PressureToAtm).ToArray(),
-                _pressureLegendColors);
-            //DrawLegend(PressureControl.OpenGL, _pressureLegendValues, _pressureLegendColors);
+
+            if (_colorsPressure is not null)
+            {
+                DrawLegend(PressureControl.OpenGL, _pressureLegendValues.Select(DataConverter.PressureToAtm).ToArray(),
+                    _pressureLegendColors);
+            }
         }
 
         gl.Finish();

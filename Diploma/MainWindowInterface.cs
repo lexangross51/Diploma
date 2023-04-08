@@ -1,4 +1,6 @@
 ﻿using System.Windows.Input;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 
 namespace Diploma;
 
@@ -21,6 +23,16 @@ public sealed partial class MainWindow
             case Key.Down:
             {
                 if (_timeMoment > _timeStart) TimeMoment--;
+                break;
+            }
+            case Key.Left:
+            {
+                if (_selectedElement > 0) SelectedElement--;
+                break;
+            }
+            case Key.Right:
+            {
+                if (_selectedElement < _mesh?.ElementsCount - 1) SelectedElement++;
                 break;
             }
         }

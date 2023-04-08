@@ -1,6 +1,4 @@
-﻿using Diploma.Source.Phases;
-
-namespace Diploma.Source.FEM;
+﻿namespace Diploma.Source.FEM;
 
 public class FEMBuilder
 {
@@ -56,7 +54,7 @@ public class FEMBuilder
             
             _globalVector = new Vector(ig.Length - 1);
         }
-
+        
         private double CalculateCoefficient(int ielem)
         {
             if (_field is not null) return 1.0;
@@ -75,7 +73,7 @@ public class FEMBuilder
 
             return coefficient;
         }
-
+        
         private void BuildLocalMatrixVector(int ielem)
         {
             var nodes = _mesh.Elements[ielem].Nodes;
@@ -306,7 +304,7 @@ public class FEMBuilder
                 var edge = _mesh.Elements[ielem].Edges[iedge];
                 var p1 = _mesh.Points[edge.Node1].Point;
                 var p2 = _mesh.Points[edge.Node2].Point;
-                double length = Math.Sqrt((p2.X - p1.X) * (p2.X - p1.X) + (p2.Y - p1.Y) * (p2.Y - p1.Y));
+                double length = Point2D.Distance(p1, p2);
                 
                 _globalVector[edge.Node1] += length / 2.0 * power;
                 _globalVector[edge.Node2] += length / 2.0 * power;
@@ -320,8 +318,8 @@ public class FEMBuilder
 
             for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
             {
+                double coefficient = CalculateCoefficient(ielem);
                 var nodes = _mesh.Elements[ielem].Nodes;
-                var coefficient = CalculateCoefficient(ielem);
 
                 BuildLocalMatrixVector(ielem);
 

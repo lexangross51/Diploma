@@ -16,10 +16,12 @@ public class Filtration
     private readonly double[] _saturationMaxCrit = { 0.05, 0.05 };
     private readonly double[] _saturationMinCrit = { 0.01, 0.01 };
     private int _timeStart, _timeEnd, _timeMoment;
-    private double _time = 0.0;
+    private double _time;
+    private string _path;
     
-    public Filtration(Mesh.Mesh mesh, PhaseProperty phaseProperty, FEMBuilder.FEM fem, IBasis basis)
+    public Filtration(Mesh.Mesh mesh, PhaseProperty phaseProperty, FEMBuilder.FEM fem, IBasis basis, string path)
     {
+        _path = path;
         _mesh = mesh;
         _phaseProperty = phaseProperty;
         _fem = fem;
@@ -79,6 +81,20 @@ public class Filtration
             _elementsSquares[ielem] = Quadrilateral.Square(leftBottom, rightBottom, leftTop, rightTop);
         }
     }
+
+    private void ClearData()
+    {
+        _abandon.Clear();
+
+        for (int i = 0; i < _flowsOutPhases.GetLength(0); i++)
+        {
+            for (int j = 0; j < _flowsOutPhases.GetLength(1); j++)
+            {
+                _flowsOutPhases[i, j] = 0.0;
+                _volumeOutPhases[i, j] = 0.0;
+            }
+        }
+    }
     
     public void ModelFiltration(int timeStart, int timeEnd)
     {
@@ -87,25 +103,16 @@ public class Filtration
     
         for (_timeMoment = _timeStart; _timeMoment < _timeEnd; _timeMoment++)
         {
-            _abandon.Clear();
-
-            for (int i = 0; i < _flowsOutPhases.GetLength(0); i++)
-            {
-                for (int j = 0; j < _flowsOutPhases.GetLength(1); j++)
-                {
-                    _flowsOutPhases[i, j] = 0.0;
-                    _volumeOutPhases[i, j] = 0.0;
-                }
-            }
-    
-            _fem.Solve();
+            ClearData();
             
-            DataWriter.WritePressure($"Pressure{_timeMoment}.txt", _fem.Solution!);
-            DataWriter.WriteSaturation($"Saturation{_timeMoment}.txt", _mesh, _phaseProperty.Saturation!);
+            _fem.Solve();
+
+            DataWriter.WritePressure(_path, $"Pressure{_timeMoment}.txt", _fem.Solution!);
+            DataWriter.WriteSaturation(_path,$"Saturation{_timeMoment}.txt", _mesh, _phaseProperty.Saturation!);
     
             _flows = _flowsCalculator.CalculateAverageFlows(_fem.Solution!);
             CalculateFlowOutPhases();
-            CalculateDeltaT(0.1);
+            CalculateDeltaT(1.0);
             CalculateVolumesOutPhases();
             CalculateNewSaturations();
         }
@@ -149,7 +156,9 @@ public class Filtration
                     {
                         double alphaM = phases[iphase].Kappa / (phases[iphase].Viscosity * phasesSum);
     
-                        _flowsOutPhases[globalEdge, iphase] = alphaM * Math.Abs(_flows[globalEdge]);
+                        // НУЖНО ЛИ ИСПОЛЬЗОВАТЬ МОДУЛЬ ??????????????????????????????????????????????
+                        //_flowsOutPhases[globalEdge, iphase] = alphaM * Math.Abs(_flows[globalEdge]);
+                        _flowsOutPhases[globalEdge, iphase] = alphaM * _flows[globalEdge];
                     }
                 }
             }
@@ -171,27 +180,34 @@ public class Filtration
                         int phaseIndex = AreaPhaseIndex(phase.Name);
                         double phaseFraction = phase.Kappa / (phase.Viscosity * injectedPhasesSum);
 
-                        _flowsOutPhases[globalEdge, phaseIndex] = phaseFraction * Math.Abs(_flows[globalEdge]);
+                        // НУЖНО ЛИ ИСПОЛЬЗОВАТЬ МОДУЛЬ ??????????????????????????????????????????????
+                        //_flowsOutPhases[globalEdge, phaseIndex] = phaseFraction * Math.Abs(_flows[globalEdge]);
+                        _flowsOutPhases[globalEdge, phaseIndex] = phaseFraction * _flows[globalEdge];
                     }
                 }
             }
         }
         
         // Accounting from remote boundaries
-        var remotePhasesSum = _phaseProperty.RemoteBordersPhases!.Sum(phase => phase.Kappa / phase.Viscosity);
-
-        foreach (var (ielem, iedge) in _mesh.RemoteEdges)
+        if (_phaseProperty.RemoteBordersPhases is not null)
         {
-            int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
+            var remotePhasesSum = _phaseProperty.RemoteBordersPhases.Sum(phase => phase.Kappa / phase.Viscosity);
 
-            if (FlowDirection(_flows[globalEdge], ielem, iedge) == -1)
+            foreach (var (ielem, iedge) in _mesh.RemoteEdges)
             {
-                foreach (var phase in _phaseProperty.RemoteBordersPhases!)
-                {
-                    int phaseIndex = AreaPhaseIndex(phase.Name);
-                    double phaseFraction = phase.Kappa / (phase.Viscosity * remotePhasesSum);
+                int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
 
-                    _flowsOutPhases[globalEdge, phaseIndex] = phaseFraction * Math.Abs(_flows[globalEdge]);
+                if (FlowDirection(_flows[globalEdge], ielem, iedge) == -1)
+                {
+                    foreach (var phase in _phaseProperty.RemoteBordersPhases)
+                    {
+                        int phaseIndex = AreaPhaseIndex(phase.Name);
+                        double phaseFraction = phase.Kappa / (phase.Viscosity * remotePhasesSum);
+
+                        // НУЖНО ЛИ ИСПОЛЬЗОВАТЬ МОДУЛЬ ??????????????????????????????????????????????
+                        //_flowsOutPhases[globalEdge, phaseIndex] = phaseFraction * Math.Abs(_flows[globalEdge]);
+                        _flowsOutPhases[globalEdge, phaseIndex] = phaseFraction * _flows[globalEdge];
+                    }
                 }
             }
         }
@@ -232,12 +248,14 @@ public class Filtration
                     }
                 }
 
-                double deltaTe = mes * porosity * saturations[iphase] / totalPhaseFlowOut;
+                double deltaTe = mes * porosity * saturations[iphase] / Math.Abs(totalPhaseFlowOut);
     
                 if (deltaTe < _deltaT) _deltaT = deltaTe;
             }
         }
-    
+
+        #region Delta time decrease
+
         // // Check if there is enough mix at the selected delta time
         // bool isOptimalDeltaT = false;
         //
@@ -282,9 +300,12 @@ public class Filtration
         //
         //     if (!isOptimalDeltaT) _deltaT /= 2.0;
         // }
+
+        #endregion
     
-        // Form the set abandon for the elements of which the pushing procedure will be carried ou
+        // Form the set abandon for the elements of which the pushing procedure will be carried out
         using var sww = new StreamWriter("Output/CheckMixEnough.txt");
+        sww.WriteLine($"{"Element", 7} {"Phase", 5} {"Out volume", 14} {"Exist volume", 14}");
         
         foreach (var (ielem, iphase) in abandonH)
         {
@@ -306,17 +327,18 @@ public class Filtration
             }
 
             double phaseVolumeOut = Math.Abs(totalPhaseFlowOut) * _deltaT;
+            double existingVolume = mes * porosity * saturations[iphase]; 
         
-            if (phaseVolumeOut > mes * porosity * saturations[iphase])
+            if (phaseVolumeOut > existingVolume)
             {
                 _abandon.Add((ielem, iphase));
-                sww.WriteLine($"{ielem}: {iphase}, {phaseVolumeOut}, {mes * porosity * saturations[iphase]}");
+                sww.WriteLine($"{ielem, 7} {iphase, 5} {phaseVolumeOut:F14} {existingVolume:F14}");
             }
         }
 
-        _time += _deltaT;
-        string timeStr = $"{_timeMoment}: {_time}";
-        Debug.Print(timeStr);
+        // _time += _deltaT;
+        // string timeStr = $"{_timeMoment}: {_time}";
+        // Debug.Print(timeStr);
     }
     
     private void CalculateVolumesOutPhases()
@@ -436,7 +458,9 @@ public class Filtration
                 
                 if (FlowDirection(_flows[globalEdge], ielem, localEdge) == 1)
                 {
-                    newVolumes[globalEdge] = Math.Abs(_flows[globalEdge]) * _deltaT - _flows[globalEdge] / flowOut * volumeMissed;
+                    // НУЖНО ЛИ ИСПОЛЬЗОВАТЬ МОДУЛЬ ??????????????????????????????????????????????
+                    //newVolumes[globalEdge] = Math.Abs(_flows[globalEdge]) * _deltaT - _flows[globalEdge] / flowOut * volumeMissed;
+                    newVolumes[globalEdge] = Math.Abs(_flows[globalEdge]) * _deltaT - Math.Abs(_flows[globalEdge] / flowOut) * volumeMissed;
                 }
             }
     
@@ -450,7 +474,9 @@ public class Filtration
                     {
                         if (iMissed[ielem].Contains(iphase))
                         {
-                            _volumeOutPhases[globalEdge, iphase] = Math.Abs(_flows[globalEdge]) / flowOut * phaseVolumes[iphase];
+                            // НУЖНО ЛИ ИСПОЛЬЗОВАТЬ МОДУЛЬ ??????????????????????????????????????????????
+                            //_volumeOutPhases[globalEdge, iphase] = Math.Abs(_flows[globalEdge]) / flowOut * phaseVolumes[iphase];
+                            _volumeOutPhases[globalEdge, iphase] = Math.Abs(_flows[globalEdge] / flowOut) * phaseVolumes[iphase];
                         }
                         else
                         {
@@ -552,7 +578,7 @@ public class Filtration
             {
                 saturations[iphase] = phasesVolumes[iphase] / phasesSum;
 
-                if (Math.Abs(saturations[iphase]) < 1E-13)
+                if (Math.Abs(saturations[iphase]) < 1E-10)
                 {
                     saturations[iphase] = 0.0;
                 }

@@ -752,28 +752,28 @@ public class MeshBuilder
 
         _remoteEdges = new List<(int, int)>(nx * ny);
 
-        // Bottom side
+        // Lower side
         for (int ielem = 0; ielem < nx; ielem++)
         {
-            _remoteEdges.Add((ielem, 0));
+            _remoteEdges.Add((_elements.Values.IndexOf(_elements[ielem]), 0));
         }
-
+        
         // Upper side
         for (int ielem = nx * (ny - 1); ielem < nx * ny; ielem++)
         {
-            _remoteEdges.Add((ielem, 3));
+            _remoteEdges.Add((_elements.Values.IndexOf(_elements[ielem]), 3));
         }
 
         // Left side
         for (int ielem = 0; ielem <= nx * (ny - 1); ielem += nx)
         {
-            _remoteEdges.Add((ielem, 1));
+            _remoteEdges.Add((_elements.Values.IndexOf(_elements[ielem]), 1));
         }
 
         // Right side
         for (int ielem = nx - 1; ielem <= nx * ny; ielem += nx)
         {
-            _remoteEdges.Add((ielem, 2));
+            _remoteEdges.Add((_elements.Values.IndexOf(_elements[ielem]), 2));
         }
     }
 
@@ -793,7 +793,7 @@ public class MeshBuilder
         {
             _dirichletConditions.Add(new DirichletCondition(inode, pressure));
         }
-
+        
         // upper border
         for (int inode = (nx + 1) * ny; inode < (nx + 1) * (ny + 1); inode++)
         {

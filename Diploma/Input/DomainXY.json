@@ -1,32 +1,17 @@
 ﻿[
   {
     "LeftBottom": {
-      "X": -25.0,
-      "Y": -25.0
+      "X": -1200.0,
+      "Y": -1200.0
     },
     "RightTop": {
-      "X": 25.0,
-      "Y": 25.0
+      "X": 1200.0,
+      "Y": 1200.0
     },
     "Material": {
       "Permeability": 500.0,
-      "Porosity": 0.5
+      "Porosity": 0.3
     },
     "PlastPressure": 130
   }
-//  {
-//    "LeftBottom": {
-//      "X": 4.0,
-//      "Y": 3.0
-//    },
-//    "RightTop": {
-//      "X": 6.0,
-//      "Y": 7.0
-//    },
-//    "Material": {
-//      "Permeability": 0.7,
-//      "Porosity": 1
-//    },
-//    "PlastPressure": 130.0
-//  }
 ]

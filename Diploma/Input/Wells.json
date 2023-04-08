@@ -1,11 +1,29 @@
 ﻿[
   {
     "Center": {
-      "X": 0,
-      "Y": 0
+      "X": 0.0,
+      "Y": 0.0
     },
     "Radius": 1.0,
-    "OuterRadius": 10.0,
-    "Power": -40
+    "OuterRadius": 50.0,
+    "Power": 150
+  },
+  {
+    "Center": {
+      "X": 360.0,
+      "Y": 0.0
+    },
+    "Radius": 1.0,
+    "OuterRadius": 50.0,
+    "Power": 150
+  },
+  {
+    "Center": {
+      "X": 180.0,
+      "Y": 180.0
+    },
+    "Radius": 1.0,
+    "OuterRadius": 50.0,
+    "Power": 150
   }
-] 
+]

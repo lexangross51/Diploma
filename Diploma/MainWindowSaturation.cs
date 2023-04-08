@@ -2,8 +2,8 @@
 
 public sealed partial class MainWindow
 {
-    private readonly Color[] _colorsSaturartion;
-    private readonly double[] _saturation;
+    private Color[]? _colorsSaturartion;
+    private double[] _saturation;
     private readonly double[] _saturationLegendValues = new double[8];
     private readonly byte[,] _saturationLegendColors =
     {
@@ -17,7 +17,7 @@ public sealed partial class MainWindow
     {
         if (_mesh is null) return;
         
-        using var sr = new StreamReader($"Saturation/Saturation{timeMoment}.txt");
+        using var sr = new StreamReader($"{_path}/Output2D/Saturation{timeMoment}.txt");
 
         for (int i = 0; i < _mesh?.Elements.Length; i++)
         {
@@ -63,7 +63,7 @@ public sealed partial class MainWindow
                 bColor = (byte)(255 - (centerP - minS) / (stepSBig / 255.0));
             }
 
-            _colorsSaturartion[ielem] = new Color(rColor, gColor, bColor);
+            _colorsSaturartion![ielem] = new Color(rColor, gColor, bColor);
         }
     }
 
@@ -94,26 +94,30 @@ public sealed partial class MainWindow
                 gl.Viewport(20, 20, gl.RenderContextProvider.Width - 30, gl.RenderContextProvider.Height - 30);
                 gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
                 gl.ShadeModel(OpenGL.GL_SMOOTH);
-                gl.Begin(OpenGL.GL_QUADS);
-
-                for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+                
+                if (_colorsSaturartion is not null)
                 {
-                    var nodes = _mesh.Elements[ielem].Nodes;
+                    gl.Begin(OpenGL.GL_QUADS);
 
-                    var c = _colorsSaturartion[ielem];
-                    var p1 = _mesh.Points[nodes[0]].Point;
-                    var p2 = _mesh.Points[nodes[1]].Point;
-                    var p3 = _mesh.Points[nodes[2]].Point;
-                    var p4 = _mesh.Points[nodes[3]].Point;
+                    for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+                    {
+                        var nodes = _mesh.Elements[ielem].Nodes;
 
-                    gl.Color(c.R, c.G, c.B);
-                    gl.Vertex(p1.X, p1.Y);
-                    gl.Vertex(p2.X, p2.Y);
-                    gl.Vertex(p4.X, p4.Y);
-                    gl.Vertex(p3.X, p3.Y);
+                        var c = _colorsSaturartion[ielem];
+                        var p1 = _mesh.Points[nodes[0]].Point;
+                        var p2 = _mesh.Points[nodes[1]].Point;
+                        var p3 = _mesh.Points[nodes[2]].Point;
+                        var p4 = _mesh.Points[nodes[3]].Point;
+
+                        gl.Color(c.R, c.G, c.B);
+                        gl.Vertex(p1.X, p1.Y);
+                        gl.Vertex(p2.X, p2.Y);
+                        gl.Vertex(p4.X, p4.Y);
+                        gl.Vertex(p3.X, p3.Y);
+                    }
+
+                    gl.End();
                 }
-
-                gl.End();
 
                 gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
                 gl.Color(0, 0, 0, 1);
@@ -137,7 +141,10 @@ public sealed partial class MainWindow
             }
             gl.PopMatrix();
 
-            DrawLegend(SaturationControl.OpenGL, _saturationLegendValues, _saturationLegendColors);
+            if (_colorsSaturartion is not null)
+            {
+                DrawLegend(SaturationControl.OpenGL, _saturationLegendValues, _saturationLegendColors);
+            }
         }
 
         gl.Finish();

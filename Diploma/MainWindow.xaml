@@ -5,13 +5,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:sharpGl="clr-namespace:SharpGL.WPF;assembly=SharpGL.WPF"
         mc:Ignorable="d"
-        Title="Filtration" Height="700" Width="1400"
+        Title="Filtration" Height="700" Width="1450"
         KeyDown="MainWindow_OnKeyDown"
         DataContext="{Binding RelativeSource={RelativeSource Self}}">
     <DockPanel>
         <StatusBar DockPanel.Dock="Bottom">
             <Label Content="Time moment: "/>
             <TextBlock Width="60" Text="{Binding TimeMoment, UpdateSourceTrigger=PropertyChanged}"/> 
+            
+            <Label Content="Element: "/>
+            <TextBlock Width="60" Text="{Binding SelectedElement, UpdateSourceTrigger=PropertyChanged}"/>
+            <TextBlock Width="60" Text="{Binding ElementSquare, UpdateSourceTrigger=PropertyChanged}"/>
         </StatusBar>
         
         <Grid>
@@ -36,6 +40,15 @@
                                    MouseWheel="SaturationControl_OnMouseWheel"
                                    MouseLeftButtonDown="SaturationControl_OnMouseLeftButtonDown"
                                    MouseLeftButtonUp="SaturationControl_OnMouseLeftButtonUp"/>
+            
+            <StackPanel Grid.Column="2" Margin="0, 10, 15 ,0">
+                <Button x:Name="BuildMeshButton" Content="Build" Height="20" Width="70" Margin="-4, 1, 1, 1"
+                        Click="BuildMeshButton_OnClick" />
+                <Button x:Name="CalculateButton" Content="Calculate" Height="20" Width="70" Margin="-4, 1, 1, 1"
+                        Click="CalculateButton_OnClick" />
+                <Button x:Name="LoadButton" Content="Load" Height="20" Width="50" Margin="-24, 1, 1, 1" 
+                        Click="LoadButton_OnClick"/> 
+            </StackPanel>
         </Grid>
     </DockPanel>
 </Window>

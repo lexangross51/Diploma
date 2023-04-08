@@ -5,14 +5,13 @@ public readonly record struct Edge(int Node1, int Node2)
     public override string ToString()
         => "{" + Node1 + ", " + Node2 + "}";
 }
-
 public class FiniteElement
 {
     public int[] Nodes { get; }
-    public int[] EdgesIndices { get; }
-    public Edge[] Edges { get; }
-    public int Area { get; set; }
-
+    [JsonIgnore] public int[] EdgesIndices { get; }
+    [JsonIgnore] public Edge[] Edges { get; }
+    [JsonIgnore] public int Area { get; set; }
+    
     public FiniteElement(int nodesCount)
     {
         Nodes = new int[nodesCount];
@@ -20,7 +19,7 @@ public class FiniteElement
         Edges = new Edge[nodesCount];
     }
 
-    public FiniteElement(int[] nodes, int area)
+    [JsonConstructor] public FiniteElement(int[] nodes, int area)
     {
         Nodes = nodes;
         Area = area;
