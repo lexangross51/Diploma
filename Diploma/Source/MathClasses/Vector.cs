@@ -11,6 +11,15 @@ public class Vector : IEnumerable<double>
         set => _storage[idx] = value;
     }
 
+    public void FromCollection(IEnumerable<double> collection)
+    {
+        int idx = 0;
+        foreach (var value in collection)
+        {
+            _storage[idx++] = value;
+        }
+    }
+    
     public Vector(int length)
         => (Length, _storage) = (length, new double[length]);
 

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using Diploma.Source;
@@ -21,9 +22,9 @@ public sealed partial class MainWindow : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     private Projection _graphArea = new();
     private Mesh? _mesh;
-    private readonly int _timeStart = 0, _timeEnd = 100;
+    private int _timeStart, _timeEnd = 201;
     private string _path = string.Empty;
-    private Point2D[] _normals;
+    private Point2D[]? _normals;
     
     private int _timeMoment;
     public int TimeMoment
@@ -37,35 +38,8 @@ public sealed partial class MainWindow : INotifyPropertyChanged
             MakeSaturationsColors(_timeMoment);
         }
     }
-    
-    private int _selectedElement;
-    private double _elementSquare;
-    
-    public int SelectedElement
-    {
-        get => _selectedElement;
-        private set
-        {
-            _selectedElement = value;
-            var p1 = _mesh!.Points[_mesh.Elements[_selectedElement].Nodes[0]].Point;
-            var p2 = _mesh!.Points[_mesh.Elements[_selectedElement].Nodes[1]].Point;
-            var p3 = _mesh!.Points[_mesh.Elements[_selectedElement].Nodes[2]].Point;
-            var p4 = _mesh!.Points[_mesh.Elements[_selectedElement].Nodes[3]].Point;
 
-            //ElementSquare = Quadrilateral.Square(p1, p2, p3, p4);
-            OnPropertyChanged();
-        }
-    }
-
-    public double ElementSquare
-    {
-        get => _elementSquare;
-        private set
-        {
-            _elementSquare = value;
-            OnPropertyChanged();
-        } 
-    }
+    public ObservableCollection<string> Times { get; } = new();
 
     public MainWindow()
     {
@@ -75,7 +49,7 @@ public sealed partial class MainWindow : INotifyPropertyChanged
         _graphArea.Bottom = 0;
         _graphArea.Right = 1;
         _graphArea.Top = 1;
-        
+
         TimeMoment = 0;
     }
 
@@ -86,10 +60,8 @@ public sealed partial class MainWindow : INotifyPropertyChanged
     {
         if (_mesh is null) return;
         
-        //DataWriter.WriteElements("elements", _mesh);
         PhaseProperty phaseProperty = new(_mesh, "Input/");
         FEMBuilder femBuilder = new();
-        
         _pressure = new double[_mesh.Points.Length];
         _saturation = new double[_mesh.Elements.Length];
 
@@ -100,7 +72,7 @@ public sealed partial class MainWindow : INotifyPropertyChanged
             .SetMesh(_mesh)
             .SetPhaseProperties(phaseProperty)
             .SetBasis(new LinearBasis())
-            .SetSolver(new CGM(1000, 1E-20))
+            .SetSolver(new CGMCholesky(1000, 1E-15))
             .SetTest(Source)
             .Build();
 
@@ -110,6 +82,8 @@ public sealed partial class MainWindow : INotifyPropertyChanged
         Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis(), _path);
         filtration.ModelFiltration(_timeStart, _timeEnd);
 
+        GenerateAndWriteTimes(_path);
+        
         TimeMoment = 0;
     }
     
@@ -148,6 +122,8 @@ public sealed partial class MainWindow : INotifyPropertyChanged
         _graphArea.Right = rightTop;
         _graphArea.Top = rightTop;
 
+        ReadTimes(_path);
+        
         TimeMoment = 0;
     }
 
@@ -207,6 +183,37 @@ public sealed partial class MainWindow : INotifyPropertyChanged
                 isUsed[globalIdx] = true;
                 _normals[globalIdx] = new Point2D(n1 / norm, n2 / norm);
             }
+        }
+    }
+
+    private void ReadTimes(string path)
+    {
+        using var sr = new StreamReader($"{path}/Times.txt");
+
+        while (sr.ReadLine() is { } line)
+        {
+            Times.Add(line);
+        }
+
+        _timeStart = Convert.ToInt32(Times[0]);
+        _timeEnd = Convert.ToInt32(Times[^1]);
+    }
+    
+    private void GenerateAndWriteTimes(string path)
+    {
+        for (int timeMoment = _timeStart; timeMoment < _timeEnd; timeMoment++)
+        {
+            if (timeMoment % 10 == 0)
+            {
+                Times.Add(timeMoment.ToString());
+            }
+        }
+        
+        using var sw = new StreamWriter($"{path}/Times.txt");
+
+        foreach (var time in Times)
+        {
+            sw.WriteLine(time);
         }
     }
 }

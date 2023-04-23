@@ -5,7 +5,7 @@ namespace Diploma;
 public sealed partial class MainWindow
 {
     private Color[]? _colorsPressure;
-    private double[] _pressure;
+    private double[]? _pressure;
     private readonly double[] _pressureLegendValues = new double[8];
     private readonly byte[,] _pressureLegendColors =
     {
@@ -24,16 +24,16 @@ public sealed partial class MainWindow
 
         for (int i = 0; i < _mesh?.Points.Length; i++)
         {
-            _pressure[i] = Convert.ToDouble(sr.ReadLine());
+            _pressure![i] = Convert.ToDouble(sr.ReadLine());
         }
 
         // Legend
-        _pressureLegendValues[0] = _pressure.Max();
+        _pressureLegendValues[0] = _pressure!.Max();
         _pressureLegendValues[7] = _pressureLegendValues[0];
 
         for (int i = 0; i < _mesh!.Points.Length; i++)
         {
-            if (_pressure[i] < _pressureLegendValues[7] && !_mesh.Points[i].IsFictitious)
+            if (_pressure![i] < _pressureLegendValues[7] && !_mesh.Points[i].IsFictitious)
             {
                 _pressureLegendValues[7] = _pressure[i];
             }
@@ -56,7 +56,7 @@ public sealed partial class MainWindow
         {
             var nodes = _mesh.Elements[ielem].Nodes;
 
-            double centerP = (_pressure[nodes[0]] + _pressure[nodes[1]] + _pressure[nodes[2]] + _pressure[nodes[3]]) /
+            double centerP = (_pressure![nodes[0]] + _pressure[nodes[1]] + _pressure[nodes[2]] + _pressure[nodes[3]]) /
                              4.0;
 
             byte rColor, gColor, bColor;
@@ -143,54 +143,37 @@ public sealed partial class MainWindow
                     gl.End();
                 }
 
-                gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
-                gl.Color(0, 0, 0, 1);
-                gl.Begin(OpenGL.GL_QUADS);
-
-                foreach (var element in _mesh.Elements)
+                if ((bool)CheckBoxShowGrid.IsChecked!)
                 {
-                    var p1 = _mesh.Points[element.Nodes[0]].Point;
-                    var p2 = _mesh.Points[element.Nodes[1]].Point;
-                    var p3 = _mesh.Points[element.Nodes[2]].Point;
-                    var p4 = _mesh.Points[element.Nodes[3]].Point;
+                    gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
+                    gl.Color(0, 0, 0, 1);
+                    gl.Begin(OpenGL.GL_QUADS);
 
-                    gl.Vertex(p1.X, p1.Y);
-                    gl.Vertex(p2.X, p2.Y);
-                    gl.Vertex(p4.X, p4.Y);
-                    gl.Vertex(p3.X, p3.Y);
+                    foreach (var element in _mesh.Elements)
+                    {
+                        var p1 = _mesh.Points[element.Nodes[0]].Point;
+                        var p2 = _mesh.Points[element.Nodes[1]].Point;
+                        var p3 = _mesh.Points[element.Nodes[2]].Point;
+                        var p4 = _mesh.Points[element.Nodes[3]].Point;
+
+                        gl.Vertex(p1.X, p1.Y);
+                        gl.Vertex(p2.X, p2.Y);
+                        gl.Vertex(p4.X, p4.Y);
+                        gl.Vertex(p3.X, p3.Y);
+                    }
+
+                    gl.End();
                 }
-
-                gl.End();
-
                 
-                // gl.Begin(OpenGL.GL_LINES);
-                //
-                // for (int i = 0; i < _mesh.ElementsCount; i++)
-                // {
-                //     if (i == SelectedElement)
-                //     {
-                //         var edges = _mesh.Elements[i].Edges;
-                //
-                //         for (int j = 0; j < 4; j++)
-                //         {
-                //             int globalEdge = _mesh.Elements[i].EdgesIndices[j];
-                //             var edge = edges[j];
-                //             var p1 = _mesh.Points[edge.Node1].Point;
-                //             var p2 = _mesh.Points[edge.Node2].Point;
-                //             var n = _normals[globalEdge];
-                //             double xc = (p1.X + p2.X) / 2.0;
-                //             double yc = (p1.Y + p2.Y) / 2.0;
-                //             
-                //             gl.Vertex(xc, yc);
-                //             gl.Vertex(xc + n.X, yc + n.Y);
-                //         }
-                //     }
-                // }
-                //
-                // gl.End();
-
-                //ShowDirichletConditions(gl);
-                ShowNeumannConditions(gl);
+                if ((bool)CheckBoxShowDirichlet.IsChecked!)
+                {
+                    ShowDirichletConditions(gl);
+                }
+                
+                if ((bool)CheckBoxShowNeumann.IsChecked!)
+                {
+                    ShowNeumannConditions(gl);
+                }
             }
             gl.PopMatrix();
 
@@ -207,11 +190,13 @@ public sealed partial class MainWindow
 
     private void ShowDirichletConditions(OpenGL gl)
     {
+        if (_mesh is null) return;
+        
         gl.Color(0f, 0f, 0f);
         gl.PointSize(5);
         gl.Begin(OpenGL.GL_POINTS);
 
-        foreach (var (inode, _) in _mesh!.DirichletConditions)
+        foreach (var (inode, _) in _mesh.DirichletConditions)
         {
             var point = _mesh.Points[inode].Point;
 
@@ -223,10 +208,12 @@ public sealed partial class MainWindow
 
     private void ShowNeumannConditions(OpenGL gl)
     {
+        if (_mesh is null) return;
+        
         gl.Color(1f, 0f, 0f);
         gl.Begin(OpenGL.GL_LINES);
 
-        foreach (var (ielem, iedge, _) in _mesh!.NeumannConditions)
+        foreach (var (ielem, iedge, _) in _mesh.NeumannConditions)
         {
             var edge = _mesh.Elements[ielem].Edges[iedge];
             var p1 = _mesh.Points[edge.Node1].Point;

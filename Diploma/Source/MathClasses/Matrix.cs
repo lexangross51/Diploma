@@ -91,15 +91,21 @@ public class SparseMatrix
         }
 
         product ??= new Vector(vector.Length);
-
+        product.Fill();
+        int[] ig = matrix.Ig;
+        int[] jg = matrix.Jg;
+        double[] di = matrix.Di;
+        double[] ggl = matrix.GGl;
+        double[] ggu = matrix.GGu;
+        
         for (int i = 0; i < vector.Length; i++)
         {
-            product[i] = matrix.Di[i] * vector[i];
+            product[i] = di[i] * vector[i];
 
-            for (int j = matrix.Ig[i]; j < matrix.Ig[i + 1]; j++)
+            for (int j = ig[i]; j < ig[i + 1]; j++)
             {
-                product[i] += matrix.GGl[j] * vector[matrix.Jg[j]];
-                product[matrix.Jg[j]] += matrix.GGu[j] * vector[i];
+                product[i] += ggl[j] * vector[jg[j]];
+                product[jg[j]] += ggu[j] * vector[i];
             }
         }
     }

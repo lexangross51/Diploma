@@ -10,85 +10,62 @@ public class FlowsCalculator
     private readonly Integration _gauss;
     private readonly Interval _masterInterval;
     private readonly Point2D[] _normals;
-    private readonly int[,] _edgesDirect;
-    private readonly FlowsBalancer _flowsBalancer;
 
-    public FlowsCalculator(Mesh.Mesh mesh, IBasis basis, PhaseProperty phaseProperty, Point2D[] normals,
-        int[,] edgesDirect)
+    public FlowsCalculator(Mesh.Mesh mesh, IBasis basis, PhaseProperty phaseProperty, Point2D[] normals)
     {
         _mesh = mesh;
         _basis = basis;
         _phaseProperty = phaseProperty;
         _normals = normals;
-        _edgesDirect = edgesDirect;
         _jacobiMatrix = new Matrix(2, 2);
         _gauss = new Integration(Quadratures.GaussOrder3());
         _masterInterval = new Interval(0, 1);
         _averageFlows = new Vector(_mesh.EdgesCount);
-        _flowsBalancer = new FlowsBalancer(mesh, edgesDirect);
-    }
-
-    private int FlowDirection(double flow, int ielem, int iedge)
-    {
-        //flow = Math.Abs(flow) < 1E-10 ? 0.0 : flow;
-        
-        return Math.Sign(flow) switch
-        {
-            0 => 0,
-            > 0 => _edgesDirect[ielem, iedge],
-            _ => -_edgesDirect[ielem, iedge]
-        };   
     }
 
     private void FixKnownFlows()
     {
-        // // Flow from wells
-        // foreach (var (ielem, iedge, flow) in _mesh.NeumannConditions)
-        // {
-        //     double coefficient = 0.0;
-        //
-        //     if (flow < 0) coefficient += _phaseProperty.Phases![ielem].Sum(phase => phase.Kappa / phase.Viscosity);
-        //     else  coefficient += _phaseProperty.InjectedPhases!.Sum(phase => phase.Kappa / phase.Viscosity);
-        //
-        //     //coefficient *= _mesh.Materials[_mesh.Elements[ielem].Area].Permeability;
-        //     
-        //     int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
-        //     var edge = _mesh.Elements[ielem].Edges[iedge];
-        //     var p1 = _mesh.Points[edge.Node1].Point;
-        //     var p2 = _mesh.Points[edge.Node2].Point;
-        //     double length = Point2D.Distance(p1, p2);
-        //
-        //     _averageFlows[globalEdge] = -flow * length * coefficient;
-        // }
+        // Flows from wells
+        foreach (var (ielem, iedge, flow) in _mesh.NeumannConditions)
+        {
+            int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
+            var edge = _mesh.Elements[ielem].Edges[iedge];
+            var p1 = _mesh.Points[edge.Node1].Point;
+            var p2 = _mesh.Points[edge.Node2].Point;
+            double length = Point2D.Distance(p1, p2);
+        
+            _averageFlows[globalEdge] = -flow * length;
+        }
         
         // Almost zero flows
-        for (int i = 0; i < _averageFlows.Length; i++)
-        {
-            if (Math.Abs(_averageFlows[i]) < 1E-10)
-            {
-                _averageFlows[i] = 0.0;
-            }
-        }
+        // for (int i = 0; i < _averageFlows.Length; i++)
+        // {
+        //     if (Math.Abs(_averageFlows[i]) < 1E-10)
+        //     {
+        //         _averageFlows[i] = 0.0;
+        //     }
+        // }
     }
     
     public Vector CalculateAverageFlows(Vector pressure)
     {
-        bool[] isUsed = new bool[_averageFlows.Length]; 
+        bool[] isUsed = new bool[_averageFlows.Length];
+        var elementPoints = new Point2D[4];
+        Vector gradP = new(2);
+        Vector matrixGrad = new(2);
         double lambdaE = 0.0, lambdaK;
 
-        foreach (var element in _mesh.Elements)
+        for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
+            var element = _mesh.Elements[ielem];
             var nodes = element.Nodes;
             var edges = element.Edges;
             var edgesIndices = element.EdgesIndices;
 
-            Point2D[] elementPoints =
-            {
-                _mesh.Points[nodes[0]].Point,
-                _mesh.Points[nodes[1]].Point,
-                _mesh.Points[nodes[2]].Point,
-                _mesh.Points[nodes[3]].Point
-            };
+            elementPoints[0] = _mesh.Points[nodes[0]].Point;
+            elementPoints[1] = _mesh.Points[nodes[1]].Point;
+            elementPoints[2] = _mesh.Points[nodes[2]].Point;
+            elementPoints[3] = _mesh.Points[nodes[3]].Point;
 
             for (int localEdge = 0; localEdge < 4; localEdge++)
             {
@@ -104,8 +81,9 @@ public class FlowsCalculator
 
                 double ScalarFunction(double ksi)
                 {
-                    Vector gradP = new(2);
-                    Vector matrixGrad = new(2);
+                    gradP.Fill();
+                    matrixGrad.Fill();
+
                     var point = fixedVar == 0 ? new Point2D(opposite, ksi) : new Point2D(ksi, opposite);
 
                     MathAddition.JacobiMatrix2D(elementPoints, point, _jacobiMatrix);
@@ -126,62 +104,24 @@ public class FlowsCalculator
 
                 if (isUsed[globalEdge])
                 {
-                    lambdaK = _mesh.Materials[element.Area].Permeability;
+                    lambdaK = _phaseProperty.Phases![ielem].Sum(phase => phase.Kappa / phase.Viscosity);
+                    lambdaK *= _mesh.Materials[element.Area].Permeability;
+                    flow *= lambdaK;
                     _averageFlows[globalEdge] = lambdaK / (lambdaK + lambdaE) * _averageFlows[globalEdge] +
                                                 lambdaE / (lambdaE + lambdaK) * flow;
                 }
                 else
                 {
-                    lambdaE = _mesh.Materials[element.Area].Permeability;
+                    lambdaE = _phaseProperty.Phases![ielem].Sum(phase => phase.Kappa / phase.Viscosity);
+                    lambdaE *= _mesh.Materials[element.Area].Permeability;
+                    flow *= lambdaE;
                     _averageFlows[globalEdge] = flow;
                     isUsed[globalEdge] = true;
                 }
             }
         }
 
-        for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
-        {
-            double coefficient = _phaseProperty.Phases![ielem].Sum(phase => phase.Kappa / phase.Viscosity);
-        
-            for (int localEdge = 0; localEdge < 4; localEdge++)
-            {
-                double flow = _averageFlows[_mesh.Elements[ielem].EdgesIndices[localEdge]];
-        
-                if (FlowDirection(flow, ielem, localEdge) == 1)
-                {
-                    int globalEdge = _mesh.Elements[ielem].EdgesIndices[localEdge];
-                    _averageFlows[globalEdge] *= coefficient;
-                }
-            }
-        }
-
-        foreach (var (ielem, iedge, _) in _mesh.NeumannConditions)
-        {
-            int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
-            //_averageFlows[globalEdge] *= _mesh.Materials[_mesh.Elements[ielem].Area].Permeability;
-        
-            if (FlowDirection(_averageFlows[globalEdge], ielem, iedge) == -1)
-            {
-                double coefficient = _phaseProperty.InjectedPhases!.Sum(phase => phase.Kappa / phase.Viscosity);
-                _averageFlows[globalEdge] *= coefficient;
-            }
-        }
-        
-        // // НАДО ЛИ ЭТО ДЕЛАТЬ?????
-        foreach (var (ielem, iedge) in _mesh.RemoteEdges)
-        {
-            int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
-            //_averageFlows[globalEdge] *= _mesh.Materials[_mesh.Elements[ielem].Area].Permeability;
-        
-            if (FlowDirection(_averageFlows[globalEdge], ielem, iedge) == -1)
-            {
-                double coefficient = _phaseProperty.RemoteBordersPhases!.Sum(phase => phase.Kappa / phase.Viscosity);
-                _averageFlows[globalEdge] *= coefficient;
-            }
-        }
-
         FixKnownFlows();
-        //_flowsBalancer.BalanceFlows(_averageFlows);
         
         return _averageFlows;
     }

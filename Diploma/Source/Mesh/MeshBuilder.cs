@@ -9,7 +9,7 @@ public class MeshBuilder
     private List<FiniteElement>? _wellElements;
     private HashSet<DirichletCondition> _dirichletConditions = default!;
     private List<(int Element, int LocalEdge)> _remoteEdges = default!;
-    private List<NeumannCondition>? _neumannConditions;
+    private List<NeumannCondition>? _neumannConditions = new();
     private Material[] _materials = default!;
     private List<int>? _intersectedElements;
 
@@ -136,8 +136,6 @@ public class MeshBuilder
                     }
                 }
             }
-
-            //Array.Sort(element.EdgesIndices);
         }
     }
 
@@ -312,8 +310,8 @@ public class MeshBuilder
                 rightTop = _points[_elements[_intersectedElements![^1]].Nodes[^1]].Point;
                 int p = (int)Math.Sqrt(_intersectedElements!.Count);
 
-                CreateWellPoints(leftBottom, rightTop, well.Center, well.Radius, p, p == 1 ? p : p + 1);
-                CreateWellElements(p, p == 1 ? p : p + 1);
+                CreateWellPoints(leftBottom, rightTop, well.Center, well.Radius, p, p == 1 ? p : p + 4);
+                CreateWellElements(p, p == 1 ? p : p + 4);
 
                 int elem = 0;
                 int shift = 4 * p;
@@ -763,7 +761,7 @@ public class MeshBuilder
         {
             _remoteEdges.Add((_elements.Values.IndexOf(_elements[ielem]), 3));
         }
-
+        
         // Left side
         for (int ielem = 0; ielem <= nx * (ny - 1); ielem += nx)
         {
@@ -799,13 +797,20 @@ public class MeshBuilder
         {
             _dirichletConditions.Add(new DirichletCondition(inode, pressure));
         }
-
+        
         // left border
-        //pressure = DataConverter.PressureToPascal(10);
+        //pressure = DataConverter.PressureToPascal(100);
         for (int i = 0, inode = 0; i < ny + 1; i++, inode += nx + 1)
         {
             _dirichletConditions.Add(new DirichletCondition(inode, pressure));
         }
+        
+        // // Left side
+        // double power = DataConverter.FlowToCubicMetersPerSecond(400);
+        // for (int ielem = 0; ielem <= nx * (ny - 1); ielem += nx)
+        // {
+        //     _neumannConditions!.Add(new NeumannCondition(_elements.Values.IndexOf(_elements[ielem]), 1, power));
+        // }
 
         // right border
         //pressure = DataConverter.PressureToPascal(0);

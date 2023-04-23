@@ -1,4 +1,8 @@
-﻿namespace Diploma.Source.FEM;
+﻿using Matrix = Diploma.Source.MathClasses.Matrix;
+using SparseMatrix = Diploma.Source.MathClasses.SparseMatrix;
+using Vector = Diploma.Source.MathClasses.Vector;
+
+namespace Diploma.Source.FEM;
 
 public class FEMBuilder
 {
@@ -13,11 +17,11 @@ public class FEMBuilder
         private readonly Func<Point2D, double> _source;
         private readonly Func<Point2D, double>? _field;
         private readonly Integration _gauss;
-        private readonly Matrix _stiffnessMatrix;
+        private Matrix[]? _stiffnessMatrices;
+        private Vector[]? _localVectors;
         private readonly Matrix _massMatrix;
         private readonly Matrix _jacobiMatrix;
         private readonly Rectangle _masterElement;
-        private readonly Vector _localB;
         private readonly SparseMatrix _globalMatrix;
         private readonly Vector _globalVector;
         public Vector? Solution { get; private set; }
@@ -38,10 +42,8 @@ public class FEMBuilder
             _source = source;
             _field = field;
             _gauss = new Integration(Quadratures.GaussOrder3());
-
-            _stiffnessMatrix = new Matrix(_basis.Size, _basis.Size);
+            
             _massMatrix = new Matrix(_basis.Size, _basis.Size);
-            _localB = new Vector(_basis.Size);
             _jacobiMatrix = new Matrix(2, 2);
             _masterElement = new Rectangle(new Point2D(), new Point2D(1, 1));
 
@@ -58,24 +60,17 @@ public class FEMBuilder
         private double CalculateCoefficient(int ielem)
         {
             if (_field is not null) return 1.0;
-
-            int area = _mesh.Elements[ielem].Area;
-            double coefficient = 0.0;
-
-            int phaseCount = _phaseProperty.Phases![ielem].Count;
-
-            for (int i = 0; i < phaseCount; i++)
-            {
-                coefficient += _phaseProperty.Phases[ielem][i].Kappa / _phaseProperty.Phases[ielem][i].Viscosity;
-            }
             
-            coefficient *= _mesh.Materials[area].Permeability;
+            double coefficient = _phaseProperty.Phases![ielem].Sum(phase => phase.Kappa / phase.Viscosity);
+            coefficient *= _mesh.Materials[_mesh.Elements[ielem].Area].Permeability;
 
             return coefficient;
         }
         
         private void BuildLocalMatrixVector(int ielem)
         {
+            _stiffnessMatrices![ielem] = new Matrix(_basis.Size, _basis.Size);
+            _localVectors![ielem] = new Vector(_basis.Size);
             var nodes = _mesh.Elements[ielem].Nodes;
 
             Point2D[] elementPoints =
@@ -115,7 +110,8 @@ public class FEMBuilder
                         return (matrixGradI[0] * matrixGradJ[0] + matrixGradI[1] * matrixGradJ[1]) * Math.Abs(jacobian);
                     }
 
-                    _stiffnessMatrix[i, j] = _stiffnessMatrix[j, i] = _gauss.Integrate2D(ScalarFunc, _masterElement);
+
+                    _stiffnessMatrices[ielem][i, j] = _stiffnessMatrices[ielem][j, i] = _gauss.Integrate2D(ScalarFunc, _masterElement);
                 }
             }
 
@@ -140,11 +136,11 @@ public class FEMBuilder
             
             for (int i = 0; i < _basis.Size; i++)
             {
-                _localB[i] = 0.0;
+                _localVectors[ielem][i] = 0.0;
                 
                 for (int j = 0; j < _basis.Size; j++)
                 {
-                    _localB[i] += _massMatrix[i, j] * _source(_mesh.Points[nodes[j]].Point);
+                    _localVectors[ielem][i] += _massMatrix[i, j] * _source(_mesh.Points[nodes[j]].Point);
                 }
             }
         }
@@ -316,24 +312,34 @@ public class FEMBuilder
             _globalMatrix.Clear();
             _globalVector.Fill();
 
-            for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+            if (_stiffnessMatrices is null)
             {
-                double coefficient = CalculateCoefficient(ielem);
-                var nodes = _mesh.Elements[ielem].Nodes;
-
-                BuildLocalMatrixVector(ielem);
-
-                for (int inode = 0; inode < _basis.Size; inode++)
+                _stiffnessMatrices = new Matrix[_mesh.ElementsCount];
+                _localVectors = new Vector[_mesh.ElementsCount];
+                
+                for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
                 {
-                    _globalVector[nodes[inode]] += _localB[inode];
+                    BuildLocalMatrixVector(ielem);
+                }
+            }
 
-                    for (int jnode = 0; jnode < _basis.Size; jnode++)
-                    { 
-                        AddToGlobal(nodes[inode], nodes[jnode], coefficient * _stiffnessMatrix[inode, jnode]);
+            for (int ielem = 0; ielem < _mesh.ElementsCount; ielem++)
+            {
+                var nodes = _mesh.Elements[ielem].Nodes;
+                var stiffnessMatrix = _stiffnessMatrices[ielem];
+                double coefficient = CalculateCoefficient(ielem);
+
+                for (int i = 0; i < 4; i++)
+                {
+                    _globalVector[nodes[i]] += _localVectors![ielem][i];
+                    
+                    for (int j = 0; j < 4; j++)
+                    {
+                        AddToGlobal(nodes[i], nodes[j], coefficient * stiffnessMatrix[i, j]);
                     }
                 }
             }
-            
+
             for (int i = 0; i < _mesh.Points.Length; i++)
             {
                 if (_mesh.Points[i].IsFictitious)
@@ -352,7 +358,7 @@ public class FEMBuilder
             _solver.SetSystem(_globalMatrix, _globalVector);
             _solver.Compute();
             Solution = _solver.Solution;
-
+            
             return Error();
         }
 

@@ -16,8 +16,8 @@ public class Filtration
     private readonly double[] _saturationMaxCrit = { 0.05, 0.05 };
     private readonly double[] _saturationMinCrit = { 0.01, 0.01 };
     private int _timeStart, _timeEnd, _timeMoment;
-    private double _time;
-    private string _path;
+    //private double _time;
+    private readonly string _path; 
     
     public Filtration(Mesh.Mesh mesh, PhaseProperty phaseProperty, FEMBuilder.FEM fem, IBasis basis, string path)
     {
@@ -65,7 +65,7 @@ public class Filtration
             }
         }
         
-        _flowsCalculator = new FlowsCalculator(_mesh, basis, phaseProperty, normals, _edgesDirect);
+        _flowsCalculator = new FlowsCalculator(_mesh, basis, phaseProperty, normals);
         
         // Calculate elements squares
         _elementsSquares = new double[_mesh.Elements.Length];
@@ -100,20 +100,25 @@ public class Filtration
     {
         _timeStart = timeStart;
         _timeEnd = timeEnd;
-    
+
         for (_timeMoment = _timeStart; _timeMoment < _timeEnd; _timeMoment++)
         {
             ClearData();
             
             _fem.Solve();
 
-            DataWriter.WritePressure(_path, $"Pressure{_timeMoment}.txt", _fem.Solution!);
-            DataWriter.WriteSaturation(_path,$"Saturation{_timeMoment}.txt", _mesh, _phaseProperty.Saturation!);
+            if (_timeMoment % 10 == 0)
+            {
+                DataWriter.WritePressure(_path, $"Pressure{_timeMoment}.txt", _fem.Solution!);
+                DataWriter.WriteSaturation(_path, $"Saturation{_timeMoment}.txt", _mesh, _phaseProperty.Saturation!);
+            }
     
             _flows = _flowsCalculator.CalculateAverageFlows(_fem.Solution!);
             CalculateFlowOutPhases();
-            CalculateDeltaT(1.0);
+            CalculateDeltaT(100.0);
             CalculateVolumesOutPhases();
+            // DataWriter.WriteFlows(_path, $"Flows{_timeMoment}.txt", _mesh, _flowsOutPhases);
+            // DataWriter.WriteVolumes(_path, $"Volumes{_timeMoment}.txt", _mesh, _volumeOutPhases);
             CalculateNewSaturations();
         }
     }
@@ -217,7 +222,7 @@ public class Filtration
     {
         _deltaT = deltaT0;
         
-        var abandonH = new List<(int Element, int PhaseIndex)>();
+        var abandonH = new HashSet<(int Element, int PhaseIndex)>();
     
         // Forming set of abandonH and calculate deltaT
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)

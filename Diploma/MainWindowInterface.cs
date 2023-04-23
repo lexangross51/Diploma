@@ -1,4 +1,6 @@
-﻿using System.Windows.Input;
+﻿using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 
@@ -10,34 +12,15 @@ public sealed partial class MainWindow
     private Point2D _fulcrum;
     private double _xShift, _yShift;
     
-    // Pressure control
-    private void MainWindow_OnKeyDown(object sender, KeyEventArgs e)
+    private void DataGridTimes_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        switch (e.Key)
+        if (DataGridTimes.SelectedItem is not null)
         {
-            case Key.Up:
-            {
-                if (_timeMoment < _timeEnd - 1) TimeMoment++;
-                break;
-            }
-            case Key.Down:
-            {
-                if (_timeMoment > _timeStart) TimeMoment--;
-                break;
-            }
-            case Key.Left:
-            {
-                if (_selectedElement > 0) SelectedElement--;
-                break;
-            }
-            case Key.Right:
-            {
-                if (_selectedElement < _mesh?.ElementsCount - 1) SelectedElement++;
-                break;
-            }
+            TimeMoment = Convert.ToInt32(DataGridTimes.SelectedItem);
         }
     }
 
+    // Pressure control
     private void PressureControl_OnMouseMove(object sender, MouseEventArgs e)
     {
         var pos = e.GetPosition(PressureControl);

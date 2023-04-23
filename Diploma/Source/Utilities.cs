@@ -46,6 +46,56 @@ public static class DataWriter
         }
     }
 
+    public static void WriteFlows(string path, string filename, Mesh.Mesh mesh, double[,] phasesFlows)
+    {
+        if (!Directory.Exists($"{path}/DebugInfo"))
+        {
+            Directory.CreateDirectory($"{path}/DebugInfo");
+        }
+        
+        using var sw = new StreamWriter($"{path}/DebugInfo/" + filename);
+
+        int rows = phasesFlows.GetLength(0);
+        int cols = phasesFlows.GetLength(1);
+
+        for (int i = 0; i < rows; i++)
+        {
+            var buffer = "";
+            
+            for (int j = 0; j < cols; j++)
+            {
+                buffer += $"{phasesFlows[i, j],14}\t";
+            }
+            
+            sw.WriteLine(buffer);
+        }
+    }
+    
+    public static void WriteVolumes(string path, string filename, Mesh.Mesh mesh, double[,] phasesVolumes)
+    {
+        if (!Directory.Exists($"{path}/DebugInfo"))
+        {
+            Directory.CreateDirectory($"{path}/DebugInfo");
+        }
+        
+        using var sw = new StreamWriter($"{path}/DebugInfo/" + filename);
+
+        int rows = phasesVolumes.GetLength(0);
+        int cols = phasesVolumes.GetLength(1);
+
+        for (int i = 0; i < rows; i++)
+        {
+            var buffer = "";
+            
+            for (int j = 0; j < cols; j++)
+            {
+                buffer += $"{phasesVolumes[i, j],14}\t";
+            }
+            
+            sw.WriteLine(buffer);
+        }
+    }
+
     public static void WriteElements(string filename, Mesh.Mesh mesh)
     {
         using var sw = new StreamWriter(filename);

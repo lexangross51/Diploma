@@ -3,7 +3,7 @@
 public sealed partial class MainWindow
 {
     private Color[]? _colorsSaturartion;
-    private double[] _saturation;
+    private double[]? _saturation;
     private readonly double[] _saturationLegendValues = new double[8];
     private readonly byte[,] _saturationLegendColors =
     {
@@ -21,12 +21,12 @@ public sealed partial class MainWindow
 
         for (int i = 0; i < _mesh?.Elements.Length; i++)
         {
-            _saturation[i] = Convert.ToDouble(sr.ReadLine());
+            _saturation![i] = Convert.ToDouble(sr.ReadLine());
         }
         
         // Legend
-        _saturationLegendValues[0] = _saturation.Max();
-        _saturationLegendValues[7] = _saturation.Min();
+        _saturationLegendValues[0] = _saturation!.Max();
+        _saturationLegendValues[7] = _saturation!.Min();
         double step = (_saturationLegendValues[0] - _saturationLegendValues[7]) / 7;
 
         for (int i = 1; i < 7; i++)
@@ -35,12 +35,12 @@ public sealed partial class MainWindow
         }
 
         // Field
-        double maxS = _saturation.Max(), minS = _saturation.Min();
+        double maxS = _saturation!.Max(), minS = _saturation!.Min();
         double stepSBig = (maxS - minS) / 3.0;
         
         for (int ielem = 0; ielem < _mesh?.Elements.Length; ielem++)
         {
-            double centerP = _saturation[ielem];
+            double centerP = _saturation![ielem];
         
             byte rColor, gColor, bColor;
         
@@ -119,25 +119,28 @@ public sealed partial class MainWindow
                     gl.End();
                 }
 
-                gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
-                gl.Color(0, 0, 0, 1);
-                gl.Begin(OpenGL.GL_QUADS);
-
-                foreach (var t in _mesh.Elements)
+                if ((bool)CheckBoxShowGrid.IsChecked!)
                 {
-                    var nodes = t.Nodes;
-                    var p1 = _mesh.Points[nodes[0]].Point;
-                    var p2 = _mesh.Points[nodes[1]].Point;
-                    var p3 = _mesh.Points[nodes[2]].Point;
-                    var p4 = _mesh.Points[nodes[3]].Point;
+                    gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
+                    gl.Color(0, 0, 0, 1);
+                    gl.Begin(OpenGL.GL_QUADS);
 
-                    gl.Vertex(p1.X, p1.Y);
-                    gl.Vertex(p2.X, p2.Y);
-                    gl.Vertex(p4.X, p4.Y);
-                    gl.Vertex(p3.X, p3.Y);
+                    foreach (var t in _mesh.Elements)
+                    {
+                        var nodes = t.Nodes;
+                        var p1 = _mesh.Points[nodes[0]].Point;
+                        var p2 = _mesh.Points[nodes[1]].Point;
+                        var p3 = _mesh.Points[nodes[2]].Point;
+                        var p4 = _mesh.Points[nodes[3]].Point;
+
+                        gl.Vertex(p1.X, p1.Y);
+                        gl.Vertex(p2.X, p2.Y);
+                        gl.Vertex(p4.X, p4.Y);
+                        gl.Vertex(p3.X, p3.Y);
+                    }
+
+                    gl.End();
                 }
-
-                gl.End();
             }
             gl.PopMatrix();
 
