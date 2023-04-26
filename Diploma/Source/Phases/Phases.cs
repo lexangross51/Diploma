@@ -3,7 +3,6 @@ namespace Diploma.Source.Phases;
 public struct Phase
 {
     [JsonProperty("Name")] public string Name;
-    [JsonProperty("Density")] public double Density;
     [JsonProperty("Viscosity")] public double Viscosity;
     [JsonProperty("Saturation")] public double Kappa;
     

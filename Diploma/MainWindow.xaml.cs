@@ -22,11 +22,12 @@ public sealed partial class MainWindow : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     private Projection _graphArea = new();
     private Mesh? _mesh;
-    private int _timeStart, _timeEnd = 201;
+    private int _timeStart, _timeEnd = 1000;
     private string _path = string.Empty;
     private Point2D[]? _normals;
     
     private int _timeMoment;
+    private int _deltaTime = 30;
     public int TimeMoment
     {
         get => _timeMoment;
@@ -51,6 +52,7 @@ public sealed partial class MainWindow : INotifyPropertyChanged
         _graphArea.Top = 1;
 
         TimeMoment = 0;
+        TimeWritingText.Text = "30";
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -65,7 +67,7 @@ public sealed partial class MainWindow : INotifyPropertyChanged
         _pressure = new double[_mesh.Points.Length];
         _saturation = new double[_mesh.Elements.Length];
 
-        double Field(Point2D p) => 10 - p.X;
+        double Field(Point2D p) => p.X;
         double Source(Point2D p) => 0.0;
         
         var fem = femBuilder
@@ -79,10 +81,10 @@ public sealed partial class MainWindow : INotifyPropertyChanged
         _colorsPressure = new Color[_mesh.Elements.Length];
         _colorsSaturartion = new Color[_mesh.Elements.Length];
 
-        Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis(), _path);
-        filtration.ModelFiltration(_timeStart, _timeEnd);
-
         GenerateAndWriteTimes(_path);
+        
+        Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis(), _path);
+        filtration.ModelFiltration(_timeStart, _timeEnd, _deltaTime);
         
         TimeMoment = 0;
     }
@@ -203,7 +205,7 @@ public sealed partial class MainWindow : INotifyPropertyChanged
     {
         for (int timeMoment = _timeStart; timeMoment < _timeEnd; timeMoment++)
         {
-            if (timeMoment % 10 == 0)
+            if (timeMoment % _deltaTime == 0)
             {
                 Times.Add(timeMoment.ToString());
             }

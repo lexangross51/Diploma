@@ -4,12 +4,11 @@ public class FlowsBalancer
 {
     private readonly Mesh.Mesh _mesh;
     private readonly SparseMatrix _globalMatrix;
-    private readonly Vector _globalVector;
-    private readonly Vector _deltaQ;
+    private readonly double[] _globalVector;
+    private readonly double[] _deltaQ;
     private readonly bool[] _flowsNulls;
     private readonly double[] _beta;
     private readonly double[] _alpha;
-    private readonly DirectSolver _solver;
     private const double MaxImbalance = 1E-07;
     private const int MaxBalanceIters = 100;
     private readonly int[,] _edgesDirect;
@@ -26,15 +25,13 @@ public class FlowsBalancer
             Jg = jg
         };
 
-        _globalVector = new Vector(ig.Length - 1);
-        _deltaQ = new Vector(ig.Length - 1);
+        _globalVector = new double[ig.Length - 1];
+        _deltaQ = new double[ig.Length - 1];
         _flowsNulls = new bool[ig.Length - 1];
 
         _beta = new double[_mesh.ElementsCount];
         _alpha = new double[_mesh.EdgesCount];
         Array.Fill(_beta, 1E-05);
-
-        _solver = new LUSolver();
     }
 
     private void FixNullsFlows(Vector flows)
@@ -206,7 +203,7 @@ public class FlowsBalancer
 
     private void AssemblyGlobalVector(Vector flows)
     {
-        _globalVector.Fill();
+        Array.Fill(_globalVector, 0.0);
         
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
@@ -366,40 +363,40 @@ public class FlowsBalancer
             AssemblyGlobalMatrix();
             AssemblyGlobalVector(flows);
             FixKnownFlows();
-            _solver.SetSystem(_globalMatrix, _globalVector);
-            _solver.Compute();
-            Vector.Copy(_solver.Solution!, _deltaQ);
-
+            PardisoSolver.Solve(
+                _globalMatrix.Size, _globalMatrix.Ig, _globalMatrix.Jg, _globalMatrix.Di, _globalMatrix.GGl,
+                _globalVector, _deltaQ, 8);
+        
             bool isNullImbalance = true;
-
+        
             for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
             {
                 double imbalance = ElementImbalance(ielem, flows);
-
+        
                 if (imbalance / maxFlow > MaxImbalance)
                 {
                     _beta[ielem] *= 10.0;
                     isNullImbalance = false;
                 }
             }
-
+        
             #region Print imbalances
-
+        
             using (var sw = new StreamWriter("Output/imbalances.txt"))
             {
                 for (int i = 0; i < _mesh.Elements.Length; i++)
                 {
                     var imbalance = ElementImbalance(i, flows);
                     var strImb = i + ": " + imbalance;
-
+        
                     if (IsWellElement(i)) strImb += "(Near-well)";
                 
                     sw.WriteLine(strImb);
                 }
             }
-
+        
             #endregion
-
+        
             if (isNullImbalance) isBalanced = true;
             iteration++;
         }

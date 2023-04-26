@@ -25,17 +25,17 @@ public class FlowsCalculator
 
     private void FixKnownFlows()
     {
-        // Flows from wells
-        foreach (var (ielem, iedge, flow) in _mesh.NeumannConditions)
-        {
-            int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
-            var edge = _mesh.Elements[ielem].Edges[iedge];
-            var p1 = _mesh.Points[edge.Node1].Point;
-            var p2 = _mesh.Points[edge.Node2].Point;
-            double length = Point2D.Distance(p1, p2);
-        
-            _averageFlows[globalEdge] = -flow * length;
-        }
+        // // Flows from wells
+        // foreach (var (ielem, iedge, flow) in _mesh.NeumannConditions)
+        // {
+        //     int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
+        //     var edge = _mesh.Elements[ielem].Edges[iedge];
+        //     var p1 = _mesh.Points[edge.Node1].Point;
+        //     var p2 = _mesh.Points[edge.Node2].Point;
+        //     double length = Point2D.Distance(p1, p2);
+        //
+        //     _averageFlows[globalEdge] = -flow * length;
+        // }
         
         // Almost zero flows
         // for (int i = 0; i < _averageFlows.Length; i++)
@@ -47,7 +47,7 @@ public class FlowsCalculator
         // }
     }
     
-    public Vector CalculateAverageFlows(Vector pressure)
+    public Vector CalculateAverageFlows(double[] pressure)
     {
         bool[] isUsed = new bool[_averageFlows.Length];
         var elementPoints = new Point2D[4];

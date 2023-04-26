@@ -16,7 +16,7 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="7*"/>
+                <RowDefinition Height="6*"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="5*"/>
@@ -29,6 +29,11 @@
                     <CheckBox x:Name="CheckBoxShowGrid" Content="Show grid" IsChecked="True"/>
                     <CheckBox x:Name="CheckBoxShowDirichlet" Content="Show Dirichlet" IsChecked="False"/>
                     <CheckBox x:Name="CheckBoxShowNeumann" Content="Show Neumann" IsChecked="False"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Label Content="Time writing"/>
+                        <TextBox x:Name="TimeWritingText" Width="35" Text="1" VerticalAlignment="Center"  
+                                   KeyDown="TimeWritingText_OnKeyDown" />
+                    </StackPanel>
                 </StackPanel>
             </GroupBox>
             

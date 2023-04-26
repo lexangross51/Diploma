@@ -13,7 +13,6 @@ public class FEMBuilder
         private readonly Mesh.Mesh _mesh;
         private readonly PhaseProperty _phaseProperty;
         private readonly IBasis _basis;
-        private readonly IterativeSolver _solver;
         private readonly Func<Point2D, double> _source;
         private readonly Func<Point2D, double>? _field;
         private readonly Integration _gauss;
@@ -23,8 +22,9 @@ public class FEMBuilder
         private readonly Matrix _jacobiMatrix;
         private readonly Rectangle _masterElement;
         private readonly SparseMatrix _globalMatrix;
-        private readonly Vector _globalVector;
-        public Vector? Solution { get; private set; }
+        private readonly double[] _globalVector;
+        private readonly double[] _solution;
+        public double[]? Solution { get; private set; }
         
         public FEM(
             Mesh.Mesh mesh,
@@ -38,7 +38,6 @@ public class FEMBuilder
             _mesh = mesh;
             _phaseProperty = phaseProperty;
             _basis = basis;
-            _solver = solver;
             _source = source;
             _field = field;
             _gauss = new Integration(Quadratures.GaussOrder3());
@@ -54,7 +53,8 @@ public class FEMBuilder
                 Jg = jg
             };
             
-            _globalVector = new Vector(ig.Length - 1);
+            _globalVector = new double[ig.Length - 1];
+            _solution = new double[ig.Length - 1];
         }
         
         private double CalculateCoefficient(int ielem)
@@ -310,7 +310,7 @@ public class FEMBuilder
         private void AssemblySLAE()
         {
             _globalMatrix.Clear();
-            _globalVector.Fill();
+            Array.Fill(_globalVector, 0.0);
 
             if (_stiffnessMatrices is null)
             {
@@ -354,11 +354,12 @@ public class FEMBuilder
             AssemblySLAE();
             ApplyNeumann();
             ApplyDirichlet();
-
-            _solver.SetSystem(_globalMatrix, _globalVector);
-            _solver.Compute();
-            Solution = _solver.Solution;
             
+            PardisoSolver.Solve(
+                _globalMatrix.Size, _globalMatrix.Ig, _globalMatrix.Jg, _globalMatrix.Di, _globalMatrix.GGl,
+                _globalVector, _solution, 8);
+            Solution = _solution;
+
             return Error();
         }
 
@@ -366,7 +367,7 @@ public class FEMBuilder
         {
             if (_field is null) return 0.0;
             
-            Vector exact = new(_solver.Solution!.Length);
+            Vector exact = new(_solution.Length);
 
             for (int i = 0; i < _mesh.Points.Length; i++)
             {
@@ -380,7 +381,7 @@ public class FEMBuilder
 
             for (int i = 0; i < _mesh.Points.Length; i++)
             {
-                exact[i] -= _solver.Solution![i];
+                exact[i] -= _solution[i];
             }
 
             return exact.Norm() / exactNorm;

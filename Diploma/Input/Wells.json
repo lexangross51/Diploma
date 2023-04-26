@@ -4,8 +4,8 @@
       "X": 0.0,
       "Y": 0.0
     },
-    "Radius": 0.5,
-    "OuterRadius": 3.0,
+    "Radius": 1.0,
+    "OuterRadius": 5.0,
     "Power": 150
   }
   //  {

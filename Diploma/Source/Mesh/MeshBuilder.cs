@@ -310,8 +310,8 @@ public class MeshBuilder
                 rightTop = _points[_elements[_intersectedElements![^1]].Nodes[^1]].Point;
                 int p = (int)Math.Sqrt(_intersectedElements!.Count);
 
-                CreateWellPoints(leftBottom, rightTop, well.Center, well.Radius, p, p == 1 ? p : p + 4);
-                CreateWellElements(p, p == 1 ? p : p + 4);
+                CreateWellPoints(leftBottom, rightTop, well.Center, well.Radius, p, p == 1 ? p : 4 * p);
+                CreateWellElements(p, p == 1 ? p : 4 * p);
 
                 int elem = 0;
                 int shift = 4 * p;

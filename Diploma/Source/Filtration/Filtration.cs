@@ -16,9 +16,10 @@ public class Filtration
     private readonly double[] _saturationMaxCrit = { 0.05, 0.05 };
     private readonly double[] _saturationMinCrit = { 0.01, 0.01 };
     private int _timeStart, _timeEnd, _timeMoment;
-    //private double _time;
-    private readonly string _path; 
-    
+    private readonly string _path;
+    private Dictionary<int, double> _fe = new();
+    private List<int> _we = new(); 
+
     public Filtration(Mesh.Mesh mesh, PhaseProperty phaseProperty, FEMBuilder.FEM fem, IBasis basis, string path)
     {
         _path = path;
@@ -96,7 +97,7 @@ public class Filtration
         }
     }
     
-    public void ModelFiltration(int timeStart, int timeEnd)
+    public void ModelFiltration(int timeStart, int timeEnd, int deltaTime)
     {
         _timeStart = timeStart;
         _timeEnd = timeEnd;
@@ -104,10 +105,10 @@ public class Filtration
         for (_timeMoment = _timeStart; _timeMoment < _timeEnd; _timeMoment++)
         {
             ClearData();
-            
+
             _fem.Solve();
 
-            if (_timeMoment % 10 == 0)
+            if (_timeMoment % deltaTime == 0)
             {
                 DataWriter.WritePressure(_path, $"Pressure{_timeMoment}.txt", _fem.Solution!);
                 DataWriter.WriteSaturation(_path, $"Saturation{_timeMoment}.txt", _mesh, _phaseProperty.Saturation!);
@@ -115,21 +116,22 @@ public class Filtration
     
             _flows = _flowsCalculator.CalculateAverageFlows(_fem.Solution!);
             CalculateFlowOutPhases();
-            CalculateDeltaT(100.0);
+            CalculateDeltaT(200.0);
             CalculateVolumesOutPhases();
-            // DataWriter.WriteFlows(_path, $"Flows{_timeMoment}.txt", _mesh, _flowsOutPhases);
-            // DataWriter.WriteVolumes(_path, $"Volumes{_timeMoment}.txt", _mesh, _volumeOutPhases);
             CalculateNewSaturations();
         }
     }
     
     private int FlowDirection(double flow, int ielem, int localEdge)
-        => Math.Sign(flow) switch
+    {
+        if (Math.Abs(flow) < 1E-14) flow = 0.0;
+        return Math.Sign(flow) switch
         {
             0 => 0,
             > 0 => _edgesDirect[ielem, localEdge],
             < 0 => -_edgesDirect[ielem, localEdge]
         };
+    }
 
     private int AreaPhaseIndex(string phaseName)
     {
@@ -160,9 +162,6 @@ public class Filtration
                     for (int iphase = 0; iphase < phases.Count; iphase++)
                     {
                         double alphaM = phases[iphase].Kappa / (phases[iphase].Viscosity * phasesSum);
-    
-                        // НУЖНО ЛИ ИСПОЛЬЗОВАТЬ МОДУЛЬ ??????????????????????????????????????????????
-                        //_flowsOutPhases[globalEdge, iphase] = alphaM * Math.Abs(_flows[globalEdge]);
                         _flowsOutPhases[globalEdge, iphase] = alphaM * _flows[globalEdge];
                     }
                 }
@@ -184,9 +183,6 @@ public class Filtration
                     {
                         int phaseIndex = AreaPhaseIndex(phase.Name);
                         double phaseFraction = phase.Kappa / (phase.Viscosity * injectedPhasesSum);
-
-                        // НУЖНО ЛИ ИСПОЛЬЗОВАТЬ МОДУЛЬ ??????????????????????????????????????????????
-                        //_flowsOutPhases[globalEdge, phaseIndex] = phaseFraction * Math.Abs(_flows[globalEdge]);
                         _flowsOutPhases[globalEdge, phaseIndex] = phaseFraction * _flows[globalEdge];
                     }
                 }
@@ -208,9 +204,6 @@ public class Filtration
                     {
                         int phaseIndex = AreaPhaseIndex(phase.Name);
                         double phaseFraction = phase.Kappa / (phase.Viscosity * remotePhasesSum);
-
-                        // НУЖНО ЛИ ИСПОЛЬЗОВАТЬ МОДУЛЬ ??????????????????????????????????????????????
-                        //_flowsOutPhases[globalEdge, phaseIndex] = phaseFraction * Math.Abs(_flows[globalEdge]);
                         _flowsOutPhases[globalEdge, phaseIndex] = phaseFraction * _flows[globalEdge];
                     }
                 }
@@ -340,10 +333,6 @@ public class Filtration
                 sww.WriteLine($"{ielem, 7} {iphase, 5} {phaseVolumeOut:F14} {existingVolume:F14}");
             }
         }
-
-        // _time += _deltaT;
-        // string timeStr = $"{_timeMoment}: {_time}";
-        // Debug.Print(timeStr);
     }
     
     private void CalculateVolumesOutPhases()

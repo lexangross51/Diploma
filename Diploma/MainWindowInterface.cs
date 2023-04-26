@@ -19,6 +19,11 @@ public sealed partial class MainWindow
             TimeMoment = Convert.ToInt32(DataGridTimes.SelectedItem);
         }
     }
+    
+    private void TimeWritingText_OnKeyDown(object sender, KeyEventArgs e)
+    {
+        _deltaTime = Convert.ToInt32(TimeWritingText.Text);
+    }
 
     // Pressure control
     private void PressureControl_OnMouseMove(object sender, MouseEventArgs e)

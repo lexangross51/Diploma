@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace Diploma.Source.MathClasses;
 
 public abstract class IterativeSolver
@@ -228,84 +230,6 @@ public class CGMCholesky : IterativeSolver
     }
 }
 
-public class BiCGSTAB : IterativeSolver
-{
-    public BiCGSTAB(int maxIters, double eps) : base(maxIters, eps)
-    {
-    }
-
-    public override void Compute()
-    {
-        try
-        {
-            ArgumentNullException.ThrowIfNull(Matrix, $"{nameof(Matrix)} cannot be null, set the matrix");
-            ArgumentNullException.ThrowIfNull(RightPart, $"{nameof(Vector)} cannot be null, set the vector");
-
-            double rightPartNorm = RightPart.Norm();
-            Solution = new Vector(RightPart.Length);
-            Vector product = new(RightPart.Length);
-            Vector rk = new(RightPart.Length);
-            Vector r = new(RightPart.Length);
-            double rhok = 1.0, alphak = 1.0, omegak = 1.0;
-            Vector vk = new(RightPart.Length);
-            Vector pk = new(RightPart.Length);
-            Vector sk = new(RightPart.Length);
-            Vector tk = new(RightPart.Length);
-            double betaK;
-            
-            SparseMatrix.Dot(Matrix, Solution, product);
-
-            for (int i = 0; i < rk.Length; i++)
-            {
-                rk[i] = RightPart[i] - product[i];
-                r[i] = rk[i];
-            }
-
-            var sw = Stopwatch.StartNew(); 
-            
-            for (IterationsCount = 0; IterationsCount < MaxIters && rk.Norm() / rightPartNorm >= Eps; IterationsCount++)
-            {
-                betaK = alphak / (rhok * omegak);
-                rhok = Vector.Dot(r, rk);
-                betaK *= rhok;
-
-                for (int i = 0; i < pk.Length; i++)
-                {
-                    pk[i] = rk[i] + betaK * (pk[i] - omegak * vk[i]);
-                }
-                
-                SparseMatrix.Dot(Matrix, pk, vk);
-                alphak = rhok / Vector.Dot(r, vk);
-
-                for (int i = 0; i < sk.Length; i++)
-                {
-                    sk[i] = rk[i] - alphak * vk[i];
-                }
-                
-                SparseMatrix.Dot(Matrix, sk, tk);
-                omegak = Vector.Dot(tk, sk) / Vector.Dot(tk, tk);
-
-                for (int i = 0; i < Solution.Length; i++)
-                {
-                    Solution[i] = Solution[i] + omegak * sk[i] + alphak * pk[i];
-                }
-
-                for (int i = 0; i < rk.Length; i++)
-                {
-                    rk[i] = sk[i] - omegak * tk[i];
-                }
-            }
-            
-            sw.Stop();
-            RunningTime = sw.Elapsed;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"We had problem: {ex.Message}");
-        }
-    }
-}
-
 public class LOS : IterativeSolver
 {
     public LOS(int maxIters, double eps) : base(maxIters, eps)
@@ -387,10 +311,10 @@ public abstract class DirectSolver
 {
     public TimeSpan RunningTime;
     protected ProfileMatrix Matrix = default!;
-    protected Vector RightPart = default!;
-    public Vector? Solution { get; protected set; }
+    protected double[] RightPart = default!;
+    public double[]? Solution { get; protected set; }
 
-    public void SetSystem(SparseMatrix matrix, Vector rightPart)
+    public void SetSystem(SparseMatrix matrix, double[] rightPart)
         => (Matrix, RightPart) = (matrix.ToProfileMatrix(), rightPart);
 
     public abstract void Compute();
@@ -452,54 +376,11 @@ public abstract class DirectSolver
     }
 }
 
-public class LUSolver : DirectSolver
+public static class PardisoSolver
 {
-    public override void Compute()
-    {
-        Solution = new Vector(Matrix.Size);
+    private const string PathToDll = @"C:\\Filtration\\PardisoInterface.dll";
 
-        Stopwatch sw = Stopwatch.StartNew();
-        
-        LU(Matrix.Di, Matrix.GGl, Matrix.GGu);
-
-        try {
-            for (int i = 0; i < RightPart.Length; i++) {
-                int i0 = Matrix.Ig[i];
-                int i1 = Matrix.Ig[i + 1];
-
-                int j = i - (i1 - i0);
-
-                var sum = 0.0;
-
-                for (int k = i0; k < i1; k++)
-                    sum += Matrix.GGl[k] * Solution[j++];
-
-                if (Math.Abs(Matrix.Di[i]) < 1E-16) 
-                {
-                    throw new Exception("Division by zero in LUSolver.Compute()");
-                }
-
-                Solution[i] = (RightPart[i] - sum) / Matrix.Di[i];
-            }
-
-            for (int i = RightPart.Length - 1; i >= 0; i--)
-            {
-                int i0 = Matrix.Ig[i];
-                int i1 = Matrix.Ig[i + 1];
-
-                int j = i - (i1 - i0);
-
-                for (int k = i0; k < i1; k++)
-                    Solution[j++] -= Matrix.GGu[k] * Solution[i];
-            }
-        }
-        catch (Exception e) 
-        {
-            Console.WriteLine($"Exception: {e.Message}");
-        }
-
-        sw.Stop();
-
-        RunningTime = sw.Elapsed;
-    }
+    [DllImport(PathToDll, CallingConvention = CallingConvention.Cdecl, EntryPoint = "solvePardiso")]
+    public static extern void Solve(int n, int[] ig, int[] jg, double[] di, double[] gg, double[] b, double[] solution,
+        int numThreads);
 }

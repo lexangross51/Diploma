@@ -16,7 +16,7 @@ public static class DataWriter
                           throw new NullReferenceException("Fill the file correctly");
     }
     
-    public static void WritePressure(string path, string filename, Vector pressure)
+    public static void WritePressure(string path, string filename, double[] pressure)
     {
         if (!Directory.Exists($"{path}/Output2D"))
         {
