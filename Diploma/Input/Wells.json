@@ -4,98 +4,17 @@
       "X": 0.0,
       "Y": 0.0
     },
-    "Radius": 1.0,
+    "Radius": 1,
+    "OuterRadius": 5,
+    "Power": 50
+  },
+  {
+    "Center": {
+      "X": 195.0,
+      "Y": 0.0
+    },
+    "Radius": 1,
     "OuterRadius": 5.0,
-    "Power": 150
+    "Power": -50
   }
-  //  {
-  //    "Center": {
-  //      "X": -35.0,
-  //      "Y": 30.0
-  //    },
-  //    "Radius": 0.5,
-  //    "OuterRadius": 3.0,
-  //    "Power": 150
-  //  },
-  //  {
-  //    "Center": {
-  //      "X": -30.0,
-  //      "Y": 0.0
-  //    },
-  //    "Radius": 0.5,
-  //    "OuterRadius": 3.0,
-  //    "Power": 150
-  //  },
-  //  {
-  //    "Center": {
-  //      "X": -20.0,
-  //      "Y": 15.0
-  //    },
-  //    "Radius": 0.5,
-  //    "OuterRadius": 3.0,
-  //    "Power": -180
-  //  },
-  //  {
-  //    "Center": {
-  //      "X": -18.0,
-  //      "Y": -20.0
-  //    },
-  //    "Radius": 0.5,
-  //    "OuterRadius": 3.0,
-  //    "Power": -170
-  //  },
-  //  {
-  //    "Center": {
-  //      "X": -5.0,
-  //      "Y": 30.0
-  //    },
-  //    "Radius": 0.5,
-  //    "OuterRadius": 3.0,
-  //    "Power": 150
-  //  },
-  //  {
-  //    "Center": {
-  //      "X": -7.0,
-  //      "Y": 0.0
-  //    },
-  //    "Radius": 0.5,
-  //    "OuterRadius": 3.0,
-  //    "Power": 150
-  //  },
-  //  {
-  //    "Center": {
-  //      "X": 7.0,
-  //      "Y": 14.0
-  //    },
-  //    "Radius": 0.5,
-  //    "OuterRadius": 3.0,
-  //    "Power": -170
-  //  },
-  //  {
-  //    "Center": {
-  //      "X": 25.0,
-  //      "Y": 14.0
-  //    },
-  //    "Radius": 0.5,
-  //    "OuterRadius": 3.0,
-  //    "Power": 150
-  //  },
-  //  {
-  //    "Center": {
-  //      "X": -3.0,
-  //      "Y": -30.0
-  //    },
-  //    "Radius": 0.5,
-  //    "OuterRadius": 3.0,
-  //    "Power": 150
-  //  },
-  //  {
-  //    "Center": {
-  //      "X": 13.0,
-  //      "Y": -10.0
-  //    },
-  //    "Radius": 1.0,
-  //    "OuterRadius": 4.0,
-  //    "Power": -200
-  //  }
 ]

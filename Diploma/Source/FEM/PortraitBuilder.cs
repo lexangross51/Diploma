@@ -12,7 +12,7 @@ public static class PortraitBuilder
         }
 
         int localSize = mesh.Elements[0].Nodes.Length;
-        
+
         foreach (var element in mesh.Elements)
         {
             for (int i = 0; i < localSize; i++)
@@ -22,7 +22,7 @@ public static class PortraitBuilder
                 for (int j = 0; j < localSize; j++)
                 {
                     int posToInsert = element.Nodes[j];
-                    
+
                     if (nodeToInsert < posToInsert)
                     {
                         connectivityList[posToInsert].Add(nodeToInsert);
@@ -67,10 +67,12 @@ public static class PortraitBuilder
         {
             var edges = mesh.Elements[ielem].EdgesIndices;
 
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 4; i++)
+            {
                 int iedge = edges[i];
 
-                for (int j = 0; j < 4; j++) {
+                for (int j = 0; j < 4; j++)
+                {
                     int jedge = edges[j];
 
                     if (iedge < jedge)
@@ -86,14 +88,14 @@ public static class PortraitBuilder
         ig[0] = 0;
         ig[1] = 0;
 
-        for (int i = 1; i < connectivityList.Count; i++) 
+        for (int i = 1; i < connectivityList.Count; i++)
         {
             ig[i + 1] = ig[i] + connectivityList[i].Count;
         }
 
         jg = new int[ig[^1]];
 
-        for (int i = 1, j = 0; i < connectivityList.Count; i++) 
+        for (int i = 1, j = 0; i < connectivityList.Count; i++)
         {
             foreach (var it in connectivityList[i])
             {

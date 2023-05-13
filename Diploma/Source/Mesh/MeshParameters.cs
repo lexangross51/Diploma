@@ -70,7 +70,7 @@ public readonly record struct SplitParameters(int MeshNx, int MeshNy, double Wel
     }
 }
 
-public class MeshParameters 
+public class MeshParameters
 {
     public DomainXY[] Area { get; }
     public Well[] Wells { get; }

@@ -2,7 +2,6 @@
   {
     "Name": "water",
     "Viscosity": 0.0013325,
-    //"Viscosity": 1,
     "Saturation": 1
   }
 ]

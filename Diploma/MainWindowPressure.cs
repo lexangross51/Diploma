@@ -19,7 +19,7 @@ public sealed partial class MainWindow
     private void MakePressureColors(int timeMoment)
     {
         if (_mesh is null) return;
-        
+
         using var sr = new StreamReader($"{_path}/Output2D/Pressure{timeMoment}.txt");
 
         for (int i = 0; i < _mesh?.Points.Length; i++)
@@ -38,7 +38,7 @@ public sealed partial class MainWindow
                 _pressureLegendValues[7] = _pressure[i];
             }
         }
-        
+
         double step = (_pressureLegendValues[0] - _pressureLegendValues[7]) / 7;
 
         for (int i = 1; i < 7; i++)
@@ -49,7 +49,7 @@ public sealed partial class MainWindow
         // Field
         double pressMax = _pressureLegendValues[0];
         double pressMin = _pressureLegendValues[7];
-        
+
         double stepPBig = (pressMax - pressMin) / 4.0;
 
         for (var ielem = 0; ielem < _mesh?.Elements.Length; ielem++)
@@ -94,7 +94,7 @@ public sealed partial class MainWindow
     private void PressureControl_OnOpenGLDraw(object sender, OpenGLRoutedEventArgs args)
     {
         OpenGL gl = PressureControl.OpenGL;
-       
+
         gl.ClearColor(1f, 1f, 1f, 1.0f);
         gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
         gl.MatrixMode(OpenGL.GL_PROJECTION);
@@ -103,7 +103,7 @@ public sealed partial class MainWindow
         gl.LoadIdentity();
         gl.Ortho2D(_graphArea.Left, _graphArea.Right, _graphArea.Bottom, _graphArea.Top);
         gl.Viewport(0, 0, gl.RenderContextProvider.Width, gl.RenderContextProvider.Height);
-        
+
         DrawAxes(PressureControl.OpenGL);
 
         if (_mesh is not null)
@@ -118,11 +118,11 @@ public sealed partial class MainWindow
                 gl.Viewport(20, 20, gl.RenderContextProvider.Width - 30, gl.RenderContextProvider.Height - 30);
                 gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
                 gl.ShadeModel(OpenGL.GL_SMOOTH);
-                
+
                 if (_colorsPressure is not null)
                 {
                     gl.Begin(OpenGL.GL_QUADS);
-                
+
                     for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
                     {
                         var nodes = _mesh.Elements[ielem].Nodes;
@@ -164,12 +164,12 @@ public sealed partial class MainWindow
 
                     gl.End();
                 }
-                
+
                 if ((bool)CheckBoxShowDirichlet.IsChecked!)
                 {
                     ShowDirichletConditions(gl);
                 }
-                
+
                 if ((bool)CheckBoxShowNeumann.IsChecked!)
                 {
                     ShowNeumannConditions(gl);
@@ -191,7 +191,7 @@ public sealed partial class MainWindow
     private void ShowDirichletConditions(OpenGL gl)
     {
         if (_mesh is null) return;
-        
+
         gl.Color(0f, 0f, 0f);
         gl.PointSize(5);
         gl.Begin(OpenGL.GL_POINTS);
@@ -209,7 +209,7 @@ public sealed partial class MainWindow
     private void ShowNeumannConditions(OpenGL gl)
     {
         if (_mesh is null) return;
-        
+
         gl.Color(1f, 0f, 0f);
         gl.Begin(OpenGL.GL_LINES);
 

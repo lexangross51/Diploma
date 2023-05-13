@@ -7,16 +7,16 @@ public abstract class IterativeSolver
     public TimeSpan RunningTime;
     public int IterationsCount;
     protected SparseMatrix Matrix = default!;
-    protected Vector RightPart = default!;
+    protected double[] RightPart = default!;
     protected readonly int MaxIters;
     protected readonly double Eps;
-    protected Vector? YVector;
-    public Vector? Solution { get; protected set; }
+    protected double[]? YVector;
+    public double[]? Solution { get; protected set; }
 
     protected IterativeSolver(int maxIters, double eps)
         => (MaxIters, Eps) = (maxIters, eps);
 
-    public void SetSystem(SparseMatrix matrix, Vector rightPart)
+    public void SetSystem(SparseMatrix matrix, double[] rightPart)
         => (Matrix, RightPart) = (matrix, rightPart);
 
     public abstract void Compute();
@@ -65,11 +65,11 @@ public abstract class IterativeSolver
             sumDi = 0.0;
         }
     }
-    
-    protected void MoveForCholesky(double[] diNew, double[] ggNew, Vector vector, Vector result)
+
+    protected void MoveForCholesky(double[] diNew, double[] ggNew, double[] vector, double[] result)
     {
-        YVector ??= new Vector(RightPart.Length);
-        Vector.Copy(vector, YVector);
+        YVector ??= new double[RightPart.Length];
+        Array.Copy(vector, YVector, vector.Length);
         double sum = 0.0;
 
         for (int i = 0; i < Matrix.Size; i++)
@@ -84,7 +84,7 @@ public abstract class IterativeSolver
             sum = 0.0;
         }
 
-        Vector.Copy(YVector, result);
+        Array.Copy(YVector, result, YVector.Length);
 
         for (int i = Matrix.Size - 1; i >= 0; i--)
         {
@@ -98,137 +98,137 @@ public abstract class IterativeSolver
     }
 }
 
-public class CGM : IterativeSolver
-{
-    public CGM(int maxIters, double eps) : base(maxIters, eps)
-    {
-    }
-
-    public override void Compute()
-    {
-        try
-        {
-            ArgumentNullException.ThrowIfNull(Matrix, $"{nameof(Matrix)} cannot be null, set the matrix");
-            ArgumentNullException.ThrowIfNull(RightPart, $"{nameof(Vector)} cannot be null, set the vector");
-
-            var rightPartNorm = RightPart.Norm();
-
-            Solution = new Vector(RightPart.Length);
-            Vector r = new(RightPart.Length);
-            Vector z = new(RightPart.Length);
-            Vector product = new(RightPart.Length);
-            
-            SparseMatrix.Dot(Matrix, Solution, product);
-
-            for (int i = 0; i < RightPart.Length; i++)
-            {
-                r[i] = RightPart[i] - product[i];
-            }
-            
-            Vector.Copy(r, z);
-            
-            var sw = Stopwatch.StartNew();
-            var residualNorm = r.Norm();
-            
-            for (IterationsCount = 0; IterationsCount < MaxIters && residualNorm / rightPartNorm >= Eps; IterationsCount++)
-            {
-                product.Fill();
-                SparseMatrix.Dot(Matrix, z, product);
-                var alpha = Vector.Dot(r, r) / Vector.Dot(product,z);
-
-                for (int i = 0; i < RightPart.Length; i++)
-                {
-                    Solution[i] += alpha * z[i];
-                }
-                
-                for (int i = 0; i < RightPart.Length; i++)
-                {
-                    r[i] -= alpha * product[i];
-                }
-                
-                var beta = Vector.Dot(r, r) / (residualNorm * residualNorm);
-                residualNorm = r.Norm();
-                
-                for (int i = 0; i < RightPart.Length; i++)
-                {
-                    z[i] = r[i] + beta * z[i];
-                }
-            }
-
-            sw.Stop();
-
-            RunningTime = sw.Elapsed;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"We had problem: {ex.Message}");
-        }
-    }
-}
-
-public class CGMCholesky : IterativeSolver
-{
-    public CGMCholesky(int maxIters, double eps) : base(maxIters, eps)
-    {
-    }
-
-    public override void Compute()
-    {
-        ArgumentNullException.ThrowIfNull(Matrix, $"{nameof(Matrix)} cannot be null, set the matrix");
-        ArgumentNullException.ThrowIfNull(RightPart, $"{nameof(Vector)} cannot be null, set the vector");
-
-        double rightPartNorm = RightPart.Norm();
-        Solution = new Vector(RightPart.Length);
-        Vector r = new(RightPart.Length);
-        Vector z = new(RightPart.Length);
-        Vector result = new(RightPart.Length);
-        Vector product = new(RightPart.Length);
-        double[] diNew = new double[Matrix.Size];
-        double[] ggNew = new double[Matrix.GGl.Length];
-        Array.Copy(Matrix.Di, diNew, Matrix.Size);
-        Array.Copy(Matrix.GGl, ggNew, Matrix.GGl.Length);
-        
-        CholeskyDecomposition(diNew, ggNew);
-        
-        SparseMatrix.Dot(Matrix, Solution, product);
-
-        for (int i = 0; i < r.Length; i++)
-        {
-            r[i] = RightPart[i] - product[i];
-        }
-        
-        MoveForCholesky(diNew, ggNew, r, z);
-
-        var sw = Stopwatch.StartNew();
-        
-        for (IterationsCount = 0; IterationsCount < MaxIters && r.Norm() / rightPartNorm >= Eps; IterationsCount++)
-        {
-            MoveForCholesky(diNew, ggNew, r, result);
-            
-            SparseMatrix.Dot(Matrix, z, product);
-            double mrDotR = Vector.Dot(result, r);
-            double alpha = mrDotR / Vector.Dot(product, z);
-
-            for (int i = 0; i < Solution.Length; i++)
-            {
-                Solution[i] += alpha * z[i];
-                r[i] -= alpha * product[i];
-            }
-            
-            MoveForCholesky(diNew, ggNew, r, result);
-
-            double beta = Vector.Dot(result, r) / mrDotR;
-
-            for (int i = 0; i < z.Length; i++)
-            {
-                z[i] = result[i] + beta * z[i];
-            }
-        }
-        
-        sw.Stop();
-        RunningTime = sw.Elapsed;
-    }
-}
+// public class CGM : IterativeSolver
+// {
+//     public CGM(int maxIters, double eps) : base(maxIters, eps)
+//     {
+//     }
+//
+//     public override void Compute()
+//     {
+//         try
+//         {
+//             ArgumentNullException.ThrowIfNull(Matrix, $"{nameof(Matrix)} cannot be null, set the matrix");
+//             ArgumentNullException.ThrowIfNull(RightPart, $"{nameof(Vector)} cannot be null, set the vector");
+//
+//             var rightPartNorm = RightPart.Norm();
+//
+//             Solution = new double[RightPart.Length];
+//             double[] r = new double[RightPart.Length];
+//             double[] z = new double[RightPart.Length];
+//             double[] product = new double[RightPart.Length];
+//             
+//             SparseMatrix.Dot(Matrix, Solution, product);
+//
+//             for (int i = 0; i < RightPart.Length; i++)
+//             {
+//                 r[i] = RightPart[i] - product[i];
+//             }
+//             
+//             Array.Copy(r, z, r.Length);
+//             
+//             var sw = Stopwatch.StartNew();
+//             var residualNorm = r.Norm();
+//             
+//             for (IterationsCount = 0; IterationsCount < MaxIters && residualNorm / rightPartNorm >= Eps; IterationsCount++)
+//             {
+//                 Array.Fill(product, 0.0);
+//                 SparseMatrix.Dot(Matrix, z, product);
+//                 var alpha = Vector.Dot(r, r) / Vector.Dot(product,z);
+//
+//                 for (int i = 0; i < RightPart.Length; i++)
+//                 {
+//                     Solution[i] += alpha * z[i];
+//                 }
+//                 
+//                 for (int i = 0; i < RightPart.Length; i++)
+//                 {
+//                     r[i] -= alpha * product[i];
+//                 }
+//                 
+//                 var beta = Vector.Dot(r, r) / (residualNorm * residualNorm);
+//                 residualNorm = r.Norm();
+//                 
+//                 for (int i = 0; i < RightPart.Length; i++)
+//                 {
+//                     z[i] = r[i] + beta * z[i];
+//                 }
+//             }
+//
+//             sw.Stop();
+//
+//             RunningTime = sw.Elapsed;
+//         }
+//         catch (Exception ex)
+//         {
+//             Console.WriteLine($"We had problem: {ex.Message}");
+//         }
+//     }
+// }
+//
+// public class CGMCholesky : IterativeSolver
+// {
+//     public CGMCholesky(int maxIters, double eps) : base(maxIters, eps)
+//     {
+//     }
+//
+//     public override void Compute()
+//     {
+//         ArgumentNullException.ThrowIfNull(Matrix, $"{nameof(Matrix)} cannot be null, set the matrix");
+//         ArgumentNullException.ThrowIfNull(RightPart, $"{nameof(Vector)} cannot be null, set the vector");
+//
+//         double rightPartNorm = RightPart.Norm();
+//         Solution = new Vector(RightPart.Length);
+//         Vector r = new(RightPart.Length);
+//         Vector z = new(RightPart.Length);
+//         Vector result = new(RightPart.Length);
+//         Vector product = new(RightPart.Length);
+//         double[] diNew = new double[Matrix.Size];
+//         double[] ggNew = new double[Matrix.GGl.Length];
+//         Array.Copy(Matrix.Di, diNew, Matrix.Size);
+//         Array.Copy(Matrix.GGl, ggNew, Matrix.GGl.Length);
+//         
+//         CholeskyDecomposition(diNew, ggNew);
+//         
+//         SparseMatrix.Dot(Matrix, Solution, product);
+//
+//         for (int i = 0; i < r.Length; i++)
+//         {
+//             r[i] = RightPart[i] - product[i];
+//         }
+//         
+//         MoveForCholesky(diNew, ggNew, r, z);
+//
+//         var sw = Stopwatch.StartNew();
+//         
+//         for (IterationsCount = 0; IterationsCount < MaxIters && r.Norm() / rightPartNorm >= Eps; IterationsCount++)
+//         {
+//             MoveForCholesky(diNew, ggNew, r, result);
+//             
+//             SparseMatrix.Dot(Matrix, z, product);
+//             double mrDotR = Vector.Dot(result, r);
+//             double alpha = mrDotR / Vector.Dot(product, z);
+//
+//             for (int i = 0; i < Solution.Length; i++)
+//             {
+//                 Solution[i] += alpha * z[i];
+//                 r[i] -= alpha * product[i];
+//             }
+//             
+//             MoveForCholesky(diNew, ggNew, r, result);
+//
+//             double beta = Vector.Dot(result, r) / mrDotR;
+//
+//             for (int i = 0; i < z.Length; i++)
+//             {
+//                 z[i] = result[i] + beta * z[i];
+//             }
+//         }
+//         
+//         sw.Stop();
+//         RunningTime = sw.Elapsed;
+//     }
+// }
 
 public class LOS : IterativeSolver
 {
@@ -243,21 +243,20 @@ public class LOS : IterativeSolver
             ArgumentNullException.ThrowIfNull(Matrix, $"{nameof(Matrix)} cannot be null, set the matrix");
             ArgumentNullException.ThrowIfNull(RightPart, $"{nameof(RightPart)} cannot be null, set the vector");
 
-            Solution = new(RightPart.Length);
+            Solution = new double[RightPart.Length];
 
-            Vector z = new(RightPart.Length);
-            Vector r = new(RightPart.Length);
-            Vector p = new(RightPart.Length);
-            Vector product = new(RightPart.Length);
+            double[] z = new double[RightPart.Length];
+            double[] r = new double[RightPart.Length];
+            double[] p = new double[RightPart.Length];
+            double[] product = new double[RightPart.Length];
             SparseMatrix.Dot(Matrix, Solution, product);
 
             for (int i = 0; i < product.Length; i++)
             {
                 r[i] = RightPart[i] - product[i];
             }
-            
-            Vector.Copy(r, z);
 
+            Array.Copy(r, z, r.Length);
             SparseMatrix.Dot(Matrix, z, p);
 
             var squareNorm = Vector.Dot(r, r);
@@ -266,14 +265,14 @@ public class LOS : IterativeSolver
             for (int index = 0; index < MaxIters && squareNorm > Eps; index++)
             {
                 var alpha = Vector.Dot(p, r) / Vector.Dot(p, p);
-                
+
                 for (int i = 0; i < Solution.Length; i++)
                 {
                     Solution[i] += alpha * z[i];
                 }
-                
-                squareNorm = Vector.Dot(r, r) - (alpha * alpha * Vector.Dot(p,p));
-                
+
+                squareNorm = Vector.Dot(r, r) - (alpha * alpha * Vector.Dot(p, p));
+
                 for (int i = 0; i < Solution.Length; i++)
                 {
                     r[i] -= alpha * p[i];
@@ -282,7 +281,7 @@ public class LOS : IterativeSolver
                 SparseMatrix.Dot(Matrix, r, product);
 
                 var beta = -Vector.Dot(p, product) / Vector.Dot(p, p);
-                
+
                 for (int i = 0; i < Solution.Length; i++)
                 {
                     z[i] = r[i] + beta * z[i];
@@ -378,7 +377,7 @@ public abstract class DirectSolver
 
 public static class PardisoSolver
 {
-    private const string PathToDll = @"C:\\Filtration\\PardisoInterface.dll";
+    private const string PathToDll = @"C:\\Filtration1\\PardisoInterface.dll";
 
     [DllImport(PathToDll, CallingConvention = CallingConvention.Cdecl, EntryPoint = "solvePardiso")]
     public static extern void Solve(int n, int[] ig, int[] jg, double[] di, double[] gg, double[] b, double[] solution,

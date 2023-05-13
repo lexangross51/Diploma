@@ -19,11 +19,14 @@ public class Vector : IEnumerable<double>
             _storage[idx++] = value;
         }
     }
-    
+
     public Vector(int length)
         => (Length, _storage) = (length, new double[length]);
 
     public static double Dot(Vector a, Vector b)
+        => a.Select((t, i) => t * b[i]).Sum();
+
+    public static double Dot(double[] a, double[] b)
         => a.Select((t, i) => t * b[i]).Sum();
 
     public static void Copy(Vector source, Vector destination)
@@ -47,6 +50,18 @@ public class Vector : IEnumerable<double>
         }
 
         return Math.Sqrt(Convert.ToDouble(result));
+    }
+
+    public double SqrNorm()
+    {
+        double result = 0.0;
+
+        for (int i = 0; i < Length; i++)
+        {
+            result += _storage[i] * _storage[i];
+        }
+
+        return result;
     }
 
     public IEnumerator<double> GetEnumerator()

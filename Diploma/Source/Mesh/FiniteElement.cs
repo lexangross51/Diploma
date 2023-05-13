@@ -11,7 +11,7 @@ public class FiniteElement
     [JsonIgnore] public int[] EdgesIndices { get; }
     [JsonIgnore] public Edge[] Edges { get; }
     [JsonIgnore] public int Area { get; set; }
-    
+
     public FiniteElement(int nodesCount)
     {
         Nodes = new int[nodesCount];
@@ -19,7 +19,8 @@ public class FiniteElement
         Edges = new Edge[nodesCount];
     }
 
-    [JsonConstructor] public FiniteElement(int[] nodes, int area)
+    [JsonConstructor]
+    public FiniteElement(int[] nodes, int area)
     {
         Nodes = nodes;
         Area = area;
@@ -35,7 +36,7 @@ public class FiniteElement
         element = EdgesIndices.Aggregate(element, (current, edge) => current + $" {edge}  ");
         element += "\nEdges: ";
         element = Edges.Aggregate(element, (current, edge) => current + $"{edge}  ");
-        
+
         return element;
     }
 }

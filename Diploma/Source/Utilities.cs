@@ -5,26 +5,36 @@ public static class DataWriter
     public static void WriteMesh(string path, Mesh.Mesh mesh)
     {
         using var sw = new StreamWriter($"{path}/mesh.json");
-        
+
         sw.Write(JsonConvert.SerializeObject(mesh));
     }
-    
+
     public static Mesh.Mesh ReadMesh(string path)
     {
         using var sr = new StreamReader($"{path}/mesh.json");
         return JsonConvert.DeserializeObject<Mesh.Mesh>(sr.ReadToEnd()) ??
                           throw new NullReferenceException("Fill the file correctly");
     }
-    
-    public static void WritePressure(string path, string filename, double[] pressure)
+
+    public static void WritePressure(string path, string filename, double[] pressure, Mesh.Mesh mesh)
     {
         if (!Directory.Exists($"{path}/Output2D"))
         {
             Directory.CreateDirectory($"{path}/Output2D");
         }
-        
+
         using var sw = new StreamWriter($"{path}/Output2D/" + filename);
 
+        if (pressure is null)
+        {
+            double p = DataConverter.PressureToAtm(mesh.DirichletConditions[0].Value);
+
+            for (int i = 0; i < mesh.Points.Length; i++)
+            {
+                sw.WriteLine(p);
+            }
+            return;
+        }
         foreach (var value in pressure)
         {
             sw.WriteLine(value);
@@ -37,12 +47,23 @@ public static class DataWriter
         {
             Directory.CreateDirectory($"{path}/Output2D");
         }
-        
+
         using var sw = new StreamWriter($"{path}/Output2D/" + filename);
 
         for (var ielem = 0; ielem < saturation!.Count; ielem++)
         {
-            sw.WriteLine(saturation[ielem][1]);
+            for (int i = 0; i < saturation[ielem].Count; i++)
+            {
+                if (i == saturation[ielem].Count - 1)
+                {
+                    sw.Write($"{saturation[ielem][i]}");
+                }
+                else
+                {
+                    sw.Write($"{saturation[ielem][i]} ");
+                }
+            }
+            sw.WriteLine();
         }
     }
 
@@ -52,7 +73,7 @@ public static class DataWriter
         {
             Directory.CreateDirectory($"{path}/DebugInfo");
         }
-        
+
         using var sw = new StreamWriter($"{path}/DebugInfo/" + filename);
 
         int rows = phasesFlows.GetLength(0);
@@ -61,23 +82,23 @@ public static class DataWriter
         for (int i = 0; i < rows; i++)
         {
             var buffer = "";
-            
+
             for (int j = 0; j < cols; j++)
             {
                 buffer += $"{phasesFlows[i, j],14}\t";
             }
-            
+
             sw.WriteLine(buffer);
         }
     }
-    
+
     public static void WriteVolumes(string path, string filename, Mesh.Mesh mesh, double[,] phasesVolumes)
     {
         if (!Directory.Exists($"{path}/DebugInfo"))
         {
             Directory.CreateDirectory($"{path}/DebugInfo");
         }
-        
+
         using var sw = new StreamWriter($"{path}/DebugInfo/" + filename);
 
         int rows = phasesVolumes.GetLength(0);
@@ -86,12 +107,12 @@ public static class DataWriter
         for (int i = 0; i < rows; i++)
         {
             var buffer = "";
-            
+
             for (int j = 0; j < cols; j++)
             {
                 buffer += $"{phasesVolumes[i, j],14}\t";
             }
-            
+
             sw.WriteLine(buffer);
         }
     }
@@ -99,7 +120,7 @@ public static class DataWriter
     public static void WriteElements(string filename, Mesh.Mesh mesh)
     {
         using var sw = new StreamWriter(filename);
-        
+
         for (int ielem = 0; ielem < mesh.Elements.Length; ielem++)
         {
             sw.WriteLine($"Element № {ielem} ----------------------------------------");
@@ -111,9 +132,9 @@ public static class DataWriter
 
 public static class DataConverter
 {
-    public static double PressureToPascal(double atmPressure) => atmPressure * 101325;
-    public static double PressureToAtm(double pascalPressure) => pascalPressure / 101325;
-    public static double FlowToCubicMetersPerSecond(double flow) => flow / (24 * 60 * 60);
+    public static double PressureToPascal(double atmPressure) => atmPressure * 101325.0;
+    public static double PressureToAtm(double pascalPressure) => pascalPressure / 101325.0;
+    public static double FlowToCubicMetersPerSecond(double flow) => flow / (24.0 * 3600.0);
     public static double PermeabilityToSquareMeter(double permeability) => permeability * 1.01325E-15;
 }
 
@@ -129,4 +150,10 @@ public static class EnumerableExtensions
 {
     public static int IndexOf<T>(this IEnumerable<T> collection, T element)
         => collection.TakeWhile(elem => elem == null || !elem.Equals(element)).Count();
+
+    public static double Norm(this IEnumerable<double> collection)
+    {
+        double scalar = collection.Sum(value => value * value);
+        return Math.Sqrt(scalar);
+    }
 }

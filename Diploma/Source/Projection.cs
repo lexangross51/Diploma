@@ -14,7 +14,7 @@ public struct Projection
 
     public Projection(float left, float right, float bottom, float top)
         => (Left, Right, Bottom, Top) = (left, right, bottom, top);
-    
+
     public double Width => Right - Left;
     public double Height => Top - Bottom;
 

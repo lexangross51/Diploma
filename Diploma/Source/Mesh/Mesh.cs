@@ -10,11 +10,13 @@ public class Mesh
     [JsonIgnore] public Material[] Materials { get; }
     [JsonIgnore] public int NodesCount => Points.Length;
     [JsonIgnore] public int ElementsCount => Elements.Length;
-    [JsonIgnore] public int EdgesCount => Elements[^1].EdgesIndices[^1] > Elements[^2].EdgesIndices[^1]
+    [JsonIgnore]
+    public int EdgesCount => Elements[^1].EdgesIndices[^1] > Elements[^2].EdgesIndices[^1]
         ? Elements[^1].EdgesIndices[^1] + 1
         : Elements[^2].EdgesIndices[^1] + 1;
 
-    [JsonConstructor] public Mesh(
+    [JsonConstructor]
+    public Mesh(
         IEnumerable<(Point2D, bool)> points,
         IEnumerable<FiniteElement> elements,
         IEnumerable<DirichletCondition>? dirichletConditions,

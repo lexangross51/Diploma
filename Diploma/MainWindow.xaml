@@ -9,14 +9,13 @@
         DataContext="{Binding RelativeSource={RelativeSource Self}}">
     <DockPanel>
         <StatusBar DockPanel.Dock="Bottom">
-            <Label Content="Time moment: "/>
-            <TextBlock Width="60" Text="{Binding TimeMoment, UpdateSourceTrigger=PropertyChanged}"/> 
+            <Label Content="Author: Alexey Gross, PM-92, FAMI"/>
         </StatusBar>
         
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="6*"/>
+                <RowDefinition Height="4.5*"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="5*"/>
@@ -24,18 +23,32 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             
-            <GroupBox Header="Settings" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" Width="200" Margin="10, 0, 0, 0">
-                <StackPanel>
-                    <CheckBox x:Name="CheckBoxShowGrid" Content="Show grid" IsChecked="True"/>
-                    <CheckBox x:Name="CheckBoxShowDirichlet" Content="Show Dirichlet" IsChecked="False"/>
-                    <CheckBox x:Name="CheckBoxShowNeumann" Content="Show Neumann" IsChecked="False"/>
-                    <StackPanel Orientation="Horizontal">
-                        <Label Content="Time writing"/>
-                        <TextBox x:Name="TimeWritingText" Width="35" Text="1" VerticalAlignment="Center"  
-                                   KeyDown="TimeWritingText_OnKeyDown" />
+            <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal">
+                <GroupBox Header="Settings" HorizontalAlignment="Left" Width="200" Margin="10, 0, 0, 0">
+                    <StackPanel>
+                        <CheckBox x:Name="CheckBoxShowGrid" Content="Show grid" IsChecked="True"/>
+                        <CheckBox x:Name="CheckBoxShowDirichlet" Content="Show Dirichlet" IsChecked="False"/>
+                        <CheckBox x:Name="CheckBoxShowNeumann" Content="Show Neumann" IsChecked="False"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Label Content="Modeling time"/>
+                            <TextBox x:Name="ModelingTimeText" Width="35" Text="1" VerticalAlignment="Center"  
+                                     KeyDown="TimeWritingText_OnKeyDown" />
+                        </StackPanel>
+                        
+                        <StackPanel Orientation="Horizontal">
+                            <Label Content="Time writing"/>
+                            <TextBox x:Name="TimeWritingText" Width="35" Text="1" VerticalAlignment="Center"  
+                                     KeyDown="TimeWritingText_OnKeyDown" />
+                        </StackPanel>
                     </StackPanel>
-                </StackPanel>
-            </GroupBox>
+                </GroupBox>
+                <GroupBox Header="Saturation window">
+                    <StackPanel>
+                        <RadioButton GroupName="SaturationWindowButtons" x:Name="OilRadioButton" Content="Oil" IsChecked="True" Checked="RadioButtonOnChecked"/>
+                        <RadioButton GroupName="SaturationWindowButtons" x:Name="WaterRadioButton" Content="Water" IsChecked="False" Checked="RadioButtonOnChecked"/>
+                    </StackPanel>
+                </GroupBox>
+            </StackPanel>
             
             <sharpGl:OpenGLControl Grid.Row="1"  Grid.Column="0" x:Name="PressureControl" Margin="10"
                                    RenderContextType="DIBSection"

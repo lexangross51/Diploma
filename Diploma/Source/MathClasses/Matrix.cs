@@ -83,21 +83,21 @@ public class SparseMatrix
         Di = new double[size];
     }
 
-    public static void Dot(SparseMatrix matrix, Vector vector, Vector? product)
+    public static void Dot(SparseMatrix matrix, double[] vector, double[]? product)
     {
         if (matrix.Size != vector.Length)
         {
             throw new Exception("Size of matrix not equal to size of vector");
         }
 
-        product ??= new Vector(vector.Length);
-        product.Fill();
+        product ??= new double[vector.Length];
+        Array.Fill(product, 0.0);
         int[] ig = matrix.Ig;
         int[] jg = matrix.Jg;
         double[] di = matrix.Di;
         double[] ggl = matrix.GGl;
         double[] ggu = matrix.GGu;
-        
+
         for (int i = 0; i < vector.Length; i++)
         {
             product[i] = di[i] * vector[i];

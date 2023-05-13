@@ -3,7 +3,7 @@
 public sealed partial class MainWindow
 {
     private Color[]? _colorsSaturartion;
-    private double[]? _saturation;
+    private double[][]? _saturation;
     private readonly double[] _saturationLegendValues = new double[8];
     private readonly byte[,] _saturationLegendColors =
     {
@@ -12,21 +12,21 @@ public sealed partial class MainWindow
         { 255, 255, 0 },
         { 255, 255, 255 }
     };
-    
+
     private void MakeSaturationsColors(int timeMoment)
     {
         if (_mesh is null) return;
-        
+
         using var sr = new StreamReader($"{_path}/Output2D/Saturation{timeMoment}.txt");
 
         for (int i = 0; i < _mesh?.Elements.Length; i++)
         {
-            _saturation![i] = Convert.ToDouble(sr.ReadLine());
+            _saturation![i] = sr.ReadLine()?.Split(" ").Select(double.Parse).ToArray() ?? Array.Empty<double>();
         }
-        
+
         // Legend
-        _saturationLegendValues[0] = _saturation!.Max();
-        _saturationLegendValues[7] = _saturation!.Min();
+        _saturationLegendValues[0] = _saturation!.Max(a => a[_selectedPhase]);
+        _saturationLegendValues[7] = _saturation!.Min(a => a[_selectedPhase]);
         double step = (_saturationLegendValues[0] - _saturationLegendValues[7]) / 7;
 
         for (int i = 1; i < 7; i++)
@@ -35,15 +35,15 @@ public sealed partial class MainWindow
         }
 
         // Field
-        double maxS = _saturation!.Max(), minS = _saturation!.Min();
+        double maxS = _saturation!.Max(a => a[_selectedPhase]), minS = _saturation!.Min(a => a[_selectedPhase]);
         double stepSBig = (maxS - minS) / 3.0;
-        
+
         for (int ielem = 0; ielem < _mesh?.Elements.Length; ielem++)
         {
-            double centerP = _saturation![ielem];
-        
+            double centerP = _saturation![ielem][_selectedPhase];
+
             byte rColor, gColor, bColor;
-        
+
             if (centerP >= minS + stepSBig * 2.0)
             {
                 rColor = 255;
@@ -81,7 +81,7 @@ public sealed partial class MainWindow
         gl.Ortho2D(_graphArea.Left, _graphArea.Right, _graphArea.Bottom, _graphArea.Top);
 
         DrawAxes(SaturationControl.OpenGL);
-        
+
         if (_mesh is not null)
         {
             gl.PushMatrix();
@@ -94,7 +94,7 @@ public sealed partial class MainWindow
                 gl.Viewport(20, 20, gl.RenderContextProvider.Width - 30, gl.RenderContextProvider.Height - 30);
                 gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
                 gl.ShadeModel(OpenGL.GL_SMOOTH);
-                
+
                 if (_colorsSaturartion is not null)
                 {
                     gl.Begin(OpenGL.GL_QUADS);

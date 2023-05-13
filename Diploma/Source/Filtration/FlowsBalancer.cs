@@ -1,3 +1,5 @@
+#define DEBUGGIN
+
 namespace Diploma.Source.Filtration;
 
 public class FlowsBalancer
@@ -9,9 +11,10 @@ public class FlowsBalancer
     private readonly bool[] _flowsNulls;
     private readonly double[] _beta;
     private readonly double[] _alpha;
-    private const double MaxImbalance = 1E-07;
+    private const double MaxImbalance = 1E-08;
     private const int MaxBalanceIters = 100;
     private readonly int[,] _edgesDirect;
+    private readonly Dictionary<int, List<int>> _elementsByEdge;
 
     public FlowsBalancer(Mesh.Mesh mesh, int[,] edgesDirect)
     {
@@ -31,45 +34,36 @@ public class FlowsBalancer
 
         _beta = new double[_mesh.ElementsCount];
         _alpha = new double[_mesh.EdgesCount];
-        Array.Fill(_beta, 1E-05);
+        Array.Fill(_beta, 1e+10);
+
+        _elementsByEdge = new Dictionary<int, List<int>>();
+
+        for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+        {
+            for (int iedge = 0; iedge < 4; iedge++)
+            {
+                int globalEdge = _mesh.Elements[ielem].EdgesIndices[iedge];
+
+                if (!_elementsByEdge.Keys.Contains(globalEdge))
+                {
+                    _elementsByEdge.Add(globalEdge, new List<int>());
+                }
+                _elementsByEdge[globalEdge].Add(ielem);
+            }
+        }
     }
 
     private void FixNullsFlows(Vector flows)
     {
         Array.Fill(_flowsNulls, false);
-        
+
         for (int i = 0; i < flows.Length; i++)
         {
-            if (Math.Abs(flows[i]) < 1E-07)
+            if (Math.Abs(flows[i]) < 1E-14)
             {
                 _flowsNulls[i] = true;
+                flows[i] = 0.0;
             }
-        }
-    }
-
-    private void ElementsByEdge(int globalEdge, out (int elem1, int elem2) elements)
-    {
-        int counter = 0;
-        elements = (-1, -1);
-
-        for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
-        {
-            var edges = _mesh.Elements[ielem].EdgesIndices;
-            
-            for (int localEdge = 0; localEdge < 4; localEdge++)
-            {
-                if (edges[localEdge] == globalEdge)
-                {
-                    counter++;
-
-                    if (counter == 1) elements.elem1 = ielem;
-                    if (counter == 2) elements.elem2 = ielem;
-
-                    break;
-                }
-            }
-
-            if (counter == 2) break;
         }
     }
 
@@ -94,21 +88,22 @@ public class FlowsBalancer
         for (int globalEdge = 0; globalEdge < edgesCount; globalEdge++)
         {
             if (_flowsNulls[globalEdge]) continue;
-            
-            ElementsByEdge(globalEdge, out var elements);
 
             // Edge belongs to only 1 element
-            if (elements.elem2 == -1)
+            if (_elementsByEdge[globalEdge].Count == 1)
             {
-                double elementImbalance = ElementImbalance(elements.elem1, flows);
+                int ielem = _elementsByEdge[globalEdge][0];
+                double elementImbalance = ElementImbalance(ielem, flows);
                 //_alpha[globalEdge] = elementImbalance < 1E-14 ? 1.0 : 1.0 / elementImbalance;
                 _alpha[globalEdge] = 1.0 / elementImbalance;
             }
             // Edge belongs to 2 elements
             else
             {
-                double elementImbalance1 = ElementImbalance(elements.elem1, flows);
-                double elementImbalance2 = ElementImbalance(elements.elem2, flows);
+                int ielem1 = _elementsByEdge[globalEdge][0];
+                int ielem2 = _elementsByEdge[globalEdge][1];
+                double elementImbalance1 = ElementImbalance(ielem1, flows);
+                double elementImbalance2 = ElementImbalance(ielem2, flows);
 
                 // _alpha[globalEdge] = Math.Abs(elementImbalance1) switch
                 // {
@@ -125,8 +120,8 @@ public class FlowsBalancer
 
     private int FlowDirection(double flow, int ielem, int iedge)
     {
-        flow = Math.Abs(flow) < 1E-10 ? 0.0 : flow;
-        
+        flow = Math.Abs(flow) < 1E-14 ? 0.0 : flow;
+
         return Math.Sign(flow) switch
         {
             0 => 0,
@@ -137,9 +132,6 @@ public class FlowsBalancer
 
     private bool IsWellElement(int ielem)
         => _mesh.NeumannConditions.Any(condition => condition.Element == ielem);
-
-    private static double MaxFlow(Vector flows)
-        => flows.Select(Math.Abs).Prepend(0.0).Max();
 
     private void AddToGlobal(int i, int j, double value)
     {
@@ -172,7 +164,7 @@ public class FlowsBalancer
             }
         }
     }
-    
+
     private void AssemblyGlobalMatrix()
     {
         _globalMatrix.Clear();
@@ -186,7 +178,7 @@ public class FlowsBalancer
                 for (int j = 0; j < 4; j++)
                 {
                     double value = _beta[ielem] * _edgesDirect[ielem, i] * _edgesDirect[ielem, j];
-                    
+
                     AddToGlobal(edges[i], edges[j], value);
                 }
             }
@@ -204,7 +196,7 @@ public class FlowsBalancer
     private void AssemblyGlobalVector(Vector flows)
     {
         Array.Fill(_globalVector, 0.0);
-        
+
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
         {
             var edges = _mesh.Elements[ielem].EdgesIndices;
@@ -214,7 +206,7 @@ public class FlowsBalancer
             {
                 var globalEdge = edges[localEdge];
                 var flowDirection = FlowDirection(flows[globalEdge], ielem, localEdge);
-                
+
                 imbalance += flowDirection * Math.Abs(flows[edges[localEdge]]);
             }
 
@@ -227,52 +219,89 @@ public class FlowsBalancer
 
     private void FixKnownFlows()
     {
-        // foreach (var (ielem, iedge, _) in _mesh.NeumannConditions)
-        // {
-        //     var edges = _mesh.Elements[ielem].EdgesIndices;
-        //     int globalEdge = edges[iedge];
-        //
-        //     _globalVector[globalEdge] = 0.0;
-        //
-        //     for (int k = _globalMatrix.Ig[globalEdge]; k < _globalMatrix.Ig[globalEdge + 1]; k++)
-        //     {
-        //         _globalMatrix.GGl[k] = 0.0;
-        //     }
-        //
-        //     for (int k = globalEdge + 1; k < _globalMatrix.Size; k++)
-        //     {
-        //         for (int j = _globalMatrix.Ig[k]; j < _globalMatrix.Ig[k + 1]; j++)
-        //         {
-        //             if (_globalMatrix.Jg[j] == globalEdge)
-        //             {
-        //                 _globalMatrix.GGu[j] = 0.0;
-        //             }
-        //         }
-        //     }
-        // }
-        //
-        // for (int globalEdge = 0; globalEdge < _flowsNulls.Length; globalEdge++)
-        // {
-        //     if (!_flowsNulls[globalEdge]) continue;
-        //     
-        //     _globalVector[globalEdge] = 0.0;
-        //
-        //     for (int k = _globalMatrix.Ig[globalEdge]; k < _globalMatrix.Ig[globalEdge + 1]; k++)
-        //     {
-        //         _globalMatrix.GGl[k] = 0.0;
-        //     }
-        //
-        //     for (int k = globalEdge + 1; k < _globalMatrix.Size; k++)
-        //     {
-        //         for (int j = _globalMatrix.Ig[k]; j < _globalMatrix.Ig[k + 1]; j++)
-        //         {
-        //             if (_globalMatrix.Jg[j] == globalEdge)
-        //             {
-        //                 _globalMatrix.GGu[j] = 0.0;
-        //             }
-        //         }
-        //     }
-        // }
+        var bc2 = new int[_mesh.EdgesCount].Select(_ => -1).ToArray();
+        var neumann = _mesh.NeumannConditions;
+
+        for (int i = 0; i < neumann.Length; i++)
+        {
+            int globalEdge = _mesh.Elements[neumann[i].Element].EdgesIndices[neumann[i].Edge];
+            bc2[globalEdge] = i;
+        }
+
+        for (int i = 0; i < _mesh.EdgesCount; i++)
+        {
+            int k;
+            if (bc2[i] != -1)
+            {
+                _globalMatrix.Di[i] = 1.0;
+                _globalVector[i] = 0.0;
+
+                for (int j = _globalMatrix.Ig[i]; j < _globalMatrix.Ig[i + 1]; j++)
+                {
+                    k = _globalMatrix.Jg[j];
+                    if (bc2[k] == -1)
+                    {
+                        _globalVector[k] -= _globalMatrix.GGl[j] * _globalVector[i];
+                    }
+                    _globalMatrix.GGl[j] = 0.0;
+                    _globalMatrix.GGu[j] = 0.0;
+                }
+            }
+            else
+            {
+                for (int j = _globalMatrix.Ig[i]; j < _globalMatrix.Ig[i + 1]; j++)
+                {
+                    k = _globalMatrix.Jg[j];
+                    if (bc2[k] != -1)
+                    {
+                        _globalVector[i] -= _globalMatrix.GGl[j] * _globalVector[k];
+                        _globalMatrix.GGl[j] = 0.0;
+                        _globalMatrix.GGu[j] = 0.0;
+                    }
+                }
+            }
+        }
+
+        bc2 = bc2.Select(_ => -1).ToArray();
+        for (int i = 0; i < _flowsNulls.Length; i++)
+        {
+            if (_flowsNulls[i])
+                bc2[i] = i;
+        }
+
+        for (int i = 0; i < _mesh.EdgesCount; i++)
+        {
+            int k;
+            if (bc2[i] != -1)
+            {
+                _globalMatrix.Di[i] = 1.0;
+                _globalVector[i] = 0.0;
+
+                for (int j = _globalMatrix.Ig[i]; j < _globalMatrix.Ig[i + 1]; j++)
+                {
+                    k = _globalMatrix.Jg[j];
+                    if (bc2[k] == -1)
+                    {
+                        _globalVector[k] -= _globalMatrix.GGl[j] * _globalVector[i];
+                    }
+                    _globalMatrix.GGl[j] = 0.0;
+                    _globalMatrix.GGu[j] = 0.0;
+                }
+            }
+            else
+            {
+                for (int j = _globalMatrix.Ig[i]; j < _globalMatrix.Ig[i + 1]; j++)
+                {
+                    k = _globalMatrix.Jg[j];
+                    if (bc2[k] != -1)
+                    {
+                        _globalVector[i] -= _globalMatrix.GGl[j] * _globalVector[k];
+                        _globalMatrix.GGl[j] = 0.0;
+                        _globalMatrix.GGu[j] = 0.0;
+                    }
+                }
+            }
+        }
     }
 
     private void CheckFlowsDirection(Vector flows)
@@ -281,12 +310,12 @@ public class FlowsBalancer
 
         Vector tmpFlows = new(flows.Length);
         Vector.Copy(flows, tmpFlows);
-        
+
         for (int i = 0; i < _deltaQ.Length; i++)
         {
             tmpFlows[i] += _deltaQ[i];
         }
-        
+
         for (int i = 0; i < _mesh.Elements.Length; i++)
         {
             var edges = _mesh.Elements[i].EdgesIndices;
@@ -313,22 +342,22 @@ public class FlowsBalancer
                     dirs += "------------------------------";
 
                     sw.WriteLine(dirs);
-                    
+
                     break;
                 }
             }
         }
     }
-    
+
     public void BalanceFlows(Vector flows)
     {
         FixNullsFlows(flows);
-        
+
         Array.Fill(_alpha, 0.0, 0, _alpha.Length);
 
         bool isBalanced = true;
         int iteration = 0;
-        double maxFlow = MaxFlow(flows);
+        double maxFlow = flows.Select(Math.Abs).Prepend(0.0).Max();
 
         // It's possible the predetermined level of imbalance has already been reached
         for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
@@ -338,9 +367,10 @@ public class FlowsBalancer
                 isBalanced = false;
             }
         }
-        
+
         #region Print imbalances
 
+#if DEBUGGING
         using (var sw = new StreamWriter("Output/imbalances.txt"))
         {
             for (int i = 0; i < _mesh.Elements.Length; i++)
@@ -353,6 +383,7 @@ public class FlowsBalancer
                 sw.WriteLine(strImb);
             }
         }
+#endif
 
         #endregion
 
@@ -363,47 +394,52 @@ public class FlowsBalancer
             AssemblyGlobalMatrix();
             AssemblyGlobalVector(flows);
             FixKnownFlows();
+
             PardisoSolver.Solve(
                 _globalMatrix.Size, _globalMatrix.Ig, _globalMatrix.Jg, _globalMatrix.Di, _globalMatrix.GGl,
-                _globalVector, _deltaQ, 8);
-        
+                _globalVector, _deltaQ, 1);
+
             bool isNullImbalance = true;
-        
+
             for (int ielem = 0; ielem < _mesh.Elements.Length; ielem++)
             {
                 double imbalance = ElementImbalance(ielem, flows);
-        
+
                 if (imbalance / maxFlow > MaxImbalance)
                 {
                     _beta[ielem] *= 10.0;
                     isNullImbalance = false;
                 }
             }
-        
+
             #region Print imbalances
-        
+
+#if DEBUGGING
             using (var sw = new StreamWriter("Output/imbalances.txt"))
             {
                 for (int i = 0; i < _mesh.Elements.Length; i++)
                 {
                     var imbalance = ElementImbalance(i, flows);
                     var strImb = i + ": " + imbalance;
-        
+
                     if (IsWellElement(i)) strImb += "(Near-well)";
                 
                     sw.WriteLine(strImb);
                 }
             }
-        
+#endif
+
             #endregion
-        
+
             if (isNullImbalance) isBalanced = true;
             iteration++;
         }
 
         if (!isBalanced) return;
-        
-        CheckFlowsDirection(flows);
+
+#if DEBUGGING
+        CheckFlowsDirection(flows);  
+#endif
 
         for (int i = 0; i < _deltaQ.Length; i++)
         {

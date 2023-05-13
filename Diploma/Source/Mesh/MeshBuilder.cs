@@ -73,7 +73,7 @@ public class MeshBuilder
                 connectivityList[edge.Node1].Add(edge.Node2);
             }
         }
-        
+
         var ig = new int[_points.Count + 1];
 
         ig[0] = 0;
@@ -141,10 +141,10 @@ public class MeshBuilder
 
     private static void CreateEdges(FiniteElement element)
     {
-        element.Edges[0] = new Edge(element.Nodes[1], element.Nodes[0]);
-        element.Edges[1] = new Edge(element.Nodes[0], element.Nodes[2]);
-        element.Edges[2] = new Edge(element.Nodes[3], element.Nodes[1]);
-        element.Edges[3] = new Edge(element.Nodes[2], element.Nodes[3]);
+        element.Edges[0] = new Edge(element.Nodes[0], element.Nodes[1]);
+        element.Edges[1] = new Edge(element.Nodes[2], element.Nodes[0]);
+        element.Edges[2] = new Edge(element.Nodes[1], element.Nodes[3]);
+        element.Edges[3] = new Edge(element.Nodes[3], element.Nodes[2]);
     }
 
     private void CreateUniformMesh()
@@ -194,9 +194,9 @@ public class MeshBuilder
                 };
 
                 _elements.Add(ielem, new FiniteElement(nodes, 0));
-                
+
                 CreateEdges(_elements[ielem]);
-                
+
                 ielem++;
             }
         }
@@ -276,7 +276,7 @@ public class MeshBuilder
         int nx = _parameters.SplitParameters.MeshNx;
         int ny = _parameters.SplitParameters.MeshNy;
         double k = _parameters.SplitParameters.WellsCoefficient;
-        
+
         MeshNesting(ref nx, ref ny, ref k);
 
         _points = new List<(Point2D, bool)>((nx + 1) * (ny + 1));
@@ -323,7 +323,7 @@ public class MeshBuilder
                     _wellElements[elem].Nodes[1] = _elements[_intersectedElements![i]].Nodes[1];
                     _wellElements[elem].Nodes[2] = maxNodeNum;
                     _wellElements[elem].Nodes[3] = maxNodeNum + 1;
-                    
+
                     CreateEdges(_wellElements[elem]);
 
                     elem++;
@@ -337,7 +337,7 @@ public class MeshBuilder
                     _wellElements[elem].Nodes[1] = _elements[_intersectedElements![j]].Nodes[3];
                     _wellElements[elem].Nodes[2] = maxNodeNum;
                     _wellElements[elem].Nodes[3] = maxNodeNum + 1;
-                    
+
                     CreateEdges(_wellElements[elem]);
 
                     elem++;
@@ -351,7 +351,7 @@ public class MeshBuilder
                     _wellElements[elem].Nodes[1] = _elements[_intersectedElements![j]].Nodes[2];
                     _wellElements[elem].Nodes[2] = maxNodeNum;
                     _wellElements[elem].Nodes[3] = maxNodeNum + 1;
-                    
+
                     CreateEdges(_wellElements[elem]);
 
                     elem++;
@@ -365,7 +365,7 @@ public class MeshBuilder
                     _wellElements[elem].Nodes[1] = _elements[_intersectedElements![j]].Nodes[0];
                     _wellElements[elem].Nodes[2] = maxNodeNum;
                     _wellElements[elem].Nodes[3] = i == p - 1 ? maxNodeNum + 1 - 4 * p : maxNodeNum + 1;
-                    
+
                     CreateEdges(_wellElements[elem]);
 
                     elem++;
@@ -382,7 +382,7 @@ public class MeshBuilder
                         _wellElements[i].Nodes[1] = maxNodeNum + 1 - shift;
                         _wellElements[i].Nodes[2] = maxNodeNum;
                         _wellElements[i].Nodes[3] = maxNodeNum + 1;
-                        
+
                         CreateEdges(_wellElements[i]);
 
                         i++;
@@ -410,7 +410,7 @@ public class MeshBuilder
                         _wellElements[i].Nodes[3] = maxNodeNum + 1;
                         _wellElements[i].Nodes[0] = _wellElements[i].Nodes[2] - shift;
                         _wellElements[i].Nodes[1] = _wellElements[i].Nodes[3] - shift;
-                        
+
                         CreateEdges(_wellElements[i]);
 
                         i++;
@@ -424,7 +424,7 @@ public class MeshBuilder
                         _wellElements[i].Nodes[3] = j == p - 1 ? maxNodeNum + 1 - 4 * p : maxNodeNum + 1;
                         _wellElements[i].Nodes[0] = _wellElements[i].Nodes[2] - shift;
                         _wellElements[i].Nodes[1] = _wellElements[i].Nodes[3] - shift;
-                        
+
                         CreateEdges(_wellElements[i]);
 
                         i++;
@@ -505,32 +505,32 @@ public class MeshBuilder
         double k = _parameters.SplitParameters.WellsCoefficient;
 
         MeshNesting(ref nx, ref ny, ref k);
-        
+
         double hx = (rightTop.X - leftBottom.X) / p;
         double hy = (rightTop.Y - leftBottom.Y) / p;
-        
+
         // Region 1
         Point2D[] region1 = new Point2D[(p + 1) * (m + 1)];
-        
+
         for (int i = 1; i < p + 2; i++)
         {
             region1[i - 1] = new Point2D(leftBottom.X + (i - 1) * hx, leftBottom.Y);
         }
-        
+
         for (int i = 1; i < p + 2; i++)
         {
             double x = r * Math.Cos(5 * Math.PI / 4 + (i - 1) * Math.PI / 2 / p) + center.X;
             double y = r * Math.Sin(5 * Math.PI / 4 + (i - 1) * Math.PI / 2 / p) + center.Y;
-        
+
             region1[m * (p + 1) + i - 1] = new Point2D(x, y);
         }
-        
+
         for (int i = 1; i < m; i++)
         {
             for (int j = 1; j < p + 2; j++)
             {
                 double dx, dy;
-                
+
                 if (Math.Abs(k - 1.0) < 1E-14)
                 {
                     dx = (region1[m * (p + 1) + j - 1].X - region1[j - 1].X) / m;
@@ -543,36 +543,36 @@ public class MeshBuilder
                     dx *= Math.Pow(k, i - 1);
                     dy *= Math.Pow(k, i - 1);
                 }
-                
+
                 double x = region1[(i - 1) * (p + 1) + j - 1].X + dx;
                 double y = region1[(i - 1) * (p + 1) + j - 1].Y + dy;
-        
+
                 region1[i * (p + 1) + j - 1] = new Point2D(x, y);
-            }   
+            }
         }
-        
+
         // Region 2
         Point2D[] region2 = new Point2D[(p + 1) * (m + 1)];
-        
+
         for (int i = 1; i < p + 2; i++)
         {
             region2[i - 1] = new Point2D(leftBottom.X + (i - 1) * hx, rightTop.Y);
         }
-        
+
         for (int i = 1; i < p + 2; i++)
         {
             double x = r * Math.Cos(3 * Math.PI / 4 - (i - 1) * Math.PI / 2 / p) + center.X;
             double y = r * Math.Sin(3 * Math.PI / 4 - (i - 1) * Math.PI / 2 / p) + center.Y;
-        
+
             region2[m * (p + 1) + i - 1] = new Point2D(x, y);
         }
-        
+
         for (int i = 1; i < m; i++)
         {
             for (int j = 1; j < p + 2; j++)
             {
                 double dx, dy;
-                
+
                 if (Math.Abs(k - 1.0) < 1E-14)
                 {
                     dx = (region2[m * (p + 1) + j - 1].X - region2[j - 1].X) / m;
@@ -586,36 +586,36 @@ public class MeshBuilder
                     dx *= Math.Pow(k, i - 1);
                     dy *= Math.Pow(k, i - 1);
                 }
-                
+
                 double x = region2[(i - 1) * (p + 1) + j - 1].X + dx;
                 double y = region2[(i - 1) * (p + 1) + j - 1].Y + dy;
-        
+
                 region2[i * (p + 1) + j - 1] = new Point2D(x, y);
-            }   
+            }
         }
-        
+
         // Region 3
         Point2D[] region3 = new Point2D[(p - 1) * (m + 1)];
-        
+
         for (int i = 1; i < p; i++)
         {
             region3[i - 1] = new Point2D(leftBottom.X, leftBottom.Y + i * hy);
         }
-        
+
         for (int i = 1; i < p; i++)
         {
             double x = r * Math.Cos(5 * Math.PI / 4 - i * Math.PI / 2 / p) + center.X;
             double y = r * Math.Sin(5 * Math.PI / 4 - i * Math.PI / 2 / p) + center.Y;
-        
+
             region3[m * (p - 1) + i - 1] = new Point2D(x, y);
         }
-        
+
         for (int i = 1; i < m; i++)
         {
             for (int j = 1; j < p; j++)
             {
                 double dx, dy;
-                
+
                 if (Math.Abs(k - 1.0) < 1E-14)
                 {
                     dx = (region3[m * (p - 1) + j - 1].X - region3[j - 1].X) / m;
@@ -629,36 +629,36 @@ public class MeshBuilder
                     dx *= Math.Pow(k, i - 1);
                     dy *= Math.Pow(k, i - 1);
                 }
-                
+
                 double x = region3[(i - 1) * (p - 1) + j - 1].X + dx;
                 double y = region3[(i - 1) * (p - 1) + j - 1].Y + dy;
-        
+
                 region3[i * (p - 1) + j - 1] = new Point2D(x, y);
-            }   
+            }
         }
-        
+
         // Region 4
         Point2D[] region4 = new Point2D[(p - 1) * (m + 1)];
-        
+
         for (int i = 1; i < p; i++)
         {
             region4[i - 1] = new Point2D(rightTop.X, leftBottom.Y + i * hy);
         }
-        
+
         for (int i = 1; i < p; i++)
         {
             double x = r * Math.Cos(7 * Math.PI / 4 + i * Math.PI / 2 / p) + center.X;
             double y = r * Math.Sin(7 * Math.PI / 4 + i * Math.PI / 2 / p) + center.Y;
-        
+
             region4[m * (p - 1) + i - 1] = new Point2D(x, y);
         }
-        
+
         for (int i = 1; i < m; i++)
         {
             for (int j = 1; j < p; j++)
             {
                 double dx, dy;
-                
+
                 if (Math.Abs(k - 1.0) < 1E-14)
                 {
                     dx = (region4[m * (p - 1) + j - 1].X - region4[j - 1].X) / m;
@@ -672,12 +672,12 @@ public class MeshBuilder
                     dx *= Math.Pow(k, i - 1);
                     dy *= Math.Pow(k, i - 1);
                 }
-                
+
                 double x = region4[(i - 1) * (p - 1) + j - 1].X + dx;
                 double y = region4[(i - 1) * (p - 1) + j - 1].Y + dy;
-        
+
                 region4[i * (p - 1) + j - 1] = new Point2D(x, y);
-            }   
+            }
         }
 
         // Reordering nodes
@@ -745,7 +745,7 @@ public class MeshBuilder
         int nx = _parameters.SplitParameters.MeshNx;
         int ny = _parameters.SplitParameters.MeshNy;
         double k = _parameters.SplitParameters.WellsCoefficient;
-        
+
         MeshNesting(ref nx, ref ny, ref k);
 
         _remoteEdges = new List<(int, int)>(nx * ny);
@@ -755,13 +755,13 @@ public class MeshBuilder
         {
             _remoteEdges.Add((_elements.Values.IndexOf(_elements[ielem]), 0));
         }
-        
+
         // Upper side
         for (int ielem = nx * (ny - 1); ielem < nx * ny; ielem++)
         {
             _remoteEdges.Add((_elements.Values.IndexOf(_elements[ielem]), 3));
         }
-        
+
         // Left side
         for (int ielem = 0; ielem <= nx * (ny - 1); ielem += nx)
         {
@@ -781,36 +781,36 @@ public class MeshBuilder
         int ny = _parameters.SplitParameters.MeshNy;
         double k = _parameters.SplitParameters.WellsCoefficient;
         double pressure = DataConverter.PressureToPascal(_parameters.Area[0].PlastPressure);
-        
+
         MeshNesting(ref nx, ref ny, ref k);
 
         _dirichletConditions = new HashSet<DirichletCondition>();
 
         // lower border
-        for (int inode = 0; inode < nx + 1; inode++)
+        for (int inode = 1; inode < nx; inode++)
         {
             _dirichletConditions.Add(new DirichletCondition(inode, pressure));
         }
-        
+
         // upper border
-        for (int inode = (nx + 1) * ny; inode < (nx + 1) * (ny + 1); inode++)
+        for (int inode = (nx + 1) * ny + 1; inode < (nx + 1) * (ny + 1) - 1; inode++)
         {
             _dirichletConditions.Add(new DirichletCondition(inode, pressure));
         }
-        
+
         // left border
         //pressure = DataConverter.PressureToPascal(100);
         for (int i = 0, inode = 0; i < ny + 1; i++, inode += nx + 1)
         {
             _dirichletConditions.Add(new DirichletCondition(inode, pressure));
         }
-        
-        // // Left side
-        // double power = DataConverter.FlowToCubicMetersPerSecond(400);
-        // for (int ielem = 0; ielem <= nx * (ny - 1); ielem += nx)
-        // {
-        //     _neumannConditions!.Add(new NeumannCondition(_elements.Values.IndexOf(_elements[ielem]), 1, power));
-        // }
+
+        //// Left side
+        //double power = DataConverter.FlowToCubicMetersPerSecond(-1);
+        //for (int ielem = 0; ielem <= nx * (ny - 1); ielem += nx)
+        //{
+        //    _neumannConditions!.Add(new NeumannCondition(_elements.Values.IndexOf(_elements[ielem]), 1, power));
+        //}
 
         // right border
         //pressure = DataConverter.PressureToPascal(0);

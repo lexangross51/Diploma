@@ -11,18 +11,37 @@ public sealed partial class MainWindow
     private bool _canNavigate;
     private Point2D _fulcrum;
     private double _xShift, _yShift;
-    
+
     private void DataGridTimes_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (DataGridTimes.SelectedItem is not null)
         {
-            TimeMoment = Convert.ToInt32(DataGridTimes.SelectedItem);
+            TimeMoment = Convert.ToInt32(DataGridTimes.SelectedIndex);
         }
     }
-    
+
     private void TimeWritingText_OnKeyDown(object sender, KeyEventArgs e)
     {
-        _deltaTime = Convert.ToInt32(TimeWritingText.Text);
+        var textBox = (sender as TextBox)!;
+
+        if (textBox.Name == "TimeWritingText")
+        {
+            _deltaTime = Convert.ToInt32(TimeWritingText.Text);
+        }
+        if (textBox.Name == "ModelingTimeText")
+        {
+            _timeEnd = Convert.ToInt32(ModelingTimeText.Text);
+        }
+    }
+
+    private void RadioButtonOnChecked(object sender, RoutedEventArgs e)
+    {
+        var button = (sender as RadioButton)!;
+
+        if (button.Name == "OilRadioButton") _selectedPhase = 1;
+        if (button.Name == "WaterRadioButton") _selectedPhase = 0;
+
+        MakeSaturationsColors(_timeMoment);
     }
 
     // Pressure control
@@ -30,7 +49,7 @@ public sealed partial class MainWindow
     {
         var pos = e.GetPosition(PressureControl);
         var projPoint = _graphArea.ToProjectionCoordinate(pos.X, pos.Y, PressureControl.OpenGL.RenderContextProvider);
-        
+
         if (_canNavigate)
         {
             var xShift = projPoint.X - _fulcrum.X;
@@ -45,7 +64,7 @@ public sealed partial class MainWindow
             _graphArea.Top -= yShift;
         }
     }
-    
+
     private void PressureControl_OnMouseWheel(object sender, MouseWheelEventArgs e)
     {
         OpenGL gl = PressureControl.OpenGL;
@@ -63,11 +82,11 @@ public sealed partial class MainWindow
             Scale(screenPoint, 1.0 / 1.05);
         }
     }
-    
+
     private void PressureControl_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         OpenGL gl = PressureControl.OpenGL;
-        
+
         _canNavigate = true;
         var cursorPosition = e.GetPosition(PressureControl);
         double xPos = (float)cursorPosition.X;
@@ -77,18 +96,18 @@ public sealed partial class MainWindow
 
     private void PressureControl_OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         => _canNavigate = false;
-    
+
     // Saturation control
     private void SaturationControl_OnMouseMove(object sender, MouseEventArgs e)
     {
         var pos = e.GetPosition(SaturationControl);
         var projPoint = _graphArea.ToProjectionCoordinate(pos.X, pos.Y, SaturationControl.OpenGL.RenderContextProvider);
-        
+
         if (_canNavigate)
         {
             var xShift = projPoint.X - _fulcrum.X;
             var yShift = projPoint.Y - _fulcrum.Y;
-            
+
             _xShift -= xShift;
             _yShift -= yShift;
 
@@ -98,7 +117,7 @@ public sealed partial class MainWindow
             _graphArea.Top -= yShift;
         }
     }
-    
+
     private void SaturationControl_OnMouseWheel(object sender, MouseWheelEventArgs e)
     {
         OpenGL gl = SaturationControl.OpenGL;
@@ -120,7 +139,7 @@ public sealed partial class MainWindow
     private void SaturationControl_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         OpenGL gl = SaturationControl.OpenGL;
-        
+
         _canNavigate = true;
         var cursorPosition = e.GetPosition(SaturationControl);
         double xPos = (float)cursorPosition.X;
@@ -161,7 +180,7 @@ public sealed partial class MainWindow
             gl.Vertex(1, -1);
             gl.Vertex(-1, -1);
             gl.Vertex(-1, 1);
-            
+
             // For borders
             gl.Vertex(1, -1);
             gl.Vertex(1, 1);
@@ -170,78 +189,78 @@ public sealed partial class MainWindow
             gl.End();
         }
         gl.PopMatrix();
-        
-        double hx = _graphArea.Width / 10.0;
-        double hy = _graphArea.Height / 10.0;
-        int xSteps = (int)(Math.Abs(_graphArea.Left - 2 * _xShift) / hx);
-        int ySteps = (int)(Math.Abs(_graphArea.Bottom - 2 * _yShift) / hy);
 
-        gl.Color(0, 0, 0);
-        gl.PushMatrix();
-        {
-            gl.MatrixMode(OpenGL.GL_PROJECTION);
-            gl.LoadIdentity();
-            gl.MatrixMode(OpenGL.GL_MODELVIEW);
-            gl.LoadIdentity();
-            gl.Ortho2D(_graphArea.Left, _graphArea.Right, _graphArea.Bottom, _graphArea.Top);
-            gl.Viewport(20, 0, gl.RenderContextProvider.Width - 30, 20);
-            gl.Begin(OpenGL.GL_LINES);
+        //double hx = _graphArea.Width / 5.0;
+        //double hy = _graphArea.Height / 5.0;
+        //int xSteps = (int)(Math.Abs(_graphArea.Left - 2 * _xShift) / hx);
+        //int ySteps = (int)(Math.Abs(_graphArea.Bottom - 2 * _yShift) / hy);
 
-            for (double x = _graphArea.Left - _xShift - xSteps * hx; x < _graphArea.Right; x += hx)
-            {
-                gl.Vertex(x, _graphArea.Top);
-                gl.Vertex(x, _graphArea.Top - _graphArea.Height * 0.4);
-            }
+        //gl.Color(0, 0, 0);
+        //gl.PushMatrix();
+        //{
+        //    gl.MatrixMode(OpenGL.GL_PROJECTION);
+        //    gl.LoadIdentity();
+        //    gl.MatrixMode(OpenGL.GL_MODELVIEW);
+        //    gl.LoadIdentity();
+        //    gl.Ortho2D(_graphArea.Left, _graphArea.Right, _graphArea.Bottom, _graphArea.Top);
+        //    gl.Viewport(20, 0, gl.RenderContextProvider.Width - 30, 20);
+        //    gl.Begin(OpenGL.GL_LINES);
 
-            gl.End();
+        //    for (double x = _graphArea.Left - _xShift - xSteps * hx; x < _graphArea.Right; x += hx)
+        //    {
+        //        gl.Vertex(x, _graphArea.Top);
+        //        gl.Vertex(x, _graphArea.Top - _graphArea.Height * 0.4);
+        //    }
 
-            for (double x = _graphArea.Left - _xShift - xSteps * hx; x < _graphArea.Right; x += hx)
-            {
-                var axisX = $"{x:f2}";
-                var pos = _graphArea.ToScreenCoordinates(x, _graphArea.Bottom + _graphArea.Height * 0.015,
-                    gl.RenderContextProvider);
-                var width = gl.RenderContextProvider.Width;
-                
-                gl.DrawText((int)(pos.X - width * 0.017), (int)-pos.Y, 
-                    0f, 0f, 0f, 
-                    "Times New Roman", 10, 
-                    axisX);
-            }
-        }
-        gl.PopMatrix();
-        
-        gl.PushMatrix();
-        {
-            gl.MatrixMode(OpenGL.GL_PROJECTION);
-            gl.LoadIdentity();
-            gl.MatrixMode(OpenGL.GL_MODELVIEW);
-            gl.LoadIdentity();
-            gl.Ortho2D(_graphArea.Left, _graphArea.Right, _graphArea.Bottom, _graphArea.Top);
-            gl.Viewport(0, 20, 20, gl.RenderContextProvider.Height - 30);
-            gl.Begin(OpenGL.GL_LINES);
+        //    gl.End();
 
-            for (double y = _graphArea.Bottom - _yShift - ySteps * hy; y < _graphArea.Top; y += hy)
-            {
-                gl.Vertex(_graphArea.Right, y);
-                gl.Vertex(_graphArea.Right - _graphArea.Width * 0.4, y);
-            }
+        //    for (double x = _graphArea.Left - _xShift - xSteps * hx; x < _graphArea.Right; x += hx)
+        //    {
+        //        var axisX = $"{x:f2}";
+        //        var pos = _graphArea.ToScreenCoordinates(x, _graphArea.Bottom + _graphArea.Height * 0.015,
+        //            gl.RenderContextProvider);
+        //        var width = gl.RenderContextProvider.Width;
 
-            gl.End();
+        //        gl.DrawText((int)(pos.X - width * 0.017), (int)-pos.Y,
+        //            0f, 0f, 0f,
+        //            "Times New Roman", 10,
+        //            axisX);
+        //    }
+        //}
+        //gl.PopMatrix();
 
-            for (double y = _graphArea.Bottom - _yShift - ySteps * hy; y < _graphArea.Top; y += hy)
-            {
-                var axisY = $"{y:f2}";
-                var pos = _graphArea.ToScreenCoordinates(_graphArea.Left, y,
-                    gl.RenderContextProvider);
-                var height = gl.RenderContextProvider.Height;
+        //gl.PushMatrix();
+        //{
+        //    gl.MatrixMode(OpenGL.GL_PROJECTION);
+        //    gl.LoadIdentity();
+        //    gl.MatrixMode(OpenGL.GL_MODELVIEW);
+        //    gl.LoadIdentity();
+        //    gl.Ortho2D(_graphArea.Left, _graphArea.Right, _graphArea.Bottom, _graphArea.Top);
+        //    gl.Viewport(0, 20, 20, gl.RenderContextProvider.Height - 30);
+        //    gl.Begin(OpenGL.GL_LINES);
 
-                gl.DrawText((int)(pos.X), (int)(-pos.Y + height * 0.008), 
-                    0f, 0f, 0f, 
-                    "Times New Roman", 10, 
-                    axisY);
-            }
-        }
-        gl.PopMatrix();
+        //    for (double y = _graphArea.Bottom - _yShift - ySteps * hy; y < _graphArea.Top; y += hy)
+        //    {
+        //        gl.Vertex(_graphArea.Right, y);
+        //        gl.Vertex(_graphArea.Right - _graphArea.Width * 0.4, y);
+        //    }
+
+        //    gl.End();
+
+        //    for (double y = _graphArea.Bottom - _yShift - ySteps * hy; y < _graphArea.Top; y += hy)
+        //    {
+        //        var axisY = $"{y:f2}";
+        //        var pos = _graphArea.ToScreenCoordinates(_graphArea.Left, y,
+        //            gl.RenderContextProvider);
+        //        var height = gl.RenderContextProvider.Height;
+
+        //        gl.DrawText((int)(pos.X), (int)(-pos.Y + height * 0.008),
+        //            0f, 0f, 0f,
+        //            "Times New Roman", 10,
+        //            axisY);
+        //    }
+        //}
+        //gl.PopMatrix();
     }
 
     private void DrawLegend(OpenGL gl, double[] legendValues, byte[,] legendColors)

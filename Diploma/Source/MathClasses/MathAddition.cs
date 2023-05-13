@@ -12,11 +12,11 @@ public static class MathAddition
 
     public static double Jacobian2D(Matrix jacobiMatrix)
         => jacobiMatrix[0, 0] * jacobiMatrix[1, 1] - jacobiMatrix[0, 1] * jacobiMatrix[1, 0];
-    
+
     public static void InvertJacobiMatrix2D(Matrix jacobiMatrix)
     {
         double jacobian = Jacobian2D(jacobiMatrix);
-        
+
         (jacobiMatrix[0, 0], jacobiMatrix[1, 1]) = (jacobiMatrix[1, 1], jacobiMatrix[0, 0]);
         jacobiMatrix[0, 0] /= jacobian;
         jacobiMatrix[1, 1] /= jacobian;

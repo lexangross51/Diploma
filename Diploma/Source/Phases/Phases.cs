@@ -5,7 +5,7 @@ public struct Phase
     [JsonProperty("Name")] public string Name;
     [JsonProperty("Viscosity")] public double Viscosity;
     [JsonProperty("Saturation")] public double Kappa;
-    
+
     public static double KappaDependence(double saturation) => saturation;
 }
 
@@ -27,12 +27,12 @@ public class PhaseProperty
             phaseParameters = JsonConvert.DeserializeObject<Phase[]>(sr.ReadToEnd()) ??
                               throw new NullReferenceException("Fill the file correctly");
         }
-        
+
         using (var sr = new StreamReader(folderName + "InjectedPhase.json"))
         {
             wellPhaseParameters = JsonConvert.DeserializeObject<Phase[]>(sr.ReadToEnd()) ?? null;
         }
-        
+
         using (var sr = new StreamReader(folderName + "RemotePhases.json"))
         {
             remotePhasesParameters = JsonConvert.DeserializeObject<Phase[]>(sr.ReadToEnd()) ??
@@ -62,7 +62,7 @@ public class PhaseProperty
         if (wellPhaseParameters is not null)
         {
             InjectedPhases = new List<Phase>(wellPhaseParameters.Length);
-            
+
             foreach (var phase in wellPhaseParameters)
             {
                 InjectedPhases!.Add(phase);
