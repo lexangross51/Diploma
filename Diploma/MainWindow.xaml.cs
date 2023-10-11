@@ -25,7 +25,8 @@ public partial class MainWindow : INotifyPropertyChanged
 
     public MainWindow()
     {
-        MeshGenerator meshGenerator = new(new MeshBuilder(MeshParameters.ReadJson("Input/")));
+        var pars = MeshParameters.ReadJson("Input/");
+        MeshGenerator meshGenerator = new(new MeshBuilder(pars));
         _mesh = meshGenerator.CreateMesh();
         PhaseProperty phaseProperty = new(_mesh, "Input/");
         FEMBuilder femBuilder = new();
@@ -43,9 +44,22 @@ public partial class MainWindow : INotifyPropertyChanged
             .SetSolver(new CGM(1000, 1E-20))
             .SetTest(Source)
             .Build();
+        
+        fem.Solve();
 
-        Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
-        filtration.ModelFiltration(_timeStart, _timeEnd);
+        var points = DataWriter.GeneratePoints(
+            pars.Area[0].LeftBottom.X,
+            pars.Area[0].RightTop.X,
+            pars.Area[0].LeftBottom.Y,
+            pars.Area[0].RightTop.Y,
+            pars.SplitParameters.MeshNx / 2,
+            pars.SplitParameters.MeshNy / 2);
+        DataWriter.WriteData(
+            @"C:\Users\lexan\OneDrive\Рабочий стол\НГТУ\Магистратура\1 семестр\Непрерывные математические модели\Data\Numeric\data.txt",
+            points, points.Select(p => fem.ValueAtPoint(p.X, p.Y)).ToList());
+        
+        // Filtration filtration = new(_mesh, phaseProperty, fem, new LinearBasis());
+        // filtration.ModelFiltration(_timeStart, _timeEnd);
 
         _colorsPressure = new Color[_mesh.Elements.Length];
         _colorsSaturartion = new Color[_mesh.Elements.Length];

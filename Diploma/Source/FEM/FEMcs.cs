@@ -371,6 +371,77 @@ public class FEMBuilder
             return Error();
         }
 
+        private int FindElementByPoint(double x, double y)
+        {
+            for (var ielem = 0; ielem < _mesh.Elements.Length; ielem++)
+            {
+                var element = _mesh.Elements[ielem];
+                var p1 = _mesh.Points[element.Nodes.First()];
+                var p2 = _mesh.Points[element.Nodes.Last()];
+
+                if (p1.X <= x && x <= p2.X && p1.Y <= y && y <= p2.Y)
+                {
+                    return ielem;
+                }
+            }
+
+            return -1;
+        }
+        
+        public double ValueAtPoint(double x, double y)
+        {
+            int elem = FindElementByPoint(x, y);
+            
+            if (elem == -1) return double.MinValue;
+
+            var nodes = _mesh.Elements[elem].Nodes;
+            var p1 = _mesh.Points[nodes[0]];
+            var p2 = _mesh.Points[nodes[^1]];
+            double hx = p2.X - p1.X;
+            double hy = p2.Y - p1.Y;
+
+            var point = new Point2D
+            {
+                X = (x - p1.X) / hx,
+                Y = (y - p1.Y) / hy
+            };
+        
+            double sum = 0.0;
+            for (int i = 0; i < _basis.Size; i++)
+            {
+                sum += Solution![nodes[i]] * _basis.Phi(i, point);
+            }
+    
+            return sum;
+        }
+        
+        public double DiffAtPoint(double x, double y, int variable)
+        {
+            int elem = FindElementByPoint(x, y);
+            
+            if (elem == -1) return double.MinValue;
+
+            var nodes = _mesh.Elements[elem].Nodes;
+            var p1 = _mesh.Points[nodes[0]];
+            var p2 = _mesh.Points[nodes[^1]];
+            double hx = p2.X - p1.X;
+            double hy = p2.Y - p1.Y;
+
+            var point = new Point2D
+            {
+                X = (x - p1.X) / hx,
+                Y = (y - p1.Y) / hy
+            };
+        
+            double sum = 0.0;
+            for (int i = 0; i < _basis.Size; i++)
+            {
+                sum += Solution![nodes[i]] * _basis.DPhi(i, variable, point);
+            }
+    
+            return sum;
+        }
+
         private double Error()
         {
             if (_field is null) return 0.0;
